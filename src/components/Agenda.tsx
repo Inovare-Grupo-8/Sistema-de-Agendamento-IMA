@@ -24,12 +24,12 @@ const Agenda = () => {
   const [cancelTime, setCancelTime] = useState<string | null>(null);
   const [isRescheduleSuccessDialogOpen, setIsRescheduleSuccessDialogOpen] = useState(false);
 
-  const handleConfirm = (time, name, type) => {
+  const handleConfirm = (time) => {
     const period = periods.find(({ start, end }) => time >= start && time <= end)?.period;
     if (period) {
       setAppointments((prev) => [
         ...prev,
-        { time, name, type, period, timeRange: `${period} (${time})` },
+        { time, name: "", type: "", period, timeRange: `${period} (${time})` },
       ]);
     }
   };
@@ -38,7 +38,7 @@ const Agenda = () => {
     setAppointments((prev) => {
       const updatedAppointments = prev.map((apt) => {
         if (apt.time === time) {
-          // Determine the new period based on the updated time
+         
           const newPeriod = periods.find(({ start, end }) => newTime >= start && newTime <= end)?.period;
           return { ...apt, time: newTime, date: format(newDate, "dd/MM/yyyy"), period: newPeriod };
         }
@@ -78,7 +78,7 @@ const Agenda = () => {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4 text-[#ED4231]" />
               {format(date, "dd/MM/yyyy")}
             </Button>
           </PopoverTrigger>

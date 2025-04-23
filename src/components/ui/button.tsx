@@ -10,13 +10,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        confirm: "bg-[#ED4231] text-[#FFFFFF] hover:bg-[#D13B2C]",
-        reschedule: "bg-[#1A1466] text-[#FFFFFF] hover:bg-[#171259]",
-        cancel: "bg-[#FFFFFF] text-[#000000] border-[#000000] border hover:bg-gray-200",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
+        outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100",
+        secondary: "bg-blue-600 text-white hover:bg-blue-700",
+        ghost: "bg-transparent text-gray-700 hover:bg-gray-100",
+        confirm: "bg-[#ED4231] text-white hover:bg-[#D13B2C] !important",
+        reschedule: "bg-[#1A1466] text-white hover:bg-[#171259]",
+        cancel: "bg-[#FFFFFF] text-black border-black border hover:bg-gray-200",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -73,7 +73,7 @@ const TimeSlot = ({ time, name, type, period, onConfirm, onReschedule, onCancel 
         <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              variant={period === "Tarde" ? "default" : "destructive"} 
+              variant="confirm" 
               className="px-6"
             >
               Confirmar
@@ -100,7 +100,7 @@ const TimeSlot = ({ time, name, type, period, onConfirm, onReschedule, onCancel 
         <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              variant={period === "Tarde" ? "secondary" : "destructive"} 
+              variant="reschedule" 
               className="px-6"
             >
               Reagendar
@@ -150,7 +150,7 @@ const TimeSlot = ({ time, name, type, period, onConfirm, onReschedule, onCancel 
         <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              variant={period === "Tarde" ? "outline" : "destructive"} 
+              variant="cancel" 
               className="px-6"
             >
               Cancelar
