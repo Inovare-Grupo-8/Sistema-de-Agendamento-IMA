@@ -1,3 +1,4 @@
+// Importar os componentes e bibliotecas necessários
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -8,8 +9,12 @@ import { useState } from "react";
 import TimeSlot from "./TimeSlot";
 
 const Agenda = () => {
+  // Estado para gerenciar a data selecionada
   const [date, setDate] = useState<Date>(new Date("2025-04-04"));
+
+  // Estado para gerenciar a lista de compromissos
   const [appointments, setAppointments] = useState([
+    // Exemplo de compromissos com horário, nome, tipo e período
     { time: "11:00", name: "Samuel Batista", type: "Psicologia", period: "Manhã", timeRange: "09h-12h" },
     { time: "13:00", name: "Samuel Batista", type: "Psicologia", period: "Tarde", timeRange: "13h-18h" },
     { time: "14:00", name: "Samuel Batista", type: "Psicologia", period: "Tarde", timeRange: "13h-18h" },
@@ -20,10 +25,14 @@ const Agenda = () => {
     { time: "23:00", name: "Samuel Batista", type: "Psicologia", period: "Noite", timeRange: "19h-21h" },
   ]);
 
+  // Estado para gerenciar a visibilidade do diálogo de cancelamento de compromissos
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancelTime, setCancelTime] = useState<string | null>(null);
+
+  // Estado para gerenciar a visibilidade do diálogo de reagendamento bem-sucedido
   const [isRescheduleSuccessDialogOpen, setIsRescheduleSuccessDialogOpen] = useState(false);
 
+  // Função para confirmar um compromisso
   const handleConfirm = (time) => {
     const period = periods.find(({ start, end }) => time >= start && time <= end)?.period;
     if (period) {
@@ -34,11 +43,12 @@ const Agenda = () => {
     }
   };
 
+  // Função para reagendar um compromisso
   const handleReschedule = (time, newDate, newTime) => {
     setAppointments((prev) => {
       const updatedAppointments = prev.map((apt) => {
         if (apt.time === time) {
-         
+          // Determinar o novo período com base no horário atualizado
           const newPeriod = periods.find(({ start, end }) => newTime >= start && newTime <= end)?.period;
           return { ...apt, time: newTime, date: format(newDate, "dd/MM/yyyy"), period: newPeriod };
         }
@@ -49,11 +59,13 @@ const Agenda = () => {
     setIsRescheduleSuccessDialogOpen(true);
   };
 
+  // Função para cancelar um compromisso
   const handleCancel = (time) => {
     setCancelTime(time);
     setIsCancelDialogOpen(true);
   };
 
+  // Função para confirmar o cancelamento de um compromisso
   const confirmCancel = () => {
     if (cancelTime) {
       setAppointments((prev) => prev.filter((apt) => apt.time !== cancelTime));
@@ -62,6 +74,7 @@ const Agenda = () => {
     }
   };
 
+  // Definir períodos para manhã, tarde e noite
   const periods = [
     { period: "Manhã", Icon: Sun, timeRange: "08h-12h", start: "08:00", end: "12:00" },
     { period: "Tarde", Icon: CloudMoon, timeRange: "12h01-18h", start: "12:01", end: "18:00" },
@@ -70,6 +83,7 @@ const Agenda = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-[#EDF2FB] rounded-lg shadow-sm">
+      {/* Seção de cabeçalho com título e seletor de data */}
       <div className="flex justify-between items-center mb-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sua agenda</h1>
@@ -93,6 +107,7 @@ const Agenda = () => {
         </Popover>
       </div>
 
+      {/* Exibir compromissos agrupados por período */}
       <div className="space-y-4 mt-6">
         {periods.map(({ period, Icon, timeRange, start, end }) => (
           <div key={period} className="bg-white rounded-lg overflow-hidden">
@@ -105,7 +120,7 @@ const Agenda = () => {
             </div>
             <div className="divide-y">
               {appointments
-                .filter((apt) => apt.period === period) // Ensure appointments are filtered by the correct period
+                .filter((apt) => apt.period === period) // Garantir que os compromissos sejam filtrados pelo período correto
                 .map((appointment, idx) => (
                   <TimeSlot
                     key={`${appointment.time}-${idx}`}
@@ -123,6 +138,7 @@ const Agenda = () => {
         ))}
       </div>
 
+      {/* Diálogo para cancelar um compromisso */}
       <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -140,6 +156,7 @@ const Agenda = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Diálogo para reagendamento bem-sucedido */}
       <Dialog open={isRescheduleSuccessDialogOpen} onOpenChange={setIsRescheduleSuccessDialogOpen}>
         <DialogContent>
           <DialogHeader>
