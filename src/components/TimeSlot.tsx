@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
 import { useState } from "react";
 
 interface TimeSlotProps {
@@ -19,12 +28,29 @@ interface TimeSlotProps {
 }
 
 const TimeSlot = ({ time, name, type, period }: TimeSlotProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState<string>();
 
   const handleConfirm = () => {
-    // Add confirm logic here
-    setIsDialogOpen(false);
+    setIsConfirmDialogOpen(false);
   };
+
+  const handleReschedule = () => {
+    setIsRescheduleDialogOpen(false);
+  };
+
+  const handleCancel = () => {
+    setIsCancelDialogOpen(false);
+  };
+
+  const timeSlots = [
+    "09:00", "10:00", "11:00", "12:00",
+    "13:00", "14:00", "15:00", "16:00",
+    "17:00", "18:00", "19:00", "20:00"
+  ];
 
   return (
     <div className="px-4 py-3 bg-white flex items-center justify-between">
@@ -34,7 +60,7 @@ const TimeSlot = ({ time, name, type, period }: TimeSlotProps) => {
         <span className="text-gray-500">'{type}'</span>
       </div>
       <div className="flex items-center space-x-2">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
           <DialogTrigger asChild>
             <Button 
               variant={period === "Tarde" ? "default" : "destructive"} 
@@ -51,7 +77,7 @@ const TimeSlot = ({ time, name, type, period }: TimeSlotProps) => {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button onClick={handleConfirm}>
@@ -60,18 +86,83 @@ const TimeSlot = ({ time, name, type, period }: TimeSlotProps) => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Button 
-          variant={period === "Tarde" ? "secondary" : "destructive"} 
-          className="px-6"
-        >
-          Reagendar
-        </Button>
-        <Button 
-          variant={period === "Tarde" ? "outline" : "destructive"} 
-          className="px-6"
-        >
-          Cancelar
-        </Button>
+
+        <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant={period === "Tarde" ? "secondary" : "destructive"} 
+              className="px-6"
+            >
+              Reagendar
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reagendar consulta</DialogTitle>
+              <DialogDescription>
+                Escolha uma nova data e horário para a consulta de {name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 flex flex-col space-y-4">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md border pointer-events-auto"
+              />
+              <Select onValueChange={setSelectedTime}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o horário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeSlots.map((slot) => (
+                    <SelectItem key={slot} value={slot}>
+                      {slot}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setIsRescheduleDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleReschedule}
+                disabled={!selectedDate || !selectedTime}
+              >
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant={period === "Tarde" ? "outline" : "destructive"} 
+              className="px-6"
+            >
+              Cancelar
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancelar consulta</DialogTitle>
+              <DialogDescription>
+                Você tem certeza que deseja cancelar a consulta de {name} às {time}?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                Voltar
+              </Button>
+              <Button variant="destructive" onClick={handleCancel}>
+                Cancelar consulta
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
