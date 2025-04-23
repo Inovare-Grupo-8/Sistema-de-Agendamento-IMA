@@ -1,8 +1,9 @@
+
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Sun, CloudMoon, Moon } from "lucide-react";
+import { Calendar as CalendarIcon, Sun, CloudMoon, Moon } from "lucide-react";
 import { useState } from "react";
 import TimeSlot from "./TimeSlot";
 
@@ -21,7 +22,7 @@ const Agenda = () => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-sm">
+    <div className="max-w-3xl mx-auto p-6 bg-[#EDF2FB] rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sua agenda</h1>
@@ -51,9 +52,9 @@ const Agenda = () => {
           { period: "Tarde", Icon: CloudMoon, timeRange: "13h-18h" },
           { period: "Noite", Icon: Moon, timeRange: "19h-21h" }
         ].map(({ period, Icon, timeRange }) => (
-          <div key={period} className="bg-gray-50 rounded-lg overflow-hidden">
+          <div key={period} className="bg-white rounded-lg overflow-hidden">
             <div className="flex items-center px-4 py-2 bg-white border-b">
-              <Icon className="w-5 h-5 mr-2 text-gray-500" />
+              <Icon color="#ED4231" className="w-5 h-5 mr-2" />
               <span className="text-gray-600">{period}</span>
               <span className="text-gray-400 text-sm ml-auto">
                 {timeRange}
