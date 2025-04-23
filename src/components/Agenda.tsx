@@ -1,9 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sun, CloudMoon, Moon } from "lucide-react";
 import { useState } from "react";
 import TimeSlot from "./TimeSlot";
 
@@ -47,13 +46,17 @@ const Agenda = () => {
       </div>
 
       <div className="space-y-4 mt-6">
-        {["Manhã", "Tarde", "Noite"].map((period, index) => (
+        {[
+          { period: "Manhã", Icon: Sun, timeRange: "09h-12h" },
+          { period: "Tarde", Icon: CloudMoon, timeRange: "13h-18h" },
+          { period: "Noite", Icon: Moon, timeRange: "19h-21h" }
+        ].map(({ period, Icon, timeRange }) => (
           <div key={period} className="bg-gray-50 rounded-lg overflow-hidden">
             <div className="flex items-center px-4 py-2 bg-white border-b">
-              <Clock className="w-4 h-4 mr-2 text-gray-500" />
+              <Icon className="w-5 h-5 mr-2 text-gray-500" />
               <span className="text-gray-600">{period}</span>
               <span className="text-gray-400 text-sm ml-auto">
-                {period === "Manhã" ? "09h-12h" : period === "Tarde" ? "13h-18h" : "19h-21h"}
+                {timeRange}
               </span>
             </div>
             <div className="divide-y">
