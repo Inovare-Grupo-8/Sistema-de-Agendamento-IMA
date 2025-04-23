@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -25,9 +24,12 @@ interface TimeSlotProps {
   name: string;
   type: string;
   period: string;
+  onConfirm: (time: string) => void;
+  onReschedule: (time: string, newDate: Date, newTime: string) => void;
+  onCancel: (time: string) => void;
 }
 
-const TimeSlot = ({ time, name, type, period }: TimeSlotProps) => {
+const TimeSlot = ({ time, name, type, period, onConfirm, onReschedule, onCancel }: TimeSlotProps) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -35,14 +37,22 @@ const TimeSlot = ({ time, name, type, period }: TimeSlotProps) => {
   const [selectedTime, setSelectedTime] = useState<string>();
 
   const handleConfirm = () => {
+    onConfirm(time);
     setIsConfirmDialogOpen(false);
   };
 
   const handleReschedule = () => {
-    setIsRescheduleDialogOpen(false);
+    if (selectedDate && selectedTime) {
+      console.log("Rescheduling with:", { time, selectedDate, selectedTime }); // Debugging log
+      onReschedule(time, selectedDate, selectedTime);
+      setIsRescheduleDialogOpen(false);
+    } else {
+      console.log("Missing selectedDate or selectedTime", { selectedDate, selectedTime }); // Debugging log
+    }
   };
 
   const handleCancel = () => {
+    onCancel(time);
     setIsCancelDialogOpen(false);
   };
 
