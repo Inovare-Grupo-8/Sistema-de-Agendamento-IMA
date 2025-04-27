@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,16 +8,37 @@ import TimeSlot from "./TimeSlot";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());
-  const [appointments] = useState([
-    { time: "11:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
-    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
+  const [appointments, setAppointments] = useState([
+    { time: "09:00", name: "Ana Silva", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
+    { time: "10:30", name: "Carlos Souza", type: "Nutrição", serviceType: "Consulta Presencial", period: "Manhã" },
+    { time: "14:00", name: "Beatriz Lima", type: "Fisioterapia", serviceType: "Atendimento Online", period: "Tarde" },
+    { time: "15:30", name: "João Pedro", type: "Psicologia", serviceType: "Consulta Presencial", period: "Tarde" },
+    { time: "19:00", name: "Mariana Costa", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
+    { time: "20:30", name: "Rafael Almeida", type: "Nutrição", serviceType: "Consulta Presencial", period: "Noite" },
   ]);
+
+  const handleCancelAppointment = (time: string) => {
+    setAppointments((prevAppointments) =>
+      prevAppointments.filter((appointment) => appointment.time !== time)
+    );
+  };
+
+  const handleRescheduleAppointment = (time: string, newDate: Date, newTime: string) => {
+    setAppointments((prevAppointments) =>
+      prevAppointments.map((appointment) =>
+        appointment.time === time
+          ? { ...appointment, time: newTime, period: getPeriod(newTime) }
+          : appointment
+      )
+    );
+  };
+
+  const getPeriod = (time: string) => {
+    const hour = parseInt(time.split(":")[0], 10);
+    if (hour < 12) return "Manhã";
+    if (hour < 18) return "Tarde";
+    return "Noite";
+  };
 
   const periods = [
     { period: "Manhã", Icon: Sun, timeRange: "09h-12h" },
@@ -66,6 +86,8 @@ const Agenda = () => {
                   <TimeSlot
                     key={`${appointment.time}-${idx}`}
                     appointment={appointment}
+                    onCancel={() => handleCancelAppointment(appointment.time)}
+                    onReschedule={handleRescheduleAppointment}
                   />
                 ))}
             </div>

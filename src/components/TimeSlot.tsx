@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -28,9 +27,11 @@ interface Appointment {
 
 interface TimeSlotProps {
   appointment: Appointment;
+  onCancel: () => void;
+  onReschedule: (time: string, date: Date, newTime: string) => void;
 }
 
-const TimeSlot = ({ appointment }: TimeSlotProps) => {
+const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -42,6 +43,13 @@ const TimeSlot = ({ appointment }: TimeSlotProps) => {
     "13:00", "14:00", "15:00", "16:00",
     "17:00", "18:00", "19:00", "20:00"
   ];
+
+  const handleReschedule = () => {
+    if (selectedDate && selectedTime) {
+      onReschedule(appointment.time, selectedDate, selectedTime);
+      setIsRescheduleDialogOpen(false);
+    }
+  };
 
   return (
     <div className="px-4 py-3 flex items-center justify-between">
@@ -81,7 +89,7 @@ const TimeSlot = ({ appointment }: TimeSlotProps) => {
             <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
               Voltar
             </Button>
-            <Button variant="destructive" onClick={() => setIsCancelDialogOpen(false)}>
+            <Button variant="destructive" onClick={() => { setIsCancelDialogOpen(false); onCancel(); }}>
               Cancelar consulta
             </Button>
           </DialogFooter>
@@ -122,7 +130,7 @@ const TimeSlot = ({ appointment }: TimeSlotProps) => {
               Cancelar
             </Button>
             <Button 
-              onClick={() => setIsRescheduleDialogOpen(false)}
+              onClick={handleReschedule}
               className="bg-[#1A1466] hover:bg-[#13104d]"
               disabled={!selectedDate || !selectedTime}
             >
