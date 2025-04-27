@@ -1,93 +1,37 @@
-// Importar os componentes e bibliotecas necessários
+
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Sun, CloudMoon, Moon } from "lucide-react";
 import { useState } from "react";
 import TimeSlot from "./TimeSlot";
 
 const Agenda = () => {
-  // Estado para gerenciar a data selecionada
-  const [date, setDate] = useState<Date>(new Date("2025-04-04"));
-
-  // Estado para gerenciar a lista de compromissos
-  const [appointments, setAppointments] = useState([
-    // Exemplo de compromissos com horário, nome, tipo e período
-    { time: "11:00", name: "Samuel Batista", type: "Psicologia", period: "Manhã", timeRange: "09h-12h" },
-    { time: "13:00", name: "Samuel Batista", type: "Psicologia", period: "Tarde", timeRange: "13h-18h" },
-    { time: "14:00", name: "Samuel Batista", type: "Psicologia", period: "Tarde", timeRange: "13h-18h" },
-    { time: "15:00", name: "Samuel Batista", type: "Psicologia", period: "Tarde", timeRange: "13h-18h" },
-    { time: "16:00", name: "Samuel Batista", type: "Psicologia", period: "Tarde", timeRange: "13h-18h" },
-    { time: "21:00", name: "Samuel Batista", type: "Psicologia", period: "Noite", timeRange: "19h-21h" },
-    { time: "22:00", name: "Samuel Batista", type: "Psicologia", period: "Noite", timeRange: "19h-21h" },
-    { time: "23:00", name: "Samuel Batista", type: "Psicologia", period: "Noite", timeRange: "19h-21h" },
+  const [date, setDate] = useState<Date>(new Date());
+  const [appointments] = useState([
+    { time: "11:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Tarde" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
+    { time: "13:00", name: "George MacQueen", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
   ]);
 
-  // Estado para gerenciar a visibilidade do diálogo de cancelamento de compromissos
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [cancelTime, setCancelTime] = useState<string | null>(null);
-
-  // Estado para gerenciar a visibilidade do diálogo de reagendamento bem-sucedido
-  const [isRescheduleSuccessDialogOpen, setIsRescheduleSuccessDialogOpen] = useState(false);
-
-  // Função para confirmar um compromisso
-  const handleConfirm = (time) => {
-    const period = periods.find(({ start, end }) => time >= start && time <= end)?.period;
-    if (period) {
-      setAppointments((prev) => [
-        ...prev,
-        { time, name: "", type: "", period, timeRange: `${period} (${time})` },
-      ]);
-    }
-  };
-
-  // Função para reagendar um compromisso
-  const handleReschedule = (time, newDate, newTime) => {
-    setAppointments((prev) => {
-      const updatedAppointments = prev.map((apt) => {
-        if (apt.time === time) {
-          // Determinar o novo período com base no horário atualizado
-          const newPeriod = periods.find(({ start, end }) => newTime >= start && newTime <= end)?.period;
-          return { ...apt, time: newTime, date: format(newDate, "dd/MM/yyyy"), period: newPeriod };
-        }
-        return apt;
-      });
-      return updatedAppointments;
-    });
-    setIsRescheduleSuccessDialogOpen(true);
-  };
-
-  // Função para cancelar um compromisso
-  const handleCancel = (time) => {
-    setCancelTime(time);
-    setIsCancelDialogOpen(true);
-  };
-
-  // Função para confirmar o cancelamento de um compromisso
-  const confirmCancel = () => {
-    if (cancelTime) {
-      setAppointments((prev) => prev.filter((apt) => apt.time !== cancelTime));
-      setCancelTime(null);
-      setIsCancelDialogOpen(false);
-    }
-  };
-
-  // Definir períodos para manhã, tarde e noite
   const periods = [
-    { period: "Manhã", Icon: Sun, timeRange: "08h-12h", start: "08:00", end: "12:00" },
-    { period: "Tarde", Icon: CloudMoon, timeRange: "12h01-18h", start: "12:01", end: "18:00" },
-    { period: "Noite", Icon: Moon, timeRange: "18h01-00h", start: "18:01", end: "23:59" },
+    { period: "Manhã", Icon: Sun, timeRange: "09h-12h" },
+    { period: "Tarde", Icon: CloudMoon, timeRange: "12h-18h" },
+    { period: "Noite", Icon: Moon, timeRange: "19h-21h" },
   ];
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-[#EDF2FB] rounded-lg shadow-sm">
-      {/* Seção de cabeçalho com título e seletor de data */}
-      <div className="flex justify-between items-center mb-2">
+    <div className="max-w-5xl mx-auto p-6 bg-[#EDF2FB]">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sua agenda</h1>
-          <p className="text-gray-500 text-sm">Consulte a quantidade de assistido que você tem hoje</p>
+          <p className="text-gray-500 text-sm">Consulte a quantidade de atendimentos que você tem hoje</p>
         </div>
         <Popover>
           <PopoverTrigger asChild>
@@ -107,69 +51,27 @@ const Agenda = () => {
         </Popover>
       </div>
 
-      {/* Exibir compromissos agrupados por período */}
-      <div className="space-y-4 mt-6">
-        {periods.map(({ period, Icon, timeRange, start, end }) => (
+      <div className="space-y-4">
+        {periods.map(({ period, Icon, timeRange }) => (
           <div key={period} className="bg-white rounded-lg overflow-hidden">
-            <div className="flex items-center px-4 py-2 bg-white border-b">
+            <div className="flex items-center px-4 py-2 border-b">
               <Icon color="#ED4231" className="w-5 h-5 mr-2" />
               <span className="text-gray-600">{period}</span>
-              <span className="text-gray-400 text-sm ml-auto">
-                {timeRange}
-              </span>
+              <span className="text-gray-400 text-sm ml-auto">{timeRange}</span>
             </div>
             <div className="divide-y">
               {appointments
-                .filter((apt) => apt.period === period) // Garantir que os compromissos sejam filtrados pelo período correto
+                .filter((apt) => apt.period === period)
                 .map((appointment, idx) => (
                   <TimeSlot
                     key={`${appointment.time}-${idx}`}
-                    time={appointment.time}
-                    name={appointment.name}
-                    type={appointment.type}
-                    period={period}
-                    onConfirm={handleConfirm}
-                    onReschedule={handleReschedule}
-                    onCancel={handleCancel}
+                    appointment={appointment}
                   />
                 ))}
             </div>
           </div>
         ))}
       </div>
-
-      {/* Diálogo para cancelar um compromisso */}
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar consulta</DialogTitle>
-          </DialogHeader>
-          <p>Você tem certeza que deseja cancelar a consulta às {cancelTime}?</p>
-          <DialogFooter>
-            <Button variant="cancel" onClick={() => setIsCancelDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={confirmCancel}>
-              Cancelar consulta
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo para reagendamento bem-sucedido */}
-      <Dialog open={isRescheduleSuccessDialogOpen} onOpenChange={setIsRescheduleSuccessDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Consulta reagendada</DialogTitle>
-          </DialogHeader>
-          <p>A consulta foi reagendada com sucesso!</p>
-          <DialogFooter>
-            <Button onClick={() => setIsRescheduleSuccessDialogOpen(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
