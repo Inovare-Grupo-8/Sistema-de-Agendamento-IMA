@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Sun, CloudMoon, Moon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import TimeSlotSection from "@/components/TimeSlotSection";
 import AgendaSummary from "@/components/AgendaSummary";
+import { toast } from "@/components/ui/use-toast";
 
 const DisponibilizarHorario = () => {
   // Estado para armazenar a data selecionada
@@ -108,7 +109,14 @@ const DisponibilizarHorario = () => {
     }
     saveToLocalStorage();
     setValidationMessage("");
-    setIsModalOpen(true);
+    setIsModalOpen(false);
+
+    // Exibe notificação de sucesso
+    toast({
+      title: "Sucesso!",
+      description: `Horário disponibilizado com sucesso: ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime}`,
+      variant: "default",
+    });
   };
 
   const closeModal = () => {
