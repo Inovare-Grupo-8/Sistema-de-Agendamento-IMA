@@ -23,3 +23,4 @@ npm install
 
 
 ### Execute o projeto em modo de desenvolvimento
+npm run dev
