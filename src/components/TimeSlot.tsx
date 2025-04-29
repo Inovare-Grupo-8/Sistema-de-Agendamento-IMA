@@ -29,12 +29,11 @@ interface TimeSlotProps {
   appointment: Appointment;
   onCancel: () => void;
   onReschedule: (time: string, date: Date, newTime: string) => void;
+  renderRescheduleButton?: (onClick: () => void) => JSX.Element;
 }
 
-const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+const TimeSlot = ({ appointment, onCancel, onReschedule, renderRescheduleButton }: TimeSlotProps) => {
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
 
@@ -52,49 +51,29 @@ const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
   };
 
   return (
-    <div className="px-4 py-3 flex items-center justify-between">
-      <div className="grid grid-cols-4 gap-4 flex-1">
-        <span className="text-gray-900">{appointment.time}</span>
-        <span className="text-gray-700">{appointment.name}</span>
-        <span className="text-gray-600">{appointment.type}</span>
-        <span className="text-gray-500">{appointment.serviceType}</span>
+    <div className="flex justify-between items-center p-4">
+      <div>
+        <p className="font-bold">{appointment.name}</p>
+        <p className="text-sm text-gray-500">{appointment.type}</p>
       </div>
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="destructive"
-          onClick={() => setIsCancelDialogOpen(true)}
-          className="bg-red-600 hover:bg-red-700"
+      <div className="flex gap-2">
+        <button
+          onClick={onCancel}
+          className="bg-white text-gray-800 border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
         >
           Cancelar
-        </Button>
-        <Button 
-          variant="secondary"
-          onClick={() => setIsRescheduleDialogOpen(true)}
-          className="bg-[#1A1466] hover:bg-[#13104d]"
-        >
-          Reagendar
-        </Button>
+        </button>
+        {renderRescheduleButton ? (
+          renderRescheduleButton(() => setIsRescheduleDialogOpen(true))
+        ) : (
+          <button
+            onClick={() => setIsRescheduleDialogOpen(true)}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Reagendar
+          </button>
+        )}
       </div>
-
-      {/* Cancel Dialog */}
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar consulta</DialogTitle>
-            <DialogDescription>
-              Você tem certeza que deseja cancelar a consulta de {appointment.name} às {appointment.time}?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
-              Voltar
-            </Button>
-            <Button variant="destructive" onClick={() => { setIsCancelDialogOpen(false); onCancel(); }}>
-              Cancelar consulta
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Reschedule Dialog */}
       <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
