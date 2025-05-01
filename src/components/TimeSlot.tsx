@@ -32,28 +32,113 @@ interface TimeSlotProps {
 }
 
 const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState<string>();
+
+  const timeSlots = [
+    "09:00", "10:00", "11:00", "12:00",
+    "13:00", "14:00", "15:00", "16:00",
+    "17:00", "18:00", "19:00", "20:00"
+  ];
+
+  const handleReschedule = () => {
+    if (selectedDate && selectedTime) {
+      onReschedule(appointment.time, selectedDate, selectedTime);
+      setIsRescheduleDialogOpen(false);
+    }
+  };
+
   return (
-    <div className="px-4 py-3 flex items-center justify-between border-b">
+    <div className="px-4 py-3 flex items-center justify-between">
       <div className="grid grid-cols-4 gap-4 flex-1">
-        <span className="text-gray-900 font-bold">{appointment.time}</span>
+        <span className="text-gray-900">{appointment.time}</span>
         <span className="text-gray-700">{appointment.name}</span>
         <span className="text-gray-600">{appointment.type}</span>
         <span className="text-gray-500">{appointment.serviceType}</span>
       </div>
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => onCancel(appointment.time)}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        <Button 
+          variant="destructive"
+          onClick={() => setIsCancelDialogOpen(true)}
+          className="bg-red-600 hover:bg-red-700"
         >
           Cancelar
-        </button>
-        <button
-          onClick={() => onReschedule(appointment.time)}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        </Button>
+        <Button 
+          variant="secondary"
+          onClick={() => setIsRescheduleDialogOpen(true)}
+          className="bg-[#1A1466] hover:bg-[#13104d]"
         >
           Reagendar
-        </button>
+        </Button>
       </div>
+
+      {/* Cancel Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar consulta</DialogTitle>
+            <DialogDescription>
+              Você tem certeza que deseja cancelar a consulta de {appointment.name} às {appointment.time}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+              Voltar
+            </Button>
+            <Button variant="destructive" onClick={() => { setIsCancelDialogOpen(false); onCancel(); }}>
+              Cancelar consulta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reagendar consulta</DialogTitle>
+            <DialogDescription>
+              Escolha uma nova data e horário para a consulta de {appointment.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 flex flex-col space-y-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border"
+            />
+            <Select onValueChange={setSelectedTime}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o horário" />
+              </SelectTrigger>
+              <SelectContent>
+                {timeSlots.map((slot) => (
+                  <SelectItem key={slot} value={slot}>
+                    {slot}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsRescheduleDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleReschedule}
+              className="bg-[#1A1466] hover:bg-[#13104d]"
+              disabled={!selectedDate || !selectedTime}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
