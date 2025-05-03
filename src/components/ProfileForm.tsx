@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, Clock, Menu, Sun, Moon } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Menu, Sun, Moon, UserX } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
@@ -354,7 +354,7 @@ const ProfileForm = () => {
                     </div>
                 </div>
                 <div className={`flex-1 w-full md:w-auto mt-4 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
-                    <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 dark:bg-[#23272F]/90 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner">
+                    <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 dark:bg-[#23272F]/90 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do perfil">
                         <div className="flex items-center gap-3">
                             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
                             <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
@@ -372,10 +372,10 @@ const ProfileForm = () => {
                         </div>
                     </header>
                     <div className="h-20" />
-                    <main id="main-content" role="main">
+                    <main id="main-content" role="main" aria-label="Conteúdo principal do perfil">
                         <div className="max-w-5xl mx-auto p-6">
                             <div className="flex items-center justify-between mb-8">
-                                <h1 className="text-2xl font-bold dark:text-gray-100 animate-fade-in">{t('profile')}</h1>
+                                <h1 className="text-2xl md:text-3xl font-bold text-center animate-fade-in">{t('profile')}</h1>
                             </div>
 
                             {loading ? (
@@ -389,7 +389,7 @@ const ProfileForm = () => {
                                         exit={{ opacity: 0, y: -24 }}
                                         transition={{ duration: 0.4 }}
                                     >
-                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white dark:bg-[#23272F] rounded-2xl shadow-lg dark:shadow-none p-8 transition-colors duration-300 border dark:border-[#23272F] animate-fade-in" aria-live="polite" role="form">
+                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white dark:bg-[#23272F] rounded-2xl shadow-lg dark:shadow-none p-8 transition-colors duration-300 border dark:border-[#23272F] animate-fade-in transition-transform duration-300 hover:scale-[1.01] hover:shadow-xl focus-within:scale-[1.01] focus-within:shadow-xl group" aria-live="polite" role="form">
                                             <div className="space-y-6">
                                                 <Progress value={progress} className="my-4" />
                                                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Perfil {progress}% completo</div>
@@ -642,7 +642,7 @@ const ProfileForm = () => {
                                                     </Button>
                                                     <Button
                                                         type="submit"
-                                                        className={`bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none`}
+                                                        className={`bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95`}
                                                         disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-label="Salvar perfil"
@@ -716,15 +716,16 @@ const ProfileForm = () => {
                             </Dialog>
 
                             {!formData.nome && (
-                                <div className="p-4">
-                                    <Skeleton className="h-8 w-1/2 mb-2" />
-                                    <Skeleton className="h-6 w-1/3" />
+                                <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
+                                    <UserX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
+                                    <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Perfil não encontrado</div>
+                                    <div className="text-gray-400 dark:text-gray-500 text-sm">Preencha seus dados para começar a usar a plataforma.<br/>Eles aparecerão aqui!</div>
                                 </div>
                             )}
                             {hasChanged && (
                                 <button
                                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                    className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in"
+                                    className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
                                     aria-label="Voltar ao topo"
                                 >
                                     ↑

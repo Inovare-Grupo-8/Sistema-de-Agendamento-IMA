@@ -336,7 +336,7 @@ const DisponibilizarHorario = () => {
           </SidebarMenu>
           {/* Loader de exemplo para feedback visual */}
           {loading ? (
-            <div className="space-y-4">
+            <div className="space-y-4" aria-busy="true" aria-live="polite">
               {[...Array(2)].map((_, i) => <DisponibilizarHorarioSkeleton key={i} />)}
             </div>
           ) : (
@@ -359,8 +359,8 @@ const DisponibilizarHorario = () => {
             </div>
           </div>
         </div>
-        <main id="main-content" role="main" className={`flex-1 w-full md:w-auto mt-4 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 dark:bg-[#23272F]/90 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner">
+        <main id="main-content" role="main" aria-label="Conteúdo principal de disponibilizar horário" className={`flex-1 w-full md:w-auto mt-4 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 dark:bg-[#23272F]/90 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho da tela de disponibilizar horário">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100 text-base md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
@@ -379,7 +379,7 @@ const DisponibilizarHorario = () => {
           </header>
           <div className="h-20" />
           <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-6">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center animate-fade-in">{t('make_time_available')}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-center animate-fade-in">{t('make_time_available')}</h1>
             <p className="text-gray-500 text-sm md:text-base mb-6 text-center animate-fade-in">{t('choose_date_time')}</p>
             <AnimatePresence mode="wait">
               <motion.div
@@ -392,8 +392,8 @@ const DisponibilizarHorario = () => {
                 <div className="flex flex-col lg:flex-row gap-6 items-start">
                   {/* Coluna da esquerda: calendário e horários */}
                   <div className="flex-1 flex flex-col gap-6 min-w-0">
-                    <Card className="rounded-2xl shadow-lg p-0 animate-fade-in" role="region" aria-label="Calendário de seleção de data">
-                      <CardHeader className="flex flex-row items-center justify-between py-3 bg-[#f8fafc] rounded-t-2xl">
+                    <Card className="rounded-2xl shadow-lg p-0 animate-fade-in transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl focus-within:scale-[1.02] focus-within:shadow-xl group" role="region" aria-label="Calendário de seleção de data">
+                      <CardHeader className="flex flex-row items-center justify-between py-3 bg-[#f8fafc] rounded-t-2xl transition-colors duration-200 group-hover:bg-[#f1f5f9] group-hover:dark:bg-[#23272F]/80">
                         <CardTitle className="text-base md:text-lg">
                           {selectedDate ? format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR }) : format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
                         </CardTitle>
@@ -430,17 +430,25 @@ const DisponibilizarHorario = () => {
                               <TooltipContent>Selecione um horário disponível para o período {title.toLowerCase()}.</TooltipContent>
                             </Tooltip>
                           </div>
-                          <TimeSlotSection 
-                            title={title} 
-                            timeSlots={timeSlots}
-                            selectedTime={selectedTime}
-                            onSelectTime={handleTimeSelect}
-                            highlightColor={title === 'Manhã' ? 'bg-yellow-100 dark:bg-yellow-900/30' : title === 'Tarde' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30'}
-                            animateSelection
-                            aria-describedby="horarios-erro"
-                            aria-label={`Horários disponíveis para o período ${title}`}
-                            aria-selected={selectedTime ? true : false}
-                          />
+                          {timeSlots.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
+                              <Clock className="w-16 h-16 mb-3 text-gray-300 dark:text-gray-600" aria-hidden="true" />
+                              <div className="text-gray-500 dark:text-gray-400 text-base font-semibold mb-1">Nenhum horário disponível</div>
+                              <div className="text-gray-400 dark:text-gray-500 text-xs">Todos os horários deste período já foram reservados.<br/>Tente outro período ou volte mais tarde.</div>
+                            </div>
+                          ) : (
+                            <TimeSlotSection 
+                              title={title} 
+                              timeSlots={timeSlots}
+                              selectedTime={selectedTime}
+                              onSelectTime={handleTimeSelect}
+                              highlightColor={title === 'Manhã' ? 'bg-yellow-100 dark:bg-yellow-900/30' : title === 'Tarde' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30'}
+                              animateSelection
+                              aria-describedby="horarios-erro"
+                              aria-label={`Horários disponíveis para o período ${title}`}
+                              aria-selected={selectedTime ? true : false}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -492,8 +500,7 @@ const DisponibilizarHorario = () => {
                       onClick={handleOtherTime}
                       aria-label={t('choose_custom_time')}
                       disabled={isLoading}
-                      tabIndex={0}
-                      title={t('choose_custom_time')}
+                      aria-disabled={isLoading}
                     >
                       {isLoading ? (
                         <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>{t('loading')}</span>
@@ -569,7 +576,7 @@ const DisponibilizarHorario = () => {
           {selectedDate && selectedTime && (
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in"
+              className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
               aria-label="Voltar ao topo"
             >
               ↑

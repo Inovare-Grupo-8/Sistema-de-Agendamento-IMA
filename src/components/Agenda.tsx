@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Sun, CloudMoon, Moon, User, Clock, Menu } from "lucide-react";
+import { Calendar as CalendarIcon, Sun, CloudMoon, Moon, User, Clock, Menu, CalendarX } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import TimeSlot from "./TimeSlot";
 import { useProfileImage } from "@/components/useProfileImage";
@@ -119,22 +119,22 @@ const Agenda = () => {
       <div className={`min-h-screen w-full flex flex-col md:flex-row text-base md:text-lg bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans`}>
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 shadow-md backdrop-blur-md">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
-            </button>
+            </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
             <span className="font-bold text-indigo-900 text-sm md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
+          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6
           fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px]`
         }>
           <div className="w-full flex justify-start mb-6">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
-            </button>
+            </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
@@ -151,7 +151,7 @@ const Agenda = () => {
                     </Link>
                   </SidebarMenuButton>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="z-50">
                   Veja sua agenda de atendimentos
                 </TooltipContent>
               </Tooltip>
@@ -166,7 +166,7 @@ const Agenda = () => {
                     </Link>
                   </SidebarMenuButton>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="z-50">
                   Disponibilize novos horários para atendimento
                 </TooltipContent>
               </Tooltip>
@@ -181,7 +181,7 @@ const Agenda = () => {
                     </Link>
                   </SidebarMenuButton>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="z-50">
                   Edite seu perfil e foto
                 </TooltipContent>
               </Tooltip>
@@ -196,7 +196,7 @@ const Agenda = () => {
                     </span>
                   </SidebarMenuButton>
                 </TooltipTrigger>
-                <TooltipContent>Sair da conta</TooltipContent>
+                <TooltipContent className="z-50">Sair da conta</TooltipContent>
               </Tooltip>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -208,14 +208,14 @@ const Agenda = () => {
             </div>
           </div>
         </div>
-        <main id="main-content" role="main" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner">
+        <main id="main-content" role="main" aria-label="Conteúdo principal da agenda" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho da agenda">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {formData?.nome} {formData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
@@ -223,14 +223,14 @@ const Agenda = () => {
                 title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
               >
                 {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-              </button>
+              </Button>
             </div>
           </header>
           <div className="h-20" />
           <div className="max-w-5xl mx-auto p-2 md:p-6 bg-[#EDF2FB] dark:bg-[#181A20]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 md:gap-0">
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 animate-fade-in drop-shadow-md tracking-tight">{t('your_schedule')}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-center animate-fade-in">{t('your_schedule')}</h1>
                 <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm animate-fade-in mb-2">{t('see_appointments_today')}</p>
               </div>
               <Popover>
@@ -268,15 +268,15 @@ const Agenda = () => {
               >
                 <div className="space-y-4" role="region" aria-label="Lista de atendimentos" ref={listRef}>
                   {loading ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4" aria-busy="true" aria-live="polite">
                       {[...Array(3)].map((_, i) => <AgendaCardSkeleton key={i} />)}
                     </div>
                   ) : error ? (
                     <ErrorMessage message={error} />
                   ) : (
                     periods.map(({ period, Icon, timeRange }, periodIdx) => (
-                      <div key={period} className="bg-white dark:bg-[#181A20] rounded-lg overflow-hidden border border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none animate-fade-in transition-transform duration-300 hover:scale-[1.01] focus-within:scale-[1.01]">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center px-2 md:px-4 py-2 border-b border-[#EDF2FB] dark:border-[#444857] bg-white dark:bg-[#23272F]">
+                      <div key={period} className="bg-white dark:bg-[#181A20] rounded-lg border border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none animate-fade-in transition-transform duration-300 hover:scale-[1.02] hover:shadow-lg focus-within:scale-[1.02] focus-within:shadow-lg group" tabIndex={0} aria-label={`Período ${period}`}> 
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center px-2 md:px-4 py-2 border-b border-[#EDF2FB] dark:border-[#444857] bg-white dark:bg-[#23272F] transition-colors duration-200 group-hover:bg-[#f8fafc] group-hover:dark:bg-[#23272F]/80">
                           <div className="flex items-center gap-2">
                             <Icon color="#ED4231" className="w-5 h-5 mr-2" aria-label={`Ícone do período ${period}`}/>
                             <span className={`text-gray-600 dark:text-gray-100 text-sm md:text-base font-semibold ${appointments.filter((apt) => apt.period === period).length > 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>{period}</span>
@@ -287,7 +287,7 @@ const Agenda = () => {
                               <TooltipTrigger asChild>
                                 <span tabIndex={0} className="ml-2 cursor-pointer text-gray-400 hover:text-[#ED4231] focus:text-[#ED4231]" aria-label={`Dica sobre o período ${period}`}>?</span>
                               </TooltipTrigger>
-                              <TooltipContent>Veja os atendimentos do período {period.toLowerCase()}.</TooltipContent>
+                              <TooltipContent className="z-50">Veja os atendimentos do período {period.toLowerCase()}.</TooltipContent>
                             </Tooltip>
                           </div>
                           <span className="text-gray-400 dark:text-gray-500 text-xs md:text-sm ml-0 sm:ml-auto">{timeRange}</span>
@@ -306,13 +306,13 @@ const Agenda = () => {
             </AnimatePresence>
 
             {appointments.length > 4 && (
-              <button
+              <Button
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in"
+                className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
                 aria-label="Voltar ao topo"
               >
                 ↑
-              </button>
+              </Button>
             )}
           </div>
         </main>
@@ -391,7 +391,13 @@ const Agenda = () => {
 
 function AppointmentList({ appointments, onCancel, onReschedule, nextIdx }: { appointments: Appointment[]; onCancel: (time: string) => void; onReschedule: (time: string, newDate: Date, newTime: string) => void; nextIdx?: number }) {
   if (appointments.length === 0) {
-    return <div className="text-gray-400 text-center py-4" role="status">{t('no_appointments')}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
+        <CalendarX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
+        <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Nenhum atendimento neste período</div>
+        <div className="text-gray-400 dark:text-gray-500 text-sm">Você ainda não possui agendamentos para este período.<br/>Quando houver, eles aparecerão aqui!</div>
+      </div>
+    );
   }
   return (
     <div role="list" className="divide-y overflow-x-auto">
