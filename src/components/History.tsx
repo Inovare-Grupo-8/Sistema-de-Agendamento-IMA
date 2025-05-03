@@ -3,11 +3,27 @@ import Modal from "@/components/ui/ModalRelato";
 
 const History = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
+  const [appointmentToConfirm, setAppointmentToConfirm] = useState<string | null>(null);
+  const [confirmedAppointments, setConfirmedAppointments] = useState<string[]>([]);
 
   const handleOpenModal = (time: string) => {
-    setSelectedAppointment(time); // Define o horário selecionado
-    setIsModalOpen(true); // Abre o modal
+    setSelectedAppointment(time);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenConfirmModal = (time: string) => {
+    setAppointmentToConfirm(time);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmAppointment = () => {
+    if (appointmentToConfirm) {
+      setConfirmedAppointments((prev) => [...prev, appointmentToConfirm]);
+      setIsConfirmModalOpen(false);
+      setAppointmentToConfirm(null);
+    }
   };
 
   const appointments = [
@@ -27,6 +43,7 @@ const History = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-[#EDF2FB]">
+      {/* Modal para Relatar */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -34,7 +51,40 @@ const History = () => {
           console.log("Relatório enviado:", report, "para o horário:", selectedAppointment);
           setIsModalOpen(false);
         }}
-      />
+      >
+        <div className="p-4">
+          <h2 className="text-lg font-bold mb-4">Relatar Consulta</h2>
+          <p>Descreva o que aconteceu na consulta às {selectedAppointment}.</p>
+          {/* Adicione o formulário de relato aqui */}
+        </div>
+      </Modal>
+
+      {/* Modal para Confirmar */}
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onSubmit={handleConfirmAppointment}
+      >
+        <div className="p-4">
+          <h2 className="text-lg font-bold mb-4">Confirmar Consulta</h2>
+          <p>Tem certeza de que deseja confirmar que a consulta às {appointmentToConfirm} aconteceu?</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleConfirmAppointment}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Seu histórico</h1>
       <div className="space-y-4">
         {periods.map(({ period, timeRange }) => (
@@ -55,12 +105,22 @@ const History = () => {
                       <p className="font-bold">{appointment.name}</p>
                       <p className="text-sm text-gray-500">{appointment.type}</p>
                     </div>
-                    <button
-                      onClick={() => handleOpenModal(appointment.time)}
-                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                    >
-                      Relatar
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {!confirmedAppointments.includes(appointment.time) && (
+                        <button
+                          onClick={() => handleOpenConfirmModal(appointment.time)}
+                          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                        >
+                          Confirmar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleOpenModal(appointment.time)}
+                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                      >
+                        Relatar
+                      </button>
+                    </div>
                   </div>
                 ))}
             </div>

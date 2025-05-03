@@ -16,11 +16,14 @@ const Agenda = () => {
     { time: "19:00", name: "Mariana Costa", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
     { time: "20:30", name: "Rafael Almeida", type: "Nutrição", serviceType: "Consulta Presencial", period: "Noite" },
   ]);
+  const [notification, setNotification] = useState<string | null>(null);
 
   const handleCancelAppointment = (time: string) => {
     setAppointments((prevAppointments) =>
       prevAppointments.filter((appointment) => appointment.time !== time)
     );
+    setNotification("Consulta cancelada com sucesso!");
+    setTimeout(() => setNotification(null), 3000);
   };
 
   const handleRescheduleAppointment = (time: string, newDate: Date, newTime: string) => {
@@ -31,6 +34,8 @@ const Agenda = () => {
           : appointment
       )
     );
+    setNotification("Consulta reagendada com sucesso!");
+    setTimeout(() => setNotification(null), 3000);
   };
 
   const getPeriod = (time: string) => {
@@ -48,6 +53,11 @@ const Agenda = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-[#EDF2FB]">
+      {notification && (
+        <div className="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow">
+          {notification}
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sua agenda</h1>

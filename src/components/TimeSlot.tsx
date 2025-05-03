@@ -46,8 +46,8 @@ const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
 
   const handleReschedule = () => {
     if (selectedDate && selectedTime) {
-      onReschedule(appointment.time, selectedDate, selectedTime);
-      setIsRescheduleDialogOpen(false);
+      onReschedule(appointment.time, selectedDate, selectedTime); 
+      setIsRescheduleDialogOpen(false); 
     }
   };
 
