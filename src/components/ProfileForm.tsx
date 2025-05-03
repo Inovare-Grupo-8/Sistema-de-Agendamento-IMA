@@ -88,6 +88,7 @@ const ProfileForm = () => {
     const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
     const [ufSuggestions, setUfSuggestions] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showProfileView, setShowProfileView] = useState(false);
 
     const requiredFields = [
         formData.nome,
@@ -125,11 +126,6 @@ const ProfileForm = () => {
         const current = JSON.stringify({ ...formData, bio, emailConfirm });
         setHasChanged(savedData ? current !== savedData : true);
     }, [formData, bio, emailConfirm]);
-
-    useEffect(() => {
-        setBio(formData.bio || "");
-        setEmailConfirm(formData.email || "");
-    }, [formData]);
 
     useEffect(() => {
         const required = [formData.nome, formData.sobrenome, formData.email, formData.telefone, bio, formData.cpf, formData.cep, formData.nascimento];
@@ -200,6 +196,33 @@ const ProfileForm = () => {
         setShowCancelDialog(false);
     };
 
+    const handleClear = () => {
+        setFormData({
+            nome: '',
+            sobrenome: '',
+            email: '',
+            endereco: '',
+            telefone: '',
+            cidade: '',
+            uf: '',
+            atividade: '',
+            profileImage: '',
+            cpf: '',
+            cep: '',
+            nascimento: '',
+        });
+        setBio('');
+        setEmailConfirm('');
+        setErrors({});
+        setHasChanged(true);
+    };
+
+    const handleRemovePhoto = () => {
+        setFormData({ ...formData, profileImage: '' });
+        setProfileImage('/image/perfilProfile.svg');
+        setHasChanged(true);
+    };
+
     const cidades = ["São Paulo", "Rio de Janeiro", "Belo Horizonte", "Campinas", "Curitiba"];
     const ufs = ["SP", "RJ", "MG", "PR", "RS"];
     const handleCidadeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -253,7 +276,7 @@ const ProfileForm = () => {
             {suggestions.length > 0 && (
                 <ul className="bg-white dark:bg-[#23272F] border rounded shadow absolute z-10 w-full" role="listbox" aria-label={`Sugestões para ${label}`}> 
                     {suggestions.map(s => (
-                        <li key={s} role="option" className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-[#181A20] cursor-pointer" onMouseDown={() => onSuggestionClick(s)}>{s}</li>
+                        <li key={s} role="option" className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-[#181A20] cursor-pointer transition-colors duration-200 hover:bg-[#ED4231]/10 focus:bg-[#ED4231]/20 rounded-md" onMouseDown={() => onSuggestionClick(s)}>{s}</li>
                     ))}
                 </ul>
             )}
@@ -641,16 +664,50 @@ const ProfileForm = () => {
                                                         Cancelar
                                                     </Button>
                                                     <Button
+                                                        variant="outline"
+                                                        type="button"
+                                                        onClick={handleClear}
+                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                                                        aria-label="Limpar tudo"
+                                                    >
+                                                        Limpar tudo
+                                                    </Button>
+                                                    <Button
                                                         type="submit"
-                                                        className={`bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95`}
+                                                        className={`relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md disabled:opacity-70 disabled:cursor-not-allowed`}
                                                         disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-label="Salvar perfil"
                                                     >
-                                                        {isSaving && (
-                                                            <span className="inline-block w-4 h-4 border-2 border-t-2 border-t-[#1A1466] border-[#EDF2FB] rounded-full animate-spin mr-2" aria-label="Salvando..." role="status" />
-                                                        )}
-                                                        Salvar
+                                                        {isSaving ? (
+                                                            <span className="absolute left-4 flex items-center justify-center">
+                                                                <span className="loader-circle w-6 h-6 block" aria-label="Salvando..." role="status" />
+                                                            </span>
+                                                        ) : null}
+                                                        <span className={isSaving ? 'opacity-60' : ''}>Salvar</span>
+                                                        <style>{`
+                                                            .loader-circle {
+                                                                border: 3px solid #EDF2FB;
+                                                                border-top: 3px solid #ED4231;
+                                                                border-radius: 50%;
+                                                                width: 1.5rem;
+                                                                height: 1.5rem;
+                                                                animation: spin 0.7s linear infinite;
+                                                            }
+                                                            @keyframes spin {
+                                                                0% { transform: rotate(0deg); }
+                                                                100% { transform: rotate(360deg); }
+                                                            }
+                                                        `}</style>
+                                                    </Button>
+                                                    <Button
+                                                        variant="secondary"
+                                                        type="button"
+                                                        onClick={() => setShowProfileView(true)}
+                                                        className={`relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md`}
+                                                        aria-label="Visualizar perfil"
+                                                    >
+                                                        <span>Visualizar Perfil</span>
                                                     </Button>
                                                 </div>
                                                 <div className="mt-4 text-xs text-gray-500 dark:text-gray-300">Última atualização: {lastUpdated || 'Nunca'}</div>
@@ -668,6 +725,16 @@ const ProfileForm = () => {
                                                         alt="Profile preview"
                                                         className="rounded-full w-72 h-72 object-cover mb-2"
                                                     />
+                                                    {formData.profileImage && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleRemovePhoto}
+                                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-[#ED4231]"
+                                                            aria-label="Remover foto de perfil"
+                                                        >
+                                                            <UserX className="w-5 h-5" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <label
                                                     htmlFor="upload-photo"
@@ -712,6 +779,22 @@ const ProfileForm = () => {
                                         <Button variant="outline" onClick={() => setShowLogoutDialog(false)} className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none">Cancelar</Button>
                                         <Button className="bg-[#ED4231] text-white focus:ring-2 focus:ring-[#ED4231] focus:outline-none" onClick={() => { setShowLogoutDialog(false); /* Adicione lógica de logout aqui */ }}>Sair</Button>
                                     </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={showProfileView} onOpenChange={setShowProfileView}>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Visualização do Perfil</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex flex-col items-center gap-4">
+                                        <img src={formData.profileImage || "/image/perfilProfile.svg"} alt="Profile preview" className="rounded-full w-32 h-32 object-cover" />
+                                        <div className="font-bold text-lg">{formData.nome} {formData.sobrenome}</div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-300">{formData.email}</div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-300">{formData.cidade} - {formData.uf}</div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-300">{formData.atividade}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">{bio}</div>
+                                    </div>
                                 </DialogContent>
                             </Dialog>
 

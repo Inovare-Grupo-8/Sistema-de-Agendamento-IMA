@@ -639,10 +639,10 @@ const DisponibilizarHorario = () => {
           to { opacity: 1; transform: translateY(0); }
         }
         @media (max-width: 640px) {
-          .lg\\:flex-row {
+          .lg:flex-row {
             flex-direction: column !important;
           }
-          .lg\\:max-w-xs {
+          .lg:max-w-xs {
             max-width: 100% !important;
           }
         }
