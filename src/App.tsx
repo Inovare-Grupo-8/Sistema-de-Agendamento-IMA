@@ -5,6 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import DisponibilizarHorario from "./pages/DisponibilizarHorario";
+import Agenda from "@/components/Agenda";
+import ProfileForm from "@/components/ProfileForm";
+import { ProfileImageProvider } from "@/components/ProfileImageContext";
 
 const queryClient = new QueryClient();
 
@@ -13,13 +17,18 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <ProfileImageProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<DisponibilizarHorario />} />
+            <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
+            <Route path="/agenda" element={<Agenda />} />
+            <Route path="/profile-form" element={<ProfileForm />} />
+            <Route path="/not-found" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ProfileImageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

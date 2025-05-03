@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -10,20 +9,22 @@ interface AgendaSummaryProps {
   selectedTime: string;
   onConfirm: () => void;
   onCancel: () => void;
+  highlight?: boolean;
 }
 
 const AgendaSummary = ({ 
   selectedDate, 
   selectedTime,
   onConfirm,
-  onCancel
+  onCancel,
+  highlight = false
 }: AgendaSummaryProps) => {
   const formattedDate = selectedDate 
     ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) 
     : "22/05/2025"; // Valor padrão conforme a imagem
 
   return (
-    <Card className="w-full">
+    <Card className={`w-full ${highlight ? 'ring-2 ring-[#ED4231] ring-offset-2' : ''}`}>
       <CardHeader className="pb-0">
         <CardTitle className="text-center text-xl">Resumo</CardTitle>
       </CardHeader>
