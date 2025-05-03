@@ -331,6 +331,19 @@ const ProfileForm = () => {
                                 </TooltipContent>
                             </Tooltip>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <SidebarMenuButton className="rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
+                                        <span className="flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                                            <span>Sair</span>
+                                        </span>
+                                    </SidebarMenuButton>
+                                </TooltipTrigger>
+                                <TooltipContent>Sair da conta</TooltipContent>
+                            </Tooltip>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                     <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 dark:text-gray-500 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
                         <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
@@ -355,15 +368,6 @@ const ProfileForm = () => {
                                 title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
                             >
                                 {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-                            </button>
-                            <button
-                                className="bg-[#ED4231] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#c32d22] transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                                aria-label="Sair"
-                                onClick={() => setShowLogoutDialog(true)}
-                                tabIndex={0}
-                                title="Sair"
-                            >
-                                Sair
                             </button>
                         </div>
                     </header>
@@ -638,12 +642,14 @@ const ProfileForm = () => {
                                                     </Button>
                                                     <Button
                                                         type="submit"
-                                                        className="bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                                                        className={`bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none`}
                                                         disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-label="Salvar perfil"
                                                     >
-                                                        {isSaving && <span className="inline-block w-4 h-4 border-2 border-t-2 border-t-[#1A1466] border-[#EDF2FB] rounded-full animate-spin mr-2" aria-label="Salvando..." role="status" />}
+                                                        {isSaving && (
+                                                            <span className="inline-block w-4 h-4 border-2 border-t-2 border-t-[#1A1466] border-[#EDF2FB] rounded-full animate-spin mr-2" aria-label="Salvando..." role="status" />
+                                                        )}
                                                         Salvar
                                                     </Button>
                                                 </div>

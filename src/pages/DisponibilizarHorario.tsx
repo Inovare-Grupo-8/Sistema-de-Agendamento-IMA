@@ -317,6 +317,22 @@ const DisponibilizarHorario = () => {
                 </TooltipContent>
               </Tooltip>
             </SidebarMenuItem>
+            {/* Botão Sair na sidebar */}
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton asChild className="rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={handleLogout}>
+                    <span className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
+                      <span>Sair</span>
+                    </span>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Sair da conta
+                </TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
           </SidebarMenu>
           {/* Loader de exemplo para feedback visual */}
           {loading ? (
@@ -358,13 +374,6 @@ const DisponibilizarHorario = () => {
                 title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
               >
                 {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-              </button>
-              <button
-                className="bg-[#ED4231] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#c32d22] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ED4231]"
-                aria-label="Sair"
-                onClick={handleLogout}
-              >
-                Sair
               </button>
             </div>
           </header>
@@ -466,6 +475,18 @@ const DisponibilizarHorario = () => {
                       onCancel={handleCancel}
                       highlight={!!selectedDate && !!selectedTime}
                     />
+                    <Button
+                      type="submit"
+                      className={`bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none`}
+                      disabled={isLoading}
+                      aria-disabled={isLoading}
+                      aria-label="Confirmar horário"
+                    >
+                      {isLoading && (
+                        <span className="inline-block w-4 h-4 border-2 border-t-2 border-t-[#1A1466] border-[#EDF2FB] rounded-full animate-spin mr-2" aria-label="Salvando..." role="status" />
+                      )}
+                      Confirmar
+                    </Button>
                     <Button 
                       className={`w-full bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-6 mt-2 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} shadow-md dark:shadow-none`}
                       onClick={handleOtherTime}
@@ -625,6 +646,12 @@ const DisponibilizarHorario = () => {
           0% { transform: scale(0.7); opacity: 0; }
           60% { transform: scale(1.1); opacity: 1; }
           100% { transform: scale(1); }
+        }
+        :focus-visible {
+          outline: 3px solid #ED4231 !important;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 2px #fff, 0 0 0 4px #ED4231;
+          transition: outline 0.2s, box-shadow 0.2s;
         }
       `}</style>
     </SidebarProvider>
