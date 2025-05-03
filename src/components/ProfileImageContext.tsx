@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useState, ReactNode } from "react";
 
 interface ProfileImageContextType {
   profileImage: string;
@@ -6,12 +6,6 @@ interface ProfileImageContextType {
 }
 
 const ProfileImageContext = createContext<ProfileImageContextType | undefined>(undefined);
-
-export const useProfileImage = () => {
-  const context = useContext(ProfileImageContext);
-  if (!context) throw new Error("useProfileImage must be used within a ProfileImageProvider");
-  return context;
-};
 
 export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
   const [profileImage, setProfileImage] = useState<string>(() => {
@@ -29,3 +23,5 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
     </ProfileImageContext.Provider>
   );
 };
+
+export { ProfileImageContext };

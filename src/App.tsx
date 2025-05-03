@@ -9,28 +9,31 @@ import DisponibilizarHorario from "./pages/DisponibilizarHorario";
 import Agenda from "@/components/Agenda";
 import ProfileForm from "@/components/ProfileForm";
 import { ProfileImageProvider } from "@/components/ProfileImageContext";
+import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <ProfileImageProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<DisponibilizarHorario />} />
-            <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
-            <Route path="/agenda" element={<Agenda />} />
-            <Route path="/profile-form" element={<ProfileForm />} />
-            <Route path="/not-found" element={<NotFound />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </ProfileImageProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <ProfileImageProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<DisponibilizarHorario />} />
+              <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
+              <Route path="/agenda" element={<Agenda />} />
+              <Route path="/profile-form" element={<ProfileForm />} />
+              <Route path="/not-found" element={<NotFound />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ProfileImageProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

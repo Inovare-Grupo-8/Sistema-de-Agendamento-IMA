@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, Sun, CloudMoon, Moon, User, Clock, Menu } from "lucide-react";
 import { useState } from "react";
 import TimeSlot from "./TimeSlot";
-import { useProfileImage } from "@/components/ProfileImageContext";
+import { useProfileImage } from "@/components/useProfileImage";
 
 const Agenda = () => {
   const [date, setDate] = useState<Date>(new Date());

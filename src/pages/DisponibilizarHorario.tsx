@@ -12,7 +12,7 @@ import AgendaSummary from "@/components/AgendaSummary";
 import { toast } from "@/components/ui/use-toast";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
-import { useProfileImage } from "@/components/ProfileImageContext";
+import { useProfileImage } from "@/components/useProfileImage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomTimeModal from "../components/CustomTimeModal";
