@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +16,18 @@ import { useProfileImage } from "@/components/useProfileImage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomTimeModal from "../components/CustomTimeModal";
+import ErrorMessage from "@/components/ErrorMessage";
+import { isValidTime, isFutureDate, getErrorMessage } from "@/lib/utils";
+import { useTheme } from "next-themes";
+import { Badge } from "@/components/ui/badge";
+import { STATUS_COLORS, MESSAGES } from "../constants/ui";
+import { useTranslation } from "react-i18next";
+import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons";
+import { motion, AnimatePresence } from "framer-motion";
 
 const DisponibilizarHorario = () => {
+  const { t } = useTranslation();
+
   // Estado para armazenar a data selecionada
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -57,6 +67,24 @@ const DisponibilizarHorario = () => {
   // Estado para controlar o estado de loading
   const [isLoading, setIsLoading] = useState(false);
 
+  // Estado para modal de confirmação de saída
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  // Estado para modal de sucesso após disponibilizar horário
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+
+  const { theme = "light", setTheme = () => {} } = useTheme();
+
+  // Referência para o resumo fixo
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  // Skeleton loader e feedback visual
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 800);
+  }, []);
+
   // Função para salvar a data e o horário no localStorage
   const saveToLocalStorage = () => {
     if (selectedDate) {
@@ -82,7 +110,7 @@ const DisponibilizarHorario = () => {
 
   // Validação para impedir a seleção de datas passadas
   const handleDateSelect = (date: Date | undefined) => {
-    if (date && date < new Date()) {
+    if (date && !isFutureDate(date)) {
       setValidationMessage("Não é possível selecionar uma data que já passou.");
       setIsModalOpen(true);
       return;
@@ -91,37 +119,38 @@ const DisponibilizarHorario = () => {
     setValidationMessage("");
   };
 
+  // Função para rolar até o resumo ao selecionar horário
+  const scrollToSummary = () => {
+    if (summaryRef.current) {
+      summaryRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   // Função para selecionar o horário
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
+    scrollToSummary();
   };
 
-  // Função para navegar para o mês anterior
-  const handlePreviousMonth = (monthIndex: number) => {
-    if (monthIndex === 0) {
-      const prevMonth = new Date(firstMonth);
-      prevMonth.setMonth(prevMonth.getMonth() - 1);
-      setFirstMonth(prevMonth);
-    } else {
-      const prevMonth = new Date(secondMonth);
-      prevMonth.setMonth(prevMonth.getMonth() - 1);
-      setSecondMonth(prevMonth);
-    }
+  // Função para confirmar logout
+  const handleLogout = () => {
+    setIsLogoutModalOpen(true);
   };
 
-  // Função para navegar para o próximo mês
-  const handleNextMonth = (monthIndex: number) => {
-    if (monthIndex === 0) {
-      const nextMonth = new Date(firstMonth);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      setFirstMonth(nextMonth);
-    } else {
-      const nextMonth = new Date(secondMonth);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      setSecondMonth(nextMonth);
-    }
+  // Função para realmente sair
+  const confirmLogout = () => {
+    setIsLogoutModalOpen(false);
+    // Redirecionar ou limpar dados do usuário
+    localStorage.clear();
+    window.location.href = '/';
   };
 
+  // Função para cancelar logout
+  const cancelLogout = () => {
+    setIsLogoutModalOpen(false);
+  };
+
+  // Função para confirmar disponibilização de horário
   const handleConfirm = () => {
     if (!selectedDate || !selectedTime) {
       setValidationMessage("Por favor, selecione uma data e um horário antes de confirmar.");
@@ -134,8 +163,7 @@ const DisponibilizarHorario = () => {
       setValidationMessage("");
       setIsModalOpen(false);
       setIsLoading(false);
-
-      // Exibe notificação de sucesso
+      setIsSuccessModalOpen(true);
       toast({
         title: "Sucesso!",
         description: `Horário disponibilizado com sucesso: ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime}`,
@@ -143,6 +171,13 @@ const DisponibilizarHorario = () => {
         duration: 4000,
       });
     }, 1200);
+  };
+
+  // Função para fechar modal de sucesso
+  const closeSuccessModal = () => {
+    setIsSuccessModalOpen(false);
+    setSelectedDate(undefined);
+    setSelectedTime("");
   };
 
   const closeModal = () => {
@@ -163,8 +198,7 @@ const DisponibilizarHorario = () => {
 
   // Validação para horários personalizados no formato correto e intervalo permitido
   const handleCustomTimeConfirm = () => {
-    const timeRegex = /^([01]?\d|2[0-3]):([0-5]\d)$/; // Regex para validar formato HH:mm
-    if (!customTime || !timeRegex.test(customTime)) {
+    if (!customTime || !isValidTime(customTime)) {
       setValidationMessage("Por favor, insira um horário válido no formato HH:mm.");
       setIsCustomTimeModalOpen(true);
       return;
@@ -210,7 +244,8 @@ const DisponibilizarHorario = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row text-lg md:text-xl bg-[#EDF2FB]">
+      <div className={`min-h-screen w-full flex flex-col md:flex-row text-lg md:text-xl bg-[#F5F6FA] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans`}>
+        <a href="#main-content" className="sr-only focus:not-sr-only bg-indigo-900 text-white px-4 py-2 rounded-b-lg absolute left-4 top-0 z-50">Pular para o conteúdo principal</a>
         {/* Botão de menu fora da sidebar quando fechada */}
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 shadow-md backdrop-blur-md">
@@ -223,8 +258,8 @@ const DisponibilizarHorario = () => {
         )}
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB]`
+          bg-gradient-to-b from-white via-[#f1f5f9] to-[#F5F6FA] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#D1D5DB] dark:border-[#23272F] backdrop-blur-[2px]`
         }>
           {/* Botão de menu dentro da sidebar quando aberta (mobile/desktop) */}
           <div className="w-full flex justify-start mb-6">
@@ -284,11 +319,20 @@ const DisponibilizarHorario = () => {
             </SidebarMenuItem>
           </SidebarMenu>
           {/* Loader de exemplo para feedback visual */}
-          {!formData.nome && (
-            <div className="p-4">
-              <Skeleton className="h-8 w-1/2 mb-2" />
-              <Skeleton className="h-6 w-1/3" />
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(2)].map((_, i) => <DisponibilizarHorarioSkeleton key={i} />)}
             </div>
+          ) : (
+            <>
+              {!formData.nome && (
+                <div className="p-4">
+                  <Skeleton className="h-8 w-1/2 mb-2" />
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-10 w-full mt-4" />
+                </div>
+              )}
+            </>
           )}
           {/* Footer com links úteis */}
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB]">
@@ -299,85 +343,148 @@ const DisponibilizarHorario = () => {
             </div>
           </div>
         </div>
-        <div className={`flex-1 w-full md:w-auto mt-4 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
+        <main id="main-content" role="main" className={`flex-1 w-full md:w-auto mt-4 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 dark:bg-[#23272F]/90 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 text-base md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
+              <span className="font-bold text-indigo-900 dark:text-gray-100 text-base md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
             </div>
-            <button className="bg-[#ED4231] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#c32d22] transition-colors" aria-label="Sair">Sair</button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                tabIndex={0}
+                title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+              </button>
+              <button
+                className="bg-[#ED4231] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#c32d22] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ED4231]"
+                aria-label="Sair"
+                onClick={handleLogout}
+              >
+                Sair
+              </button>
+            </div>
           </header>
           <div className="h-20" />
           <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-6">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">Disponibilizar horário</h1>
-            <p className="text-gray-500 text-sm md:text-base mb-6 text-center">Escolha uma data e horário para disponibilizar</p>
-            <div className="flex flex-col lg:flex-row gap-6 items-start">
-              {/* Coluna da esquerda: calendário e horários */}
-              <div className="flex-1 flex flex-col gap-6 min-w-0">
-                <Card className="rounded-2xl shadow-lg p-0">
-                  <CardHeader className="flex flex-row items-center justify-between py-3 bg-[#f8fafc] rounded-t-2xl">
-                    <CardTitle className="text-base md:text-lg">
-                      {selectedDate ? format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR }) : format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="w-full flex justify-center items-center p-2 sm:p-4">
-                      <div className="w-full max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={handleDateSelect}
-                          showOutsideDays={true}
-                          className="w-full min-h-[340px] sm:min-h-[380px] md:min-h-[420px] rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-sm sm:text-base md:text-lg"
-                          locale={ptBR}
-                          aria-label="Calendário para selecionar data"
-                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                        />
-                      </div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center animate-fade-in">{t('make_time_available')}</h1>
+            <p className="text-gray-500 text-sm md:text-base mb-6 text-center animate-fade-in">{t('choose_date_time')}</p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedDate?.toString() || 'no-date'}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -24 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="flex flex-col lg:flex-row gap-6 items-start">
+                  {/* Coluna da esquerda: calendário e horários */}
+                  <div className="flex-1 flex flex-col gap-6 min-w-0">
+                    <Card className="rounded-2xl shadow-lg p-0 animate-fade-in" role="region" aria-label="Calendário de seleção de data">
+                      <CardHeader className="flex flex-row items-center justify-between py-3 bg-[#f8fafc] rounded-t-2xl">
+                        <CardTitle className="text-base md:text-lg">
+                          {selectedDate ? format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR }) : format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="w-full flex justify-center items-center p-2 sm:p-4">
+                          <div className="w-full max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={handleDateSelect}
+                              showOutsideDays={true}
+                              className="w-full min-h-[340px] sm:min-h-[380px] md:min-h-[420px] rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-sm sm:text-base md:text-lg dark:bg-[#23272F] dark:border-[#444857] dark:text-gray-100 dark:[&_button]:text-gray-100 dark:[&_button]:hover:bg-[#23272F]/80 dark:[&_button]:focus:bg-[#181A20] dark:[&_button]:focus:text-white dark:[&_button]:hover:text-white"
+                              locale={ptBR}
+                              aria-label="Calendário para selecionar data"
+                              aria-describedby="calendario-erro"
+                              disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                            />
+                            <span id="calendario-erro" className="sr-only">{validationMessage && selectedDate === undefined ? validationMessage : ''}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="space-y-4 animate-fade-in" role="region" aria-label="Seleção de horários">
+                      {periods.map(({ title, Icon, timeSlots }) => (
+                        <div key={title} className="bg-white dark:bg-[#23272F] rounded-lg overflow-hidden border border-[#D1D5DB] dark:border-[#23272F] shadow-sm dark:shadow-none">
+                          <div className="flex items-center px-4 py-2 border-b border-[#D1D5DB] dark:border-[#23272F] bg-white dark:bg-[#23272F]">
+                            <Icon color="#ED4231" className="w-5 h-5 mr-2" aria-label={`Ícone do período ${title}`} />
+                            <span className="text-gray-800 dark:text-gray-200 font-semibold" tabIndex={0} title={`Horários do período ${title}`}>{title}</span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span tabIndex={0} className="ml-2 cursor-pointer text-gray-400 hover:text-[#ED4231] focus:text-[#ED4231]" aria-label={`Dica sobre o período ${title}`}>?</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Selecione um horário disponível para o período {title.toLowerCase()}.</TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <TimeSlotSection 
+                            title={title} 
+                            timeSlots={timeSlots}
+                            selectedTime={selectedTime}
+                            onSelectTime={handleTimeSelect}
+                            highlightColor={title === 'Manhã' ? 'bg-yellow-100 dark:bg-yellow-900/30' : title === 'Tarde' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30'}
+                            animateSelection
+                            aria-describedby="horarios-erro"
+                            aria-label={`Horários disponíveis para o período ${title}`}
+                            aria-selected={selectedTime ? true : false}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-                <div className="space-y-4">
-                  {periods.map(({ title, Icon, timeSlots }) => (
-                    <div key={title} className="bg-white rounded-lg overflow-hidden">
-                      <div className="flex items-center px-4 py-2 border-b">
-                        <Icon color="#ED4231" className="w-5 h-5 mr-2" aria-label={`Ícone do período ${title}`} />
-                        <span className="text-gray-600 font-semibold">{title}</span>
-                      </div>
-                      <TimeSlotSection 
-                        title={title} 
-                        timeSlots={timeSlots}
-                        selectedTime={selectedTime}
-                        onSelectTime={handleTimeSelect}
-                        highlightColor={title === 'Manhã' ? 'bg-yellow-100' : title === 'Tarde' ? 'bg-blue-100' : 'bg-indigo-100'}
-                        animateSelection
-                      />
+                  </div>
+                  {/* Coluna da direita: resumo */}
+                  <div ref={summaryRef} className="w-full lg:w-80 lg:max-w-xs flex-shrink-0 mt-6 lg:mt-0 flex flex-col gap-4" role="complementary" aria-label="Resumo do horário selecionado">
+                    {/* Resumo do horário selecionado */}
+                    <div
+                      className="w-full bg-white dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-4 mb-2 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 sticky top-24 z-10 animate-fade-in"
+                      role="status"
+                      aria-live="polite"
+                      aria-describedby="resumo-erro"
+                    >
+                      {selectedDate && selectedTime ? (
+                        <>
+                          <span className="font-semibold text-indigo-900 dark:text-indigo-200">Selecionado:</span>
+                          <div className="mt-1 text-lg">{format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às {selectedTime}</div>
+                          <Badge className={`ml-2 ${STATUS_COLORS.success} animate-fade-in badge-animate`} aria-label={t('selected_time')}>{t('selected_time')}</Badge>
+                        </>
+                      ) : (
+                        <span className="text-gray-400">Nenhum horário selecionado</span>
+                      )}
+                      <ErrorMessage message={validationMessage} />
+                      {validationMessage && (
+                        <span id="resumo-erro" className="text-red-500 text-xs mt-2 block" role="alert">{validationMessage}</span>
+                      )}
                     </div>
-                  ))}
+                    <AgendaSummary 
+                      selectedDate={selectedDate}
+                      selectedTime={selectedTime}
+                      onConfirm={handleConfirm}
+                      onCancel={handleCancel}
+                      highlight={!!selectedDate && !!selectedTime}
+                    />
+                    <Button 
+                      className={`w-full bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-6 mt-2 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} shadow-md dark:shadow-none`}
+                      onClick={handleOtherTime}
+                      aria-label={t('choose_custom_time')}
+                      disabled={isLoading}
+                      tabIndex={0}
+                      title={t('choose_custom_time')}
+                    >
+                      {isLoading ? (
+                        <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>{t('loading')}</span>
+                      ) : t('other_time')}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              {/* Coluna da direita: resumo */}
-              <div className="w-full lg:w-80 lg:max-w-xs flex-shrink-0 mt-6 lg:mt-0 flex flex-col gap-4">
-                <AgendaSummary 
-                  selectedDate={selectedDate}
-                  selectedTime={selectedTime}
-                  onConfirm={handleConfirm}
-                  onCancel={handleCancel}
-                  highlight={!!selectedDate && !!selectedTime}
-                />
-                <Button 
-                  className={`w-full bg-indigo-900 hover:bg-indigo-800 text-white py-6 mt-2 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={handleOtherTime}
-                  aria-label="Selecionar outro horário"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Carregando...' : 'Outro horário'}
-                </Button>
-              </div>
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogContent className="text-center flex flex-col items-center">
+            <DialogContent className="text-center flex flex-col items-center" role="dialog" aria-modal="true">
               <DialogHeader>
                 <DialogTitle className="text-xl font-bold">Confirmação</DialogTitle>
               </DialogHeader>
@@ -398,6 +505,37 @@ const DisponibilizarHorario = () => {
             </DialogContent>
           </Dialog>
 
+          {/* Modal de confirmação de logout */}
+          <Dialog open={isLogoutModalOpen} onOpenChange={setIsLogoutModalOpen}>
+            <DialogContent className="text-center flex flex-col items-center" role="dialog" aria-modal="true">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-gray-600 mb-4">Você será desconectado da plataforma.</p>
+              <DialogFooter className="flex flex-col gap-2 w-full items-center">
+                <Button className="bg-[#ED4231] hover:bg-[#c32d22] text-white py-2 w-3/4" onClick={confirmLogout} aria-label="Confirmar saída">
+                  Sair
+                </Button>
+                <Button variant="outline" className="py-2 w-3/4" onClick={cancelLogout} aria-label="Cancelar saída">
+                  Cancelar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal de sucesso após disponibilizar horário */}
+          <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+            <DialogContent className="text-center flex flex-col items-center" role="alertdialog" aria-modal="true">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-green-700">Horário disponibilizado!</DialogTitle>
+              </DialogHeader>
+              <p className="text-green-700 text-lg font-semibold mb-2">Seu horário foi salvo com sucesso.</p>
+              <Button className="bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-2 w-3/4 mt-2 shadow-md dark:shadow-none" onClick={closeSuccessModal} aria-label="Fechar modal de sucesso" tabIndex={0} title="Fechar modal de sucesso">
+                OK
+              </Button>
+            </DialogContent>
+          </Dialog>
+
           {/* Modal de horário personalizado como componente separado */}
           <CustomTimeModal
             open={isCustomTimeModalOpen}
@@ -407,8 +545,88 @@ const DisponibilizarHorario = () => {
             validationMessage={validationMessage}
             onConfirm={handleCustomTimeConfirm}
           />
-        </div>
+          {selectedDate && selectedTime && (
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in"
+              aria-label="Voltar ao topo"
+            >
+              ↑
+            </button>
+          )}
+        </main>
       </div>
+      <style>{`
+        :focus {
+          outline: 2px solid #4F46E5;
+          outline-offset: 2px;
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0,0,0,0);
+          white-space: nowrap;
+          border-width: 0;
+        }
+        .focus:not-sr-only:focus {
+          position: static;
+          width: auto;
+          height: auto;
+          margin: 0;
+          overflow: visible;
+          clip: auto;
+          white-space: normal;
+        }
+        body.dark {
+          background: linear-gradient(135deg, #181A20 0%, #23272F 60%, #181A20 100%) !important;
+          color: #f3f4f6;
+        }
+        ::selection {
+          background: #ED4231;
+          color: #fff;
+        }
+        body.dark ::selection {
+          background: #ED4231;
+          color: #fff;
+        }
+        .dark .shadow-md, .dark .shadow-lg {
+          box-shadow: none !important;
+        }
+        .not-allowed {
+          cursor: not-allowed !important;
+          opacity: 0.5 !important;
+        }
+        .fade-in {
+          animation: fadeIn 0.4s ease-in;
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 640px) {
+          .lg\\:flex-row {
+            flex-direction: column !important;
+          }
+          .lg\\:max-w-xs {
+            max-width: 100% !important;
+          }
+        }
+        .badge-animate {
+          animation: popBadge 0.4s cubic-bezier(.4,0,.2,1);
+        }
+        @keyframes popBadge {
+          0% { transform: scale(0.7); opacity: 0; }
+          60% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+      `}</style>
     </SidebarProvider>
   );
 };

@@ -27,11 +27,12 @@ interface Appointment {
 
 interface TimeSlotProps {
   appointment: Appointment;
-  onCancel: () => void;
+  onCancel: (time: string) => void;
   onReschedule: (time: string, date: Date, newTime: string) => void;
+  highlight?: boolean;
 }
 
-const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
+const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotProps) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -52,12 +53,12 @@ const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
   };
 
   return (
-    <div className="px-4 py-3 flex items-center justify-between">
+    <div className={`px-4 py-3 flex items-center justify-between ${highlight ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-green-400 bg-green-50 dark:bg-green-900/30 transition-all duration-300' : ''}`}>
       <div className="grid grid-cols-4 gap-4 flex-1">
-        <span className="text-gray-900">{appointment.time}</span>
-        <span className="text-gray-700">{appointment.name}</span>
-        <span className="text-gray-600">{appointment.type}</span>
-        <span className="text-gray-500">{appointment.serviceType}</span>
+        <span className="text-gray-900 dark:text-[#f8fafc] font-semibold">{appointment.time}</span>
+        <span className="text-gray-700 dark:text-[#a5b4fc] font-semibold">{appointment.name}</span>
+        <span className="text-gray-600 dark:text-[#cbd5e1]">{appointment.type}</span>
+        <span className="text-gray-500 dark:text-[#cbd5e1]">{appointment.serviceType}</span>
       </div>
       <div className="flex items-center gap-2">
         <Button 
@@ -89,7 +90,7 @@ const TimeSlot = ({ appointment, onCancel, onReschedule }: TimeSlotProps) => {
             <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
               Voltar
             </Button>
-            <Button variant="destructive" onClick={() => { setIsCancelDialogOpen(false); onCancel(); }}>
+            <Button variant="destructive" onClick={() => { setIsCancelDialogOpen(false); onCancel(appointment.time); }}>
               Cancelar consulta
             </Button>
           </DialogFooter>
