@@ -1,0 +1,23 @@
+{
+  "name": "Nome",
+  "your_schedule": "Sua agenda",
+  "see_appointments_today": "Consulte a quantidade de atendimentos que você tem hoje",
+  "no_appointments": "Nenhum atendimento neste período.",
+  "next_appointment": "Próximo",
+  "appointment_cancelled": "Atendimento cancelado",
+  "cancel_success": "O atendimento foi cancelado.",
+  "appointment_rescheduled": "Atendimento reagendado",
+  "reschedule_success": "Atendimento reagendado.",
+  "make_time_available": "Disponibilizar horário",
+  "choose_date_time": "Escolha uma data e horário para disponibilizar",
+  "selected_time": "Selecionado",
+  "choose_custom_time": "Escolher outro horário",
+  "loading": "Carregando...",
+  "other_time": "Outro horário",
+  "profile": "Perfil",
+  "unsaved_changes": "Alterações não salvas",
+  "profile_saved": "Perfil salvo!",
+  "save_success": "Suas informações foram atualizadas com sucesso.",
+  "save_error_title": "Erro ao salvar",
+  "save_error": "Por favor, corrija os campos destacados."
+}

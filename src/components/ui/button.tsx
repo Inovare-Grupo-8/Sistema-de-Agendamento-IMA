@@ -1,7 +1,6 @@
-import * as React from "react"
+import React, { useRef } from "react";
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -38,17 +37,62 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
+    const btnRef = useRef<HTMLButtonElement>(null);
+
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+      const button = btnRef.current;
+      if (button) {
+        const circle = document.createElement("span");
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${e.clientX - button.getBoundingClientRect().left - radius}px`;
+        circle.style.top = `${e.clientY - button.getBoundingClientRect().top - radius}px`;
+        circle.className = "ripple";
+        button.appendChild(circle);
+        setTimeout(() => {
+          circle.remove();
+        }, 600);
+      }
+      if (onClick) onClick(e);
+    };
+
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
+        ref={btnRef}
+        onClick={handleClick}
         {...props}
       />
     )
   }
 )
 Button.displayName = "Button"
+
+// Ripple CSS
+if (typeof window !== "undefined") {
+  const style = document.createElement("style");
+  style.innerHTML = `
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      background-color: rgba(237, 66, 49, 0.3);
+      pointer-events: none;
+      z-index: 10;
+    }
+    @keyframes ripple {
+      to {
+        transform: scale(2.5);
+        opacity: 0;
+      }
+    }
+    button { position: relative; overflow: hidden; }
+  `;
+  document.head.appendChild(style);
+}
 
 export { Button }
