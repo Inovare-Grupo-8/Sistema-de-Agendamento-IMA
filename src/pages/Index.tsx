@@ -4,6 +4,7 @@ import DisponibilizarHorario from "@/pages/DisponibilizarHorario";
 import ProfileAssistido from "@/components/ProfileAssistido";
 import AgendaAssistido from "@/components/AgendaAssistido";
 import History from "@/components/History";
+import Login from "@/components/Login";
 
 const Index = () => {
   return (
@@ -13,7 +14,8 @@ const Index = () => {
       {/* <ProfileForm /> */}
       {/* <ProfileAssistido/> */}
       {/* <AgendaAssistido/> */}
-      <History />
+      {/* <History /> */}
+      <Login/>
     </div>
   );
 };
