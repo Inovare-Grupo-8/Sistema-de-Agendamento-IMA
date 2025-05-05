@@ -102,7 +102,7 @@ const Header = ({ nome = "Usuário", sobrenome = "", onLogout }: { nome?: string
                   </Link>
                 </li>
                 <li>
-                  <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 rounded-b-lg" role="menuitem" tabIndex={0} onClick={() => { setUserMenuOpen(false); onLogout && onLogout(); }}>
+                  <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 rounded-b-lg" role="menuitem" tabIndex={0} onClick={() => { setUserMenuOpen(false); if (onLogout) onLogout(); }}>
                     Sair
                   </button>
                 </li>

@@ -2,10 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar as CalendarIcon, Clock, Menu, Sun, Moon, UserX } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, UNSAFE_NavigationContext as NavigationContext } from "react-router-dom";
 import { useProfileImage } from "@/components/useProfileImage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,6 +89,8 @@ const ProfileForm = () => {
     const [ufSuggestions, setUfSuggestions] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [showProfileView, setShowProfileView] = useState(false);
+    const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState<null | (() => void)>(null);
 
     const requiredFields = [
         formData.nome,
@@ -132,6 +134,32 @@ const ProfileForm = () => {
         setProfileStatus(required.every(Boolean) ? "completo" : "incompleto");
     }, [formData, bio]);
 
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasChanged) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasChanged]);
+
+    const navigator = useContext(NavigationContext)?.navigator;
+    useEffect(() => {
+        if (!navigator) return;
+        const origPush = navigator.push;
+        navigator.push = (path: string, state?: Record<string, unknown>) => {
+            if (hasChanged) {
+                setShowUnsavedDialog(true);
+                setPendingNavigation(() => () => origPush(path, state));
+            } else {
+                origPush(path, state);
+            }
+        };
+        return () => { navigator.push = origPush; };
+    }, [hasChanged, navigator]);
+
     const validate = (data: ProfileFormData) => {
         const result = profileSchema.safeParse(data);
         if (!result.success) {
@@ -142,6 +170,16 @@ const ProfileForm = () => {
             return fieldErrors;
         }
         return {};
+    };
+
+    // Função para mostrar toasts informativos de sucesso/erro
+    const showToast = (type: 'success' | 'error', message: string) => {
+        toast({
+            title: type === 'success' ? 'Sucesso!' : 'Erro!',
+            description: message,
+            variant: type === 'success' ? 'default' : 'destructive',
+            duration: 4000,
+        });
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,12 +199,9 @@ const ProfileForm = () => {
         e.preventDefault();
         const validation = validate({ ...formData, emailConfirm, bio });
         setErrors(validation);
+        console.log('Validação:', validation); // <-- Adiciona log para depuração
         if (Object.keys(validation).length > 0) {
-            toast({
-                title: t('save_error_title'),
-                description: t('save_error'),
-                variant: "destructive",
-            });
+            showToast('error', 'Preencha todos os campos obrigatórios.');
             return;
         }
         setIsSaving(true);
@@ -178,18 +213,17 @@ const ProfileForm = () => {
             localStorage.setItem("profileLastUpdated", now);
             setIsSaving(false);
             setHasChanged(false);
-            toast({
-                title: t('profile_saved'),
-                description: t('save_success'),
-                variant: "default",
-            });
-        }, 1200);
+            showToast('success', 'Perfil salvo com sucesso!');
+        }, 300);
     };
 
     const handleCancel = () => {
         const savedData = localStorage.getItem("profileData");
         if (savedData) {
-            setFormData(JSON.parse(savedData));
+            const parsed = JSON.parse(savedData);
+            setFormData(parsed);
+            setEmailConfirm(parsed.email || "");
+            setBio(parsed.bio || "");
             setErrors({});
             setHasChanged(false);
         }
@@ -412,7 +446,26 @@ const ProfileForm = () => {
                                         exit={{ opacity: 0, y: -24 }}
                                         transition={{ duration: 0.4 }}
                                     >
-                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white dark:bg-[#23272F] rounded-2xl shadow-lg dark:shadow-none p-8 transition-colors duration-300 border dark:border-[#23272F] animate-fade-in transition-transform duration-300 hover:scale-[1.01] hover:shadow-xl focus-within:scale-[1.01] focus-within:shadow-xl group" aria-live="polite" role="form">
+                                        <form
+                                            onSubmit={handleSubmit}
+                                            className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white dark:bg-[#23272F] rounded-2xl shadow-lg dark:shadow-none p-8 transition-colors duration-300 border dark:border-[#23272F] animate-fade-in transition-transform duration-300 hover:scale-[1.01] hover:shadow-xl focus-within:scale-[1.01] focus-within:shadow-xl group"
+                                            aria-live="polite"
+                                            role="form"
+                                            tabIndex={0}
+                                        >
+                                            {Object.keys(errors).length > 0 && (
+                                                <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2 animate-fade-in" role="alert" aria-live="assertive">
+                                                    <svg className="w-5 h-5 text-red-500 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                    <div>
+                                                        <div className="font-semibold text-red-700 mb-1">Por favor, corrija os seguintes erros:</div>
+                                                        <ul className="list-disc pl-5 text-red-600 text-sm">
+                                                            {Object.entries(errors).map(([field, msg]) => (
+                                                                <li key={field}>{msg}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="space-y-6">
                                                 <Progress value={progress} className="my-4" />
                                                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Perfil {progress}% completo</div>
@@ -429,11 +482,16 @@ const ProfileForm = () => {
                                                             type="text"
                                                             value={formData.nome}
                                                             onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nome ? 'border-red-500' : ''}`}
+                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nome ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.nome}
                                                             aria-describedby="nome-erro"
                                                         />
-                                                        {errors.nome && <span id="nome-erro" className="text-red-500 text-xs" role="alert">{errors.nome}</span>}
+                                                        {errors.nome && (
+                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="nome-erro" role="alert">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                                {errors.nome}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Tooltip>
@@ -447,11 +505,16 @@ const ProfileForm = () => {
                                                             type="text"
                                                             value={formData.sobrenome}
                                                             onChange={e => setFormData({ ...formData, sobrenome: e.target.value })}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.sobrenome ? 'border-red-500' : ''}`}
+                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.sobrenome ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.sobrenome}
                                                             aria-describedby="sobrenome-erro"
                                                         />
-                                                        {errors.sobrenome && <span id="sobrenome-erro" className="text-red-500 text-xs" role="alert">{errors.sobrenome}</span>}
+                                                        {errors.sobrenome && (
+                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="sobrenome-erro" role="alert">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                                {errors.sobrenome}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -467,11 +530,16 @@ const ProfileForm = () => {
                                                         type="email"
                                                         value={formData.email}
                                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.email ? 'border-red-500' : ''}`}
+                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.email ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-invalid={!!errors.email}
                                                         aria-describedby="email-erro"
                                                     />
-                                                    {errors.email && <span id="email-erro" className="text-red-500 text-xs" role="alert">{errors.email}</span>}
+                                                    {errors.email && (
+                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="email-erro" role="alert">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                            {errors.email}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="space-y-2">
@@ -486,11 +554,16 @@ const ProfileForm = () => {
                                                         type="email"
                                                         value={emailConfirm}
                                                         onChange={e => setEmailConfirm(e.target.value)}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.emailConfirm ? 'border-red-500' : ''}`}
+                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.emailConfirm ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-invalid={!!errors.emailConfirm}
                                                         aria-describedby="emailConfirm-erro"
                                                     />
-                                                    {errors.emailConfirm && <span id="emailConfirm-erro" className="text-red-500 text-xs" role="alert">{errors.emailConfirm}</span>}
+                                                    {errors.emailConfirm && (
+                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="emailConfirm-erro" role="alert">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                            {errors.emailConfirm}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="space-y-2">
@@ -527,11 +600,16 @@ const ProfileForm = () => {
                                                             if (value.length < 14) value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1)$2-$3");
                                                             setFormData({ ...formData, telefone: value });
                                                         }}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.telefone ? 'border-red-500' : ''}`}
+                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.telefone ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-invalid={!!errors.telefone}
                                                         aria-describedby="telefone-erro"
                                                     />
-                                                    {errors.telefone && <span id="telefone-erro" className="text-red-500 text-xs" role="alert">{errors.telefone}</span>}
+                                                    {errors.telefone && (
+                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="telefone-erro" role="alert">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                            {errors.telefone}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="grid grid-cols-3 gap-4">
@@ -554,12 +632,17 @@ const ProfileForm = () => {
                                                                 v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
                                                                 setFormData({ ...formData, cpf: v });
                                                             }}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cpf ? 'border-red-500' : ''}`}
+                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cpf ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.cpf}
                                                             aria-describedby="cpf-erro"
                                                             maxLength={14}
                                                         />
-                                                        {errors.cpf && <span id="cpf-erro" className="text-red-500 text-xs" role="alert">{errors.cpf}</span>}
+                                                        {errors.cpf && (
+                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="cpf-erro" role="alert">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                                {errors.cpf}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Tooltip>
@@ -578,12 +661,17 @@ const ProfileForm = () => {
                                                                 v = v.replace(/(\d{5})(\d{1,3})/, "$1-$2");
                                                                 setFormData({ ...formData, cep: v });
                                                             }}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cep ? 'border-red-500' : ''}`}
+                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cep ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.cep}
                                                             aria-describedby="cep-erro"
                                                             maxLength={9}
                                                         />
-                                                        {errors.cep && <span id="cep-erro" className="text-red-500 text-xs" role="alert">{errors.cep}</span>}
+                                                        {errors.cep && (
+                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="cep-erro" role="alert">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                                {errors.cep}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Tooltip>
@@ -603,13 +691,18 @@ const ProfileForm = () => {
                                                                 v = v.replace(/(\d{2})\/(\d{2})(\d)/, "$1/$2/$3");
                                                                 setFormData({ ...formData, nascimento: v });
                                                             }}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nascimento ? 'border-red-500' : ''}`}
+                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nascimento ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.nascimento}
                                                             aria-describedby="nascimento-erro"
                                                             maxLength={10}
                                                             placeholder="dd/mm/aaaa"
                                                         />
-                                                        {errors.nascimento && <span id="nascimento-erro" className="text-red-500 text-xs" role="alert">{errors.nascimento}</span>}
+                                                        {errors.nascimento && (
+                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="nascimento-erro" role="alert">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                                {errors.nascimento}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -649,17 +742,26 @@ const ProfileForm = () => {
                                                         id="bio"
                                                         value={bio}
                                                         onChange={e => setBio(e.target.value)}
-                                                        className="border border-[#ADADAD] border-solid border-2 rounded-[20px] min-h-[80px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] min-h-[80px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.bio ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-label="Mini bio"
+                                                        aria-invalid={!!errors.bio}
+                                                        aria-describedby="bio-erro"
                                                     />
+                                                    {errors.bio && (
+                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="bio-erro" role="alert">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                                            {errors.bio}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                <div className="flex gap-4">
+                                                <div className="flex gap-4 mt-6">
                                                     <Button
                                                         variant="outline"
                                                         type="button"
                                                         onClick={() => setShowCancelDialog(true)}
-                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none flex items-center gap-2 transition-transform duration-200 hover:scale-105"
+                                                        aria-label="Cancelar edição do perfil"
                                                     >
                                                         Cancelar
                                                     </Button>
@@ -667,14 +769,14 @@ const ProfileForm = () => {
                                                         variant="outline"
                                                         type="button"
                                                         onClick={handleClear}
-                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none flex items-center gap-2 transition-transform duration-200 hover:scale-105"
                                                         aria-label="Limpar tudo"
                                                     >
                                                         Limpar tudo
                                                     </Button>
                                                     <Button
                                                         type="submit"
-                                                        className={`relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md disabled:opacity-70 disabled:cursor-not-allowed`}
+                                                        className="relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md disabled:opacity-70 disabled:cursor-not-allowed gap-2"
                                                         disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
                                                         aria-label="Salvar perfil"
@@ -683,7 +785,9 @@ const ProfileForm = () => {
                                                             <span className="absolute left-4 flex items-center justify-center">
                                                                 <span className="loader-circle w-6 h-6 block" aria-label="Salvando..." role="status" />
                                                             </span>
-                                                        ) : null}
+                                                        ) : (
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                        )}
                                                         <span className={isSaving ? 'opacity-60' : ''}>Salvar</span>
                                                         <style>{`
                                                             .loader-circle {
@@ -704,9 +808,10 @@ const ProfileForm = () => {
                                                         variant="secondary"
                                                         type="button"
                                                         onClick={() => setShowProfileView(true)}
-                                                        className={`relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md`}
+                                                        className="relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md gap-2"
                                                         aria-label="Visualizar perfil"
                                                     >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s3.75-7.5 10.5-7.5S22.5 12 22.5 12s-3.75 7.5-10.5 7.5S1.5 12 1.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
                                                         <span>Visualizar Perfil</span>
                                                     </Button>
                                                 </div>
@@ -798,6 +903,20 @@ const ProfileForm = () => {
                                 </DialogContent>
                             </Dialog>
 
+                            <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Alterações não salvas</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="mb-4">Você tem alterações não salvas. Tem certeza que deseja sair?</div>
+                                    <DialogFooter className="flex gap-2">
+                                        <Button variant="outline" onClick={() => setShowUnsavedDialog(false)} autoFocus>Cancelar</Button>
+                                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                        <Button className="bg-[#ED4231] text-white" onClick={() => { setShowUnsavedDialog(false); setHasChanged(false);  }}>Sair sem salvar</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
                             {!formData.nome && (
                                 <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
                                     <UserX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
@@ -848,6 +967,19 @@ const ProfileForm = () => {
                     0% { transform: scale(0.7); opacity: 0; }
                     60% { transform: scale(1.1); opacity: 1; }
                     100% { transform: scale(1); }
+                }
+                :focus-visible {
+                    outline: 3px solid #ED4231 !important;
+                    outline-offset: 2px;
+                    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #ED4231;
+                    transition: outline 0.2s, box-shadow 0.2s;
+                }
+                .card-animate {
+                    animation: fadeInCard 0.6s cubic-bezier(.4,0,.2,1);
+                }
+                @keyframes fadeInCard {
+                    0% { opacity: 0; transform: scale(0.97) translateY(16px); }
+                    100% { opacity: 1; transform: scale(1) translateY(0); }
                 }
             `}</style>
         </SidebarProvider>
