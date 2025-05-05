@@ -172,6 +172,13 @@ const ProfileForm = () => {
         return {};
     };
 
+    // Validação em tempo real aprimorada
+    useEffect(() => {
+        // Valida todos os campos relevantes sempre que formData, emailConfirm ou bio mudam
+        const validation = validate({ ...formData, emailConfirm, bio });
+        setErrors(validation);
+    }, [formData, emailConfirm, bio]);
+
     // Função para mostrar toasts informativos de sucesso/erro
     const showToast = (type: 'success' | 'error', message: string) => {
         toast({
@@ -180,6 +187,12 @@ const ProfileForm = () => {
             variant: type === 'success' ? 'default' : 'destructive',
             duration: 4000,
         });
+    };
+
+    const handleBlur = (field: string) => {
+        if (errors[field]) {
+            setErrors((prev) => ({ ...prev, [field]: "" }));
+        }
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -440,7 +453,7 @@ const ProfileForm = () => {
                             ) : (
                                 <AnimatePresence mode="wait">
                                     <motion.div
-                                        key={formData.email}
+                                        key="profile-form"
                                         initial={{ opacity: 0, y: 24 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -24 }}
@@ -481,7 +494,12 @@ const ProfileForm = () => {
                                                             id="nome"
                                                             type="text"
                                                             value={formData.nome}
-                                                            onChange={e => setFormData({ ...formData, nome: e.target.value })}
+                                                            placeholder="Ex: Maria"
+                                                            onChange={e => {
+                                                                setFormData({ ...formData, nome: e.target.value });
+                                                                if (errors.nome) setErrors(prev => ({ ...prev, nome: "" }));
+                                                            }}
+                                                            onBlur={() => handleBlur("nome")}
                                                             className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nome ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.nome}
                                                             aria-describedby="nome-erro"
@@ -504,7 +522,12 @@ const ProfileForm = () => {
                                                             id="sobrenome"
                                                             type="text"
                                                             value={formData.sobrenome}
-                                                            onChange={e => setFormData({ ...formData, sobrenome: e.target.value })}
+                                                            placeholder="Ex: Silva"
+                                                            onChange={e => {
+                                                                setFormData({ ...formData, sobrenome: e.target.value });
+                                                                if (errors.sobrenome) setErrors(prev => ({ ...prev, sobrenome: "" }));
+                                                            }}
+                                                            onBlur={() => handleBlur("sobrenome")}
                                                             className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.sobrenome ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.sobrenome}
                                                             aria-describedby="sobrenome-erro"
@@ -529,7 +552,12 @@ const ProfileForm = () => {
                                                         id="email"
                                                         type="email"
                                                         value={formData.email}
-                                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                                        placeholder="exemplo@email.com"
+                                                        onChange={e => {
+                                                            setFormData({ ...formData, email: e.target.value });
+                                                            if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
+                                                        }}
+                                                        onBlur={() => handleBlur("email")}
                                                         className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.email ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-invalid={!!errors.email}
                                                         aria-describedby="email-erro"
@@ -553,7 +581,12 @@ const ProfileForm = () => {
                                                         id="emailConfirm"
                                                         type="email"
                                                         value={emailConfirm}
-                                                        onChange={e => setEmailConfirm(e.target.value)}
+                                                        placeholder="Confirme seu e-mail"
+                                                        onChange={e => {
+                                                            setEmailConfirm(e.target.value);
+                                                            if (errors.emailConfirm) setErrors(prev => ({ ...prev, emailConfirm: "" }));
+                                                        }}
+                                                        onBlur={() => handleBlur("emailConfirm")}
                                                         className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.emailConfirm ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-invalid={!!errors.emailConfirm}
                                                         aria-describedby="emailConfirm-erro"
@@ -593,13 +626,16 @@ const ProfileForm = () => {
                                                         id="telefone"
                                                         type="tel"
                                                         value={formData.telefone}
+                                                        placeholder="(11) 91234-5678"
                                                         onChange={e => {
                                                             let value = e.target.value.replace(/\D/g, "");
                                                             if (value.length > 11) value = value.slice(0, 11);
                                                             value = value.replace(/(\d{2})(\d{5})(\d{4})/, "($1)$2-$3");
                                                             if (value.length < 14) value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1)$2-$3");
                                                             setFormData({ ...formData, telefone: value });
+                                                            if (errors.telefone) setErrors(prev => ({ ...prev, telefone: "" }));
                                                         }}
+                                                        onBlur={() => handleBlur("telefone")}
                                                         className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.telefone ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-invalid={!!errors.telefone}
                                                         aria-describedby="telefone-erro"
@@ -624,6 +660,7 @@ const ProfileForm = () => {
                                                             id="cpf"
                                                             type="text"
                                                             value={formData.cpf}
+                                                            placeholder="000.000.000-00"
                                                             onChange={e => {
                                                                 let v = e.target.value.replace(/\D/g, "");
                                                                 if (v.length > 11) v = v.slice(0, 11);
@@ -631,7 +668,9 @@ const ProfileForm = () => {
                                                                 v = v.replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
                                                                 v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
                                                                 setFormData({ ...formData, cpf: v });
+                                                                if (errors.cpf) setErrors(prev => ({ ...prev, cpf: "" }));
                                                             }}
+                                                            onBlur={() => handleBlur("cpf")}
                                                             className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cpf ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.cpf}
                                                             aria-describedby="cpf-erro"
@@ -655,12 +694,15 @@ const ProfileForm = () => {
                                                             id="cep"
                                                             type="text"
                                                             value={formData.cep}
+                                                            placeholder="00000-000"
                                                             onChange={e => {
                                                                 let v = e.target.value.replace(/\D/g, "");
                                                                 if (v.length > 8) v = v.slice(0, 8);
                                                                 v = v.replace(/(\d{5})(\d{1,3})/, "$1-$2");
                                                                 setFormData({ ...formData, cep: v });
+                                                                if (errors.cep) setErrors(prev => ({ ...prev, cep: "" }));
                                                             }}
+                                                            onBlur={() => handleBlur("cep")}
                                                             className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cep ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.cep}
                                                             aria-describedby="cep-erro"
@@ -684,18 +726,20 @@ const ProfileForm = () => {
                                                             id="nascimento"
                                                             type="text"
                                                             value={formData.nascimento}
+                                                            placeholder="dd/mm/aaaa"
                                                             onChange={e => {
                                                                 let v = e.target.value.replace(/\D/g, "");
                                                                 if (v.length > 8) v = v.slice(0, 8);
                                                                 v = v.replace(/(\d{2})(\d)/, "$1/$2");
                                                                 v = v.replace(/(\d{2})\/(\d{2})(\d)/, "$1/$2/$3");
                                                                 setFormData({ ...formData, nascimento: v });
+                                                                if (errors.nascimento) setErrors(prev => ({ ...prev, nascimento: "" }));
                                                             }}
+                                                            onBlur={() => handleBlur("nascimento")}
                                                             className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nascimento ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                             aria-invalid={!!errors.nascimento}
                                                             aria-describedby="nascimento-erro"
                                                             maxLength={10}
-                                                            placeholder="dd/mm/aaaa"
                                                         />
                                                         {errors.nascimento && (
                                                             <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="nascimento-erro" role="alert">
@@ -741,7 +785,12 @@ const ProfileForm = () => {
                                                     <Textarea
                                                         id="bio"
                                                         value={bio}
-                                                        onChange={e => setBio(e.target.value)}
+                                                        placeholder="Conte um pouco sobre você..."
+                                                        onChange={e => {
+                                                            setBio(e.target.value);
+                                                            if (errors.bio) setErrors(prev => ({ ...prev, bio: "" }));
+                                                        }}
+                                                        onBlur={() => handleBlur("bio")}
                                                         className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] min-h-[80px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.bio ? 'border-red-500 ring-2 ring-red-400' : ''}`}
                                                         aria-label="Mini bio"
                                                         aria-invalid={!!errors.bio}
@@ -777,8 +826,8 @@ const ProfileForm = () => {
                                                     <Button
                                                         type="submit"
                                                         className="relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md disabled:opacity-70 disabled:cursor-not-allowed gap-2"
-                                                        disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
-                                                        aria-disabled={!hasChanged || isSaving || Object.keys(errors).length > 0}
+                                                        disabled={!hasChanged || isSaving || Object.keys(errors).some(k => errors[k])}
+                                                        aria-disabled={!hasChanged || isSaving || Object.keys(errors).some(k => errors[k])}
                                                         aria-label="Salvar perfil"
                                                     >
                                                         {isSaving ? (
@@ -911,7 +960,6 @@ const ProfileForm = () => {
                                     <div className="mb-4">Você tem alterações não salvas. Tem certeza que deseja sair?</div>
                                     <DialogFooter className="flex gap-2">
                                         <Button variant="outline" onClick={() => setShowUnsavedDialog(false)} autoFocus>Cancelar</Button>
-                                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                                         <Button className="bg-[#ED4231] text-white" onClick={() => { setShowUnsavedDialog(false); setHasChanged(false);  }}>Sair sem salvar</Button>
                                     </DialogFooter>
                                 </DialogContent>
