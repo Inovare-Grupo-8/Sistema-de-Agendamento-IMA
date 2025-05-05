@@ -20,17 +20,25 @@
 body,
 input {
   font-family: 'Open Sans', sans-serif;
+
 }
 
-.container {
-  position: relative;
-  width: 100%;
-  background-color: var(--Branco-Gelo);
-  min-height: 100vh;
-  overflow: hidden;
+/* Garante que o body e o html ocupem 100% da tela */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Remove barras de rolagem desnecessárias */
 }
-p{
-    color: aliceblue;
+
+/* Garante que o container principal ocupe 100% da tela */
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--Branco-Gelo); /* Cor de fundo */
 }
 
 .forms-container {

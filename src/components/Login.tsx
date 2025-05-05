@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import '../login-e-cadastro.css'; // Importando o CSS para estilização
+import '../login-e-cadastro.css';
+import ModalErro from './ui/ModalErro';
 
 const Login: React.FC = () => {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
@@ -14,10 +15,12 @@ const Login: React.FC = () => {
   const [cadastroCPF, setCadastroCPF] = useState('');
   const [cadastroDataNascimento, setCadastroDataNascimento] = useState('');
 
+  // Alternar entre login e cadastro
   const toggleMode = () => {
     setIsSignUpMode(!isSignUpMode);
   };
 
+  // Validações
   const validarEmail = (email: string): string | null => {
     const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regexEmail.test(email)) {
@@ -34,7 +37,7 @@ const Login: React.FC = () => {
   };
 
   const validarCPF = (cpf: string): string | null => {
-    if (cpf.length !== 11) {
+    if (cpf.length !== 14) {
       return 'Por favor, insira um CPF válido.';
     }
     return null;
@@ -75,6 +78,26 @@ const Login: React.FC = () => {
     return true;
   };
 
+  // Máscara para CPF
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+    value = value.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+    setCadastroCPF(value);
+  };
+
+  // Exibir/Ocultar senha
+  const togglePasswordVisibility = (id: string) => {
+    const passwordInput = document.getElementById(id) as HTMLInputElement;
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+    } else {
+      passwordInput.type = 'password';
+    }
+  };
+
+  // Login
   const handleLogin = () => {
     const erroEmail = validarEmail(loginEmail);
     if (erroEmail) {
@@ -107,6 +130,7 @@ const Login: React.FC = () => {
       });
   };
 
+  // Cadastro
   const handleCadastro = () => {
     if (!validarCadastro()) {
       return;
@@ -128,7 +152,6 @@ const Login: React.FC = () => {
       },
       body: JSON.stringify(novoUsuario),
     })
-      .then((response) => response.json())
       .then(() => {
         alert('Usuário cadastrado com sucesso!');
         setIsSignUpMode(false);
@@ -136,23 +159,6 @@ const Login: React.FC = () => {
       .catch(() => {
         setModalErro('Erro ao tentar cadastrar usuário.');
       });
-  };
-
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-    value = value.replace(/^(\d{3})(\d)/, '$1.$2');
-    value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
-    value = value.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
-    setCadastroCPF(value);
-  };
-
-  const togglePasswordVisibility = () => {
-    const passwordInput = document.getElementById('password_signup') as HTMLInputElement;
-    if (passwordInput.type === 'password') {
-      passwordInput.type = 'text';
-    } else {
-      passwordInput.type = 'password';
-    }
   };
 
   return (
@@ -177,10 +183,16 @@ const Login: React.FC = () => {
               <input
                 type="password"
                 placeholder="Senha"
+                id="password_login"
                 value={loginSenha}
                 onChange={(e) => setLoginSenha(e.target.value)}
                 required
               />
+              <i
+                className="fas fa-eye"
+                onClick={() => togglePasswordVisibility('password_login')}
+                style={{ cursor: 'pointer' }}
+              ></i>
             </div>
             <input type="button" value="Entrar" className="btn solid" onClick={handleLogin} />
           </form>
@@ -220,7 +232,7 @@ const Login: React.FC = () => {
               />
               <i
                 className="fas fa-eye"
-                onClick={togglePasswordVisibility}
+                onClick={() => togglePasswordVisibility('password_signup')}
                 style={{ cursor: 'pointer' }}
               ></i>
             </div>
@@ -258,6 +270,7 @@ const Login: React.FC = () => {
               Cadastre-se
             </button>
           </div>
+          <img src="../image/homem-computador.svg" id="homem" className="image" alt="Homem no computador" />
         </div>
         <div className="panel right-panel">
           <div className="content">
@@ -267,20 +280,12 @@ const Login: React.FC = () => {
               Log-in
             </button>
           </div>
+          <img src="../image/senhorzinho.png" id="senhor" className="image" alt="Senhorzinho" />
         </div>
       </div>
 
       {/* Modal de Erro */}
-      {modalErro && (
-        <div className="modal">
-          <div className="modal-conteudo">
-            <p>{modalErro}</p>
-            <button className="fechar" onClick={() => setModalErro(null)}>
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
+      {modalErro && <ModalErro mensagem={modalErro} onClose={() => setModalErro(null)} />}
     </div>
   );
 };
