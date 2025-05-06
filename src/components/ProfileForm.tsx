@@ -339,13 +339,13 @@ const ProfileForm = () => {
                             <Menu className="w-7 h-7" />
                         </button>
                         <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-                        <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
+                        <span className="font-normal text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
                     </div>
                 )}
                 <div className={`transition-all duration-500 ease-in-out
                     ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
                     bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-                    fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px]`
+                    fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-base md:text-lg`
                 }>
                     <div className="w-full flex justify-start mb-6">
                         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md focus:ring-2 focus:ring-[#ED4231]">
@@ -354,13 +354,13 @@ const ProfileForm = () => {
                     </div>
                     <div className="flex flex-col items-center gap-2 mb-8">
                         <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] dark:border-[#23272F] shadow" />
-                        <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
+                        <span className="font-normal text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
                     </div>
-                    <SidebarMenu className="gap-4">
+                    <SidebarMenu className="gap-4 text-base md:text-lg">
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
+                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
                                         <Link to="/agenda" className="flex items-center gap-3">
                                             <CalendarIcon className="w-6 h-6" color="#ED4231" />
                                             <span>Agenda</span>
@@ -375,7 +375,7 @@ const ProfileForm = () => {
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
+                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
                                         <Link to="/disponibilizar-horario" className="flex items-center gap-3">
                                             <Clock className="w-6 h-6" color="#ED4231" />
                                             <span>Disponibilizar Horário</span>
@@ -390,7 +390,7 @@ const ProfileForm = () => {
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
+                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
                                         <Link to="/profile-form" className="flex items-center gap-3">
                                             <span>Editar Perfil</span>
                                         </Link>
@@ -404,7 +404,7 @@ const ProfileForm = () => {
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton className="rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
+                                    <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
                                         <span className="flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                                             <span>Sair</span>
@@ -445,7 +445,8 @@ const ProfileForm = () => {
                     <main id="main-content" role="main" aria-label="Conteúdo principal do perfil">
                         <div className="max-w-5xl mx-auto p-6">
                             <div className="flex items-center justify-between mb-8">
-                                <h1 className="text-2xl md:text-3xl font-bold text-center animate-fade-in">{t('profile')}</h1>
+                                <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">Editar Perfil</h1>
+                                <p className="text-lg md:text-xl mb-6 text-center animate-fade-in text-gray-500">Atualize suas informações pessoais abaixo.</p>
                             </div>
 
                             {loading ? (
@@ -466,12 +467,13 @@ const ProfileForm = () => {
                                             role="form"
                                             tabIndex={0}
                                         >
-                                            {Object.keys(errors).length > 0 && (
-                                                <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2 animate-fade-in" role="alert" aria-live="assertive">
-                                                    <svg className="w-5 h-5 text-red-500 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                                            {/* Se todos os campos obrigatórios estão vazios, não mostra nada de erro ou imagem aqui, pois já existe o card fora do formulário */}
+                                            {Object.keys(errors).length > 0 && !(!formData.nome && !formData.sobrenome && !formData.email && !formData.telefone) && (
+                                                <div className="mb-8 p-5 bg-red-50 border border-red-300 rounded-xl flex items-start gap-3 animate-fade-in shadow-sm" role="alert" aria-live="assertive">
+                                                    <svg className="w-6 h-6 text-red-500 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
                                                     <div>
-                                                        <div className="font-semibold text-red-700 mb-1">Por favor, corrija os seguintes erros:</div>
-                                                        <ul className="list-disc pl-5 text-red-600 text-sm">
+                                                        <div className="font-semibold text-red-700 mb-2 text-lg">Por favor, corrija os seguintes erros:</div>
+                                                        <ul className="list-disc pl-6 text-red-600 text-base space-y-1">
                                                             {Object.entries(errors).map(([field, msg]) => (
                                                                 <li key={field}>{msg}</li>
                                                             ))}
@@ -904,6 +906,19 @@ const ProfileForm = () => {
                                                     className="hidden"
                                                     onChange={handleImageChange}
                                                 />
+                                                {/* Exibe o card de perfil não encontrado logo abaixo do editar foto, somente se não houver dados */}
+                                                {!formData.nome && (
+                                                    <div className="mt-8 w-full flex flex-col items-center animate-fade-in">
+                                                        <div className="bg-white dark:bg-[#23272F] rounded-2xl shadow-lg border border-[#EDF2FB] dark:border-[#23272F] px-8 py-10 flex flex-col items-center max-w-md w-full">
+                                                            <UserX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
+                                                            <div className="text-gray-700 dark:text-gray-200 text-2xl font-bold mb-2 text-center">
+                                                                Perfil não encontrado
+                                                            </div>
+                                                            <div className="text-gray-500 dark:text-gray-400 text-lg text-center mb-2">Preencha seus dados para começar a usar a plataforma.</div>
+                                                            <div className="text-gray-400 dark:text-gray-500 text-base text-center">Eles aparecerão aqui!</div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </form>
                                     </motion.div>
@@ -965,13 +980,6 @@ const ProfileForm = () => {
                                 </DialogContent>
                             </Dialog>
 
-                            {!formData.nome && (
-                                <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
-                                    <UserX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-                                    <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Perfil não encontrado</div>
-                                    <div className="text-gray-400 dark:text-gray-500 text-sm">Preencha seus dados para começar a usar a plataforma.<br/>Eles aparecerão aqui!</div>
-                                </div>
-                            )}
                             {hasChanged && (
                                 <button
                                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

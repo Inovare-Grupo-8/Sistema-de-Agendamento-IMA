@@ -258,8 +258,8 @@ const DisponibilizarHorario = () => {
         )}
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-gradient-to-b from-white via-[#f1f5f9] to-[#F5F6FA] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#D1D5DB] dark:border-[#23272F] backdrop-blur-[2px]`
+          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
         }>
           {/* Botão de menu dentro da sidebar quando aberta (mobile/desktop) */}
           <div className="w-full flex justify-start mb-6">
@@ -271,11 +271,11 @@ const DisponibilizarHorario = () => {
             <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
             <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
           </div>
-          <SidebarMenu className="gap-4">
+          <SidebarMenu className="gap-4 text-sm md:text-base">
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
                     <Link to="/agenda" className="flex items-center gap-3">
                       <CalendarIcon className="w-6 h-6" color="#ED4231" />
                       <span>Agenda</span>
@@ -290,7 +290,7 @@ const DisponibilizarHorario = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
                     <Link to="/disponibilizar-horario" className="flex items-center gap-3">
                       <Clock className="w-6 h-6" color="#ED4231" />
                       <span>Disponibilizar Horário</span>
@@ -305,7 +305,7 @@ const DisponibilizarHorario = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
                     <Link to="/profile-form" className="flex items-center gap-3">
                       <User className="w-6 h-6" color="#ED4231" />
                       <span>Editar Perfil</span>
@@ -321,7 +321,7 @@ const DisponibilizarHorario = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className="rounded-xl px-4 py-3 font-semibold transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={handleLogout}>
+                  <SidebarMenuButton asChild className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={handleLogout}>
                     <span className="flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
                       <span>Sair</span>
@@ -379,8 +379,8 @@ const DisponibilizarHorario = () => {
           </header>
           <div className="h-20" />
           <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-center animate-fade-in">{t('make_time_available')}</h1>
-            <p className="text-gray-500 text-sm md:text-base mb-6 text-center animate-fade-in">{t('choose_date_time')}</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in">{t('make_time_available')}</h1>
+            <p className="text-lg md:text-xl mb-6 text-center animate-fade-in text-gray-500">{t('choose_date_time')}</p>
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedDate?.toString() || 'no-date'}
@@ -389,12 +389,12 @@ const DisponibilizarHorario = () => {
                 exit={{ opacity: 0, y: -24 }}
                 transition={{ duration: 0.4 }}
               >
-                <div className="flex flex-col lg:flex-row gap-6 items-start">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
                   {/* Coluna da esquerda: calendário e horários */}
-                  <div className="flex-1 flex flex-col gap-6 min-w-0">
+                  <div className="flex-1 flex flex-col gap-8 min-w-0">
                     <Card className="rounded-2xl shadow-lg p-0 animate-fade-in transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl focus-within:scale-[1.02] focus-within:shadow-xl group" role="region" aria-label="Calendário de seleção de data">
-                      <CardHeader className="flex flex-row items-center justify-between py-3 bg-[#f8fafc] rounded-t-2xl transition-colors duration-200 group-hover:bg-[#f1f5f9] group-hover:dark:bg-[#23272F]/80">
-                        <CardTitle className="text-base md:text-lg">
+                      <CardHeader className="flex flex-row items-center justify-between py-4 bg-[#f8fafc] rounded-t-2xl transition-colors duration-200 group-hover:bg-[#f1f5f9] group-hover:dark:bg-[#23272F]/80">
+                        <CardTitle className="text-lg md:text-xl">
                           {selectedDate ? format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR }) : format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
                         </CardTitle>
                       </CardHeader>
@@ -406,7 +406,7 @@ const DisponibilizarHorario = () => {
                               selected={selectedDate}
                               onSelect={handleDateSelect}
                               showOutsideDays={true}
-                              className="w-full min-h-[340px] sm:min-h-[380px] md:min-h-[420px] rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-sm sm:text-base md:text-lg dark:bg-[#23272F] dark:border-[#444857] dark:text-gray-100 dark:[&_button]:text-gray-100 dark:[&_button]:hover:bg-[#23272F]/80 dark:[&_button]:focus:bg-[#181A20] dark:[&_button]:focus:text-white dark:[&_button]:hover:text-white"
+                              className="w-full min-h-[340px] sm:min-h-[380px] md:min-h-[420px] rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-base sm:text-lg md:text-xl dark:bg-[#23272F] dark:border-[#444857] dark:text-gray-100 dark:[&_button]:text-gray-100 dark:[&_button]:hover:bg-[#23272F]/80 dark:[&_button]:focus:bg-[#181A20] dark:[&_button]:focus:text-white dark:[&_button]:hover:text-white"
                               locale={ptBR}
                               aria-label="Calendário para selecionar data"
                               aria-describedby="calendario-erro"
@@ -417,24 +417,24 @@ const DisponibilizarHorario = () => {
                         </div>
                       </CardContent>
                     </Card>
-                    <div className="space-y-4 animate-fade-in" role="region" aria-label="Seleção de horários">
+                    <div className="space-y-6 animate-fade-in" role="region" aria-label="Seleção de horários">
                       {periods.map(({ title, Icon, timeSlots }) => (
                         <div key={title} className="bg-white dark:bg-[#23272F] rounded-lg overflow-hidden border border-[#D1D5DB] dark:border-[#23272F] shadow-sm dark:shadow-none">
-                          <div className="flex items-center px-4 py-2 border-b border-[#D1D5DB] dark:border-[#23272F] bg-white dark:bg-[#23272F]">
-                            <Icon color="#ED4231" className="w-5 h-5 mr-2" aria-label={`Ícone do período ${title}`} />
-                            <span className="text-gray-800 dark:text-gray-200 font-semibold" tabIndex={0} title={`Horários do período ${title}`}>{title}</span>
+                          <div className="flex items-center px-4 py-3 border-b border-[#D1D5DB] dark:border-[#23272F] bg-white dark:bg-[#23272F]">
+                            <Icon color="#ED4231" className="w-6 h-6 mr-2" aria-label={`Ícone do período ${title}`} />
+                            <span className="text-lg text-gray-800 dark:text-gray-200 font-semibold" tabIndex={0} title={`Horários do período ${title}`}>{title}</span>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span tabIndex={0} className="ml-2 cursor-pointer text-gray-400 hover:text-[#ED4231] focus:text-[#ED4231]" aria-label={`Dica sobre o período ${title}`}>?</span>
+                                <span tabIndex={0} className="ml-2 cursor-pointer text-gray-400 hover:text-[#ED4231] focus:text-[#ED4231] text-base" aria-label={`Dica sobre o período ${title}`}>?</span>
                               </TooltipTrigger>
-                              <TooltipContent>Selecione um horário disponível para o período {title.toLowerCase()}.</TooltipContent>
+                              <TooltipContent className="text-base">Selecione um horário disponível para o período {title.toLowerCase()}.</TooltipContent>
                             </Tooltip>
                           </div>
                           {timeSlots.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
-                              <Clock className="w-16 h-16 mb-3 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-                              <div className="text-gray-500 dark:text-gray-400 text-base font-semibold mb-1">Nenhum horário disponível</div>
-                              <div className="text-gray-400 dark:text-gray-500 text-xs">Todos os horários deste período já foram reservados.<br/>Tente outro período ou volte mais tarde.</div>
+                            <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
+                              <Clock className="w-20 h-20 mb-3 text-gray-300 dark:text-gray-600" aria-hidden="true" />
+                              <div className="text-lg text-gray-500 dark:text-gray-400 font-semibold mb-1">Nenhum horário disponível</div>
+                              <div className="text-base text-gray-400 dark:text-gray-500">Todos os horários deste período já foram reservados.<br/>Tente outro período ou volte mais tarde.</div>
                             </div>
                           ) : (
                             <TimeSlotSection 
@@ -454,26 +454,26 @@ const DisponibilizarHorario = () => {
                     </div>
                   </div>
                   {/* Coluna da direita: resumo */}
-                  <div ref={summaryRef} className="w-full lg:w-80 lg:max-w-xs flex-shrink-0 mt-6 lg:mt-0 flex flex-col gap-4" role="complementary" aria-label="Resumo do horário selecionado">
+                  <div ref={summaryRef} className="w-full lg:w-96 lg:max-w-md flex-shrink-0 mt-6 lg:mt-0 flex flex-col gap-6" role="complementary" aria-label="Resumo do horário selecionado">
                     {/* Resumo do horário selecionado */}
                     <div
-                      className="w-full bg-white dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-4 mb-2 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 sticky top-24 z-10 animate-fade-in"
+                      className="w-full bg-white dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-6 mb-2 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 sticky top-24 z-10 animate-fade-in text-lg"
                       role="status"
                       aria-live="polite"
                       aria-describedby="resumo-erro"
                     >
                       {selectedDate && selectedTime ? (
                         <>
-                          <span className="font-semibold text-indigo-900 dark:text-indigo-200">Selecionado:</span>
-                          <div className="mt-1 text-lg">{format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às {selectedTime}</div>
-                          <Badge className={`ml-2 ${STATUS_COLORS.success} animate-fade-in badge-animate`} aria-label={t('selected_time')}>{t('selected_time')}</Badge>
+                          <span className="font-semibold text-indigo-900 dark:text-indigo-200 text-lg">Selecionado:</span>
+                          <div className="mt-1 text-xl">{format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às {selectedTime}</div>
+                          <Badge className={`ml-2 ${STATUS_COLORS.success} animate-fade-in badge-animate text-base`} aria-label={t('selected_time')}>{t('selected_time')}</Badge>
                         </>
                       ) : (
-                        <span className="text-gray-400">Nenhum horário selecionado</span>
+                        <span className="text-gray-400 text-base">Nenhum horário selecionado</span>
                       )}
                       <ErrorMessage message={validationMessage} />
                       {validationMessage && (
-                        <span id="resumo-erro" className="text-red-500 text-xs mt-2 block" role="alert">{validationMessage}</span>
+                        <span id="resumo-erro" className="text-red-500 text-base mt-2 block" role="alert">{validationMessage}</span>
                       )}
                     </div>
                     <AgendaSummary 
@@ -483,27 +483,15 @@ const DisponibilizarHorario = () => {
                       onCancel={handleCancel}
                       highlight={!!selectedDate && !!selectedTime}
                     />
-                    <Button
-                      type="submit"
-                      className={`bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none`}
-                      disabled={isLoading}
-                      aria-disabled={isLoading}
-                      aria-label="Confirmar horário"
-                    >
-                      {isLoading && (
-                        <span className="inline-block w-4 h-4 border-2 border-t-2 border-t-[#1A1466] border-[#EDF2FB] rounded-full animate-spin mr-2" aria-label="Salvando..." role="status" />
-                      )}
-                      Confirmar
-                    </Button>
                     <Button 
-                      className={`w-full bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-6 mt-2 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} shadow-md dark:shadow-none`}
+                      className={`w-full bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-7 mt-2 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} shadow-md dark:shadow-none text-lg`}
                       onClick={handleOtherTime}
                       aria-label={t('choose_custom_time')}
                       disabled={isLoading}
                       aria-disabled={isLoading}
                     >
                       {isLoading ? (
-                        <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>{t('loading')}</span>
+                        <span className="flex items-center justify-center gap-2 text-lg"><svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>{t('loading')}</span>
                       ) : t('other_time')}
                     </Button>
                   </div>
