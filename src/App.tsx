@@ -20,15 +20,17 @@ const App = () => {
   // Carrega o script VLibras apenas uma vez
   useEffect(() => {
     if (document.getElementById("vlibras-plugin-script")) return;
-    const script = document.createElement("script");
-    script.id = "vlibras-plugin-script";
-    script.src = "https://vlibras.gov.br/app/vlibras-plugin.js";
-    script.async = true;
-    script.onload = () => {
-      // @ts-expect-error: VLibras is not typed in the global window object
-      if (window.VLibras) new window.VLibras.Widget('https://vlibras.gov.br/app');
-    };
-    document.body.appendChild(script);
+    setTimeout(() => {
+      const script = document.createElement("script");
+      script.id = "vlibras-plugin-script";
+      script.src = "https://vlibras.gov.br/app/vlibras-plugin.js";
+      script.async = true;
+      script.onload = () => {
+        // @ts-expect-error: VLibras is not typed in the global window object
+        if (window.VLibras) new window.VLibras.Widget('https://vlibras.gov.br/app');
+      };
+      document.body.appendChild(script);
+    }, 500); // Pequeno delay para garantir que o DOM está pronto
   }, []);
 
   // Mostra/oculta o avatar VLibras via CSS
