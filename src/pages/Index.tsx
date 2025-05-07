@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Agenda from "@/components/Agenda";
+import TelaLogin from "@/components/TelaLogin";
 import ProfileForm from "@/components/ProfileForm";
 import DisponibilizarHorario from "@/pages/DisponibilizarHorario";
 import NotFound from "./NotFound";
@@ -25,6 +26,7 @@ const Index = () => {
           <Route path="/profile-form" element={<ProfileForm />} />
           <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/login" element={<TelaLogin/>}></Route>
         </Routes>
       </div>
     </div>
