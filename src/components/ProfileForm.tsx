@@ -339,13 +339,13 @@ const ProfileForm = () => {
                             <Menu className="w-7 h-7" />
                         </button>
                         <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-                        <span className="font-normal text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
+j                        <span className="font-normal text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
                     </div>
                 )}
                 <div className={`transition-all duration-500 ease-in-out
                     ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
                     bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-                    fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-base md:text-lg`
+                    fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
                 }>
                     <div className="w-full flex justify-start mb-6">
                         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md focus:ring-2 focus:ring-[#ED4231]">
@@ -356,11 +356,11 @@ const ProfileForm = () => {
                         <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] dark:border-[#23272F] shadow" />
                         <span className="font-normal text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
                     </div>
-                    <SidebarMenu className="gap-4 text-base md:text-lg">
+                    <SidebarMenu className="gap-4 text-sm md:text-base">
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
+                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
                                         <Link to="/agenda" className="flex items-center gap-3">
                                             <CalendarIcon className="w-6 h-6" color="#ED4231" />
                                             <span>Agenda</span>
@@ -375,7 +375,7 @@ const ProfileForm = () => {
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
+                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
                                         <Link to="/disponibilizar-horario" className="flex items-center gap-3">
                                             <Clock className="w-6 h-6" color="#ED4231" />
                                             <span>Disponibilizar Horário</span>
@@ -390,7 +390,7 @@ const ProfileForm = () => {
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
+                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
                                         <Link to="/profile-form" className="flex items-center gap-3">
                                             <span>Editar Perfil</span>
                                         </Link>
@@ -404,7 +404,7 @@ const ProfileForm = () => {
                         <SidebarMenuItem>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
+                                    <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
                                         <span className="flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                                             <span>Sair</span>
