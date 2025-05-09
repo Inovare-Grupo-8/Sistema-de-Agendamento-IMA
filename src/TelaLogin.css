@@ -463,6 +463,21 @@ form.sign-in-form {
     display: none;
   }
 
+
+.image {
+  max-width: 100%; /* Garante que a largura da imagem não ultrapasse o contêiner */
+  height: auto; /* Mantém a proporção da imagem */
+  display: block; /* Remove espaços extras ao redor da imagem */
+  margin: 0 auto; /* Centraliza a imagem */
+  transition: transform 1.1s ease-in-out; /* Mantém a transição existente */
+}
+
+.left-panel .image,
+.right-panel .image {
+  max-width: 100%; /* Ajusta a largura ao contêiner */
+  height: auto; /* Mantém a proporção */
+  object-fit: contain; /* Garante que a imagem se ajuste ao contêiner sem cortar */
+}
   .panel .content {
     padding-right: 15%;
     transition: transform 0.9s ease-in-out;

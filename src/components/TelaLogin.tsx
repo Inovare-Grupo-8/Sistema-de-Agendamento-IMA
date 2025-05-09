@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import '../TelaLogin.css';
 import ModalErro from './ui/ModalErro';
 
-const Login: React.FC = () => {
+const TelaLogin: React.FC = () => {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [modalErro, setModalErro] = useState<string | null>(null);
 
@@ -270,7 +270,7 @@ const Login: React.FC = () => {
               Cadastre-se
             </button>
           </div>
-          <img src="assets/homem-computador.svg" id="homem" className="image" alt="Homem no computador" />
+          <img src="../image/homem-computador.svg" id="homem" className="image" alt="Homem no computador" />
         </div>
         <div className="panel right-panel">
           <div className="content">
@@ -280,7 +280,7 @@ const Login: React.FC = () => {
               Log-in
             </button>
           </div>
-          <img src="assets/senhorzinho.png" id="senhor" className="image" alt="Senhorzinho" />
+          <img src="../image/senhorzinho.png" id="senhor" className="image" alt="Senhorzinho" />
         </div>
       </div>
 
@@ -290,4 +290,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default TelaLogin;

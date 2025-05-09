@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import DisponibilizarHorario from "./pages/DisponibilizarHorario";
 import Agenda from "@/components/Agenda";
 import ProfileForm from "@/components/ProfileForm";
+import TelaLogin from "@/components/TelaLogin";
 import { ProfileImageProvider } from "@/components/ProfileImageContext";
 import { ThemeProvider } from "next-themes";
 import { useEffect, useState } from "react";
@@ -55,6 +56,9 @@ const App = () => {
                 <Route path="/agenda" element={<Agenda />} />
                 <Route path="/profile-form" element={<ProfileForm />} />
                 <Route path="/not-found" element={<NotFound />} />
+                <Route path="/login" element={<TelaLogin />} />
+                {/* Adicione outras rotas aqui */}
+                {/* Rota padrão para página não encontrada */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

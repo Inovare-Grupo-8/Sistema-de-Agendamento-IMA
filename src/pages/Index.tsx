@@ -26,10 +26,11 @@ const Index = () => {
           <Route path="/profile-form" element={<ProfileForm />} />
           <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
           <Route path="*" element={<NotFound />} />
-          <Route path="/login" element={<TelaLogin/>}></Route>
+          <Route path="/login" element={<TelaLogin />}/>
         </Routes>
       </div>
     </div>
+  
   );
 };
 
