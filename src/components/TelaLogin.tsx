@@ -51,33 +51,35 @@ const TelaLogin: React.FC = () => {
   };
 
   const validarCadastro = (): boolean => {
+    const erros: string[] = [];
+  
     const erroEmail = validarEmail(cadastroEmail);
     if (erroEmail) {
-      setModalErro(erroEmail);
-      return false;
+      erros.push(erroEmail);
     }
-
+  
     const erroSenha = validarSenha(cadastroSenha);
     if (erroSenha) {
-      setModalErro(erroSenha);
-      return false;
+      erros.push(erroSenha);
     }
-
+  
     const erroCPF = validarCPF(cadastroCPF);
     if (erroCPF) {
-      setModalErro(erroCPF);
-      return false;
+      erros.push(erroCPF);
     }
-
+  
     const erroDataNascimento = validarDataNascimento(cadastroDataNascimento);
     if (erroDataNascimento) {
-      setModalErro(erroDataNascimento);
+      erros.push(erroDataNascimento);
+    }
+  
+    if (erros.length > 0) {
+      setModalErro(erros.join('\n')); // Exibe todos os erros no modal
       return false;
     }
-
+  
     return true;
   };
-
   // Máscara para CPF
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');

@@ -25,10 +25,11 @@ input {
 
 /* Garante que o body e o html ocupem 100% da tela */
 html, body {
+  width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Remove barras de rolagem desnecessárias */
+  overflow: hidden; /* Remove barras de rolagem */
 }
 
 /* Garante que o container principal ocupe 100% da tela */
@@ -214,6 +215,7 @@ form.sign-in-form {
   background-color: var(--Laranja-escuro);
 }
 .panels-container {
+  background-color: var(--Branco-Gelo);
   position: absolute;
   height: 100%;
   width: 100%;
@@ -221,20 +223,6 @@ form.sign-in-form {
   left: 0;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-}
-
-.container:before {
-  content: "";
-  position: absolute;
-  height: 2000px;
-  width: 2000px;
-  top: -10%;
-  right: 48%;
-  transform: translateY(-50%);
-  background-image: linear-gradient(-45deg, #661165 100%, #000 20%);
-  transition: 1.8s ease-in-out;
-  border-radius: 50%;
-  z-index: 6;
 }
 
 .image {
@@ -312,11 +300,25 @@ form.sign-in-form {
   transform: translateX(800px);
 }
 
+.container:before {
+  content: "";
+  position: absolute;
+  height: 1000px; /* Tamanho do círculo */
+  width: 1000px; /* Tamanho do círculo */
+  top: 50%; /* Centraliza verticalmente */
+  left: 10%; /* Move o círculo mais para a esquerda */
+  transform: translate(-50%, -50%); /* Garante centralização relativa ao ponto definido */
+  background-image: linear-gradient(-45deg, #661165 100%, #000 20%);
+  transition: 1.8s ease-in-out;
+  border-radius: 50%;
+  z-index: 6;
+}
+
 /* ANIMATION */
 
 .container.sign-up-mode:before {
-  transform: translate(100%, -50%);
-  right: 52%;
+  left: 96%; /* Move o círculo mais para a esquerda no modo sign-up */
+  transform: translate(-50%, -50%);
 }
 
 .container.sign-up-mode .left-panel .image,
@@ -416,13 +418,10 @@ form.sign-in-form {
 }
 
 @media (max-width: 870px) {
-  .container {
-    min-height: 800px;
-    height: 100vh;
-  }
+  
   .signin-signup {
     width: 100%;
-    top: 95%;
+    top: 75%;
     transform: translate(-50%, -100%);
     transition: 1s 0.8s ease-in-out;
   }
@@ -430,6 +429,10 @@ form.sign-in-form {
   .signin-signup,
   .container.sign-up-mode .signin-signup {
     left: 50%;
+  }
+
+  .content {
+    padding: 0 12%;
   }
 
   .panels-container {
@@ -443,6 +446,7 @@ form.sign-in-form {
     align-items: center;
     padding: 2.5rem 8%;
     grid-column: 1 / 2;
+    
   }
 
   .right-panel {
@@ -463,21 +467,6 @@ form.sign-in-form {
     display: none;
   }
 
-
-.image {
-  max-width: 100%; /* Garante que a largura da imagem não ultrapasse o contêiner */
-  height: auto; /* Mantém a proporção da imagem */
-  display: block; /* Remove espaços extras ao redor da imagem */
-  margin: 0 auto; /* Centraliza a imagem */
-  transition: transform 1.1s ease-in-out; /* Mantém a transição existente */
-}
-
-.left-panel .image,
-.right-panel .image {
-  max-width: 100%; /* Ajusta a largura ao contêiner */
-  height: auto; /* Mantém a proporção */
-  object-fit: contain; /* Garante que a imagem se ajuste ao contêiner sem cortar */
-}
   .panel .content {
     padding-right: 15%;
     transition: transform 0.9s ease-in-out;
@@ -486,11 +475,12 @@ form.sign-in-form {
 
   .panel h3 {
     font-size: 1.2rem;
+    padding-top: 2.3rem;
   }
 
   .panel p {
     font-size: 0.7rem;
-    padding: 0.5rem 0;
+    padding: 0.0rem 0;
   }
 
   .btn.transparent {
@@ -500,21 +490,36 @@ form.sign-in-form {
   }
  
 
+  .container {
+    display: flex;
+    justify-content: center; /* Alinha horizontalmente */
+    align-items: center; /* Alinha verticalmente */
+    width: 50px;
+    height: 100%;
+    padding: 1.5rem;
+    overflow: hidden;
+  }
+
   .container:before {
-    width: 1500px;
-    height: 1500px;
-    transform: translateX(-50%);
-    left: 30%;
-    bottom: 68%;
-    right: initial;
-    top: initial;
-    transition: 2s ease-in-out;
+    height: 400px; /* Reduz ainda mais o tamanho do círculo */
+    width: 820px; /* Reduz ainda mais o tamanho do círculo */
+    top: 12%;
+    left: 50%; /* Centraliza horizontalmente */
+    transform: translate(-50%, -50%);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 
   .container.sign-up-mode:before {
-    transform: translate(-50%, 100%);
-    bottom: 32%;
-    right: initial;
+    height: 400px; /* Mantém o tamanho reduzido */
+    width: 820px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 40%;
+    border-top-right-radius: 40%;
+    top: 90%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .container.sign-up-mode .left-panel .image,
@@ -539,27 +544,46 @@ form.sign-in-form {
 }
 
 @media (max-width: 570px) {
-  form {
-    padding: 0 1.5rem;
-  }
-
-  .image {
-    display: none;
-  }
-  .panel .content {
-    padding: 0.5rem 1rem;
-  }
+  /* Centraliza o container */
   .container {
+    display: flex;
+    justify-content: center; /* Alinha horizontalmente */
+    align-items: center; /* Alinha verticalmente */
+    flex-direction: column; /* Organiza os elementos em coluna */
+    width: 100%;
+    height: 100%;
     padding: 1.5rem;
+    overflow: hidden;
   }
 
+  /* Ajusta o círculo */
   .container:before {
-    bottom: 72%;
-    left: 50%;
+    height: 270px; /* Reduz o tamanho do círculo */
+    width: 343px; /* Reduz o tamanho do círculo */
+    top: 15%; /* Centraliza verticalmente */
+    left: 50%; /* Centraliza horizontalmente */
+    transform: translate(-50%, -50%);
   }
 
   .container.sign-up-mode:before {
-    bottom: 28%;
-    left: 50%;
+    height: 480px; /* Mantém o tamanho reduzido */
+    width: 343px;
+    top: 90%; /* Ajusta a posição vertical */
+    left: 50%; /* Centraliza horizontalmente */
+    transform: translate(-50%, -50%);
+  }
+
+  /* Centraliza os painéis */
+  .panel {
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center; /* Centraliza verticalmente */
+    width: 100%;
+    height: 70%;
+  }
+
+  .panel .content {
+    padding: 0; /* Remove padding extra */
+    text-align: center; /* Centraliza o texto */
   }
 }
