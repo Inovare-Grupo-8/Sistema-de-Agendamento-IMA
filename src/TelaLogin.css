@@ -136,7 +136,7 @@ form.sign-in-form {
   background-color: var(--Branco-Gelo);
   border-radius: 5px;
   flex: 1;
- 
+  color: var(--Preto);
 }
 
 .input-field input::placeholder {

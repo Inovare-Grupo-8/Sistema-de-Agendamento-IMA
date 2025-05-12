@@ -20,66 +20,90 @@ const TelaLogin: React.FC = () => {
     setIsSignUpMode(!isSignUpMode);
   };
 
-  // Validações
-  const validarEmail = (email: string): string | null => {
-    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!regexEmail.test(email)) {
-      return 'Por favor, insira um email válido.';
-    }
-    return null;
-  };
+  
 
-  const validarSenha = (senha: string): string | null => {
-    if (senha.length < 6) {
-      return 'A senha deve ter pelo menos 6 caracteres.';
+  const validarCamposCadastro = () => {
+    if (!cadastroNome || !cadastroEmail || !cadastroSenha || !cadastroCPF || !cadastroDataNascimento) {
+      setModalErro('Por favor, preencha todos os campos.');
+      return false;
     }
-    return null;
-  };
+    return true;
+  }
 
-  const validarCPF = (cpf: string): string | null => {
-    if (cpf.length !== 14) {
-      return 'Por favor, insira um CPF válido.';
-    }
-    return null;
-  };
+ // Validações individuais
+ 
+const validarNome = (nome: string): string | null => {
+  if (nome.length < 3) {
+    return 'O nome deve ter pelo menos 3 caracteres.';
+  }
+  return null;
+}
 
-  const validarDataNascimento = (dataNascimento: string): string | null => {
-    if (!dataNascimento) {
-      return 'Por favor, insira a data de nascimento.';
-    }
-    return null;
-  };
+
+const validarEmail = (email: string): string | null => {
+  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!regexEmail.test(email)) {
+    return 'Por favor, insira um email válido.';
+  }
+  return null;
+};
+
+const validarSenha = (senha: string): string | null => {
+  if (senha.length < 6) {
+    return 'A senha deve ter pelo menos 6 caracteres.';
+  } else if (/[!@#$%^&*]/.test(senha)) {
+    return 'A senha não pode conter caracteres especiais como @, #, $, %, &, *.';
+  }
+  return null;
+};
+
+const validarCPF = (cpf: string): string | null => {
+  if (cpf.length !== 14) {
+    return 'Por favor, insira um CPF válido.';
+  }
+  return null;
+};
+
+const validarDataNascimento = (dataNascimento: string): string | null => {
+  if (!dataNascimento) {
+    return 'Por favor, insira a data de nascimento.';
+  }
+  return null;
+};
 
   const validarCadastro = (): boolean => {
     const erros: string[] = [];
   
-    const erroEmail = validarEmail(cadastroEmail);
-    if (erroEmail) {
-      erros.push(erroEmail);
+    // Verifica se todos os campos estão preenchidos
+    if (!cadastroNome || !cadastroEmail || !cadastroSenha || !cadastroCPF || !cadastroDataNascimento) {
+      erros.push('Por favor, preencha todos os campos.');
     }
+  
+    // Validações individuais
+    const erroNome = validarNome(cadastroNome);
+    if (erroNome) erros.push(erroNome);
+
+    const erroEmail = validarEmail(cadastroEmail);
+    if (erroEmail) erros.push(erroEmail);
   
     const erroSenha = validarSenha(cadastroSenha);
-    if (erroSenha) {
-      erros.push(erroSenha);
-    }
+    if (erroSenha) erros.push(erroSenha);
   
     const erroCPF = validarCPF(cadastroCPF);
-    if (erroCPF) {
-      erros.push(erroCPF);
-    }
+    if (erroCPF) erros.push(erroCPF);
   
     const erroDataNascimento = validarDataNascimento(cadastroDataNascimento);
-    if (erroDataNascimento) {
-      erros.push(erroDataNascimento);
-    }
+    if (erroDataNascimento) erros.push(erroDataNascimento);
   
+    // Exibe os erros no modal, separados por <br>
     if (erros.length > 0) {
-      setModalErro(erros.join('\n')); // Exibe todos os erros no modal
+      setModalErro(erros.join('<br>'));
       return false;
     }
   
     return true;
   };
+
   // Máscara para CPF
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -134,6 +158,9 @@ const TelaLogin: React.FC = () => {
 
   // Cadastro
   const handleCadastro = () => {
+    if (!validarCamposCadastro()) {
+      return;
+    }
     if (!validarCadastro()) {
       return;
     }
