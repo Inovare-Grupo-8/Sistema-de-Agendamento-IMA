@@ -20,84 +20,81 @@ const TelaLogin: React.FC = () => {
     setIsSignUpMode(!isSignUpMode);
   };
 
-  
+  // Validações individuais
+  const validarNome = (nome: string): string | null => {
+    if (nome.length < 3) {
+      return 'O nome deve ter pelo menos 3 caracteres.';
+    }
+    return null;
+  };
 
-  const validarCamposCadastro = () => {
+  const validarEmail = (email: string): string | null => {
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regexEmail.test(email)) {
+      return 'Por favor, insira um email válido.';
+    }
+    return null;
+  };
+
+  const validarSenha = (senha: string): string | null => {
+    if (senha.length < 6) {
+      return 'A senha deve ter pelo menos 6 caracteres.';
+    } else if (/[!@#$%^&*]/.test(senha)) {
+      return 'A senha não pode conter caracteres especiais como @, #, $, %, &, *.';
+    }
+    return null;
+  };
+
+  const validarCPF = (cpf: string): string | null => {
+    if (cpf.length !== 14) {
+      return 'Por favor, insira um CPF válido.';
+    }
+    return null;
+  };
+
+  const validarDataNascimento = (dataNascimento: string): string | null => {
+    if (!dataNascimento) {
+      return 'Por favor, insira a data de nascimento.';
+    }
+    return null;
+  };
+
+  
+  const validarCadastro = (): boolean => {
+    // Verifica se todos os campos estão preenchidos
     if (!cadastroNome || !cadastroEmail || !cadastroSenha || !cadastroCPF || !cadastroDataNascimento) {
       setModalErro('Por favor, preencha todos os campos.');
       return false;
     }
-    return true;
-  }
-
- // Validações individuais
- 
-const validarNome = (nome: string): string | null => {
-  if (nome.length < 3) {
-    return 'O nome deve ter pelo menos 3 caracteres.';
-  }
-  return null;
-}
-
-
-const validarEmail = (email: string): string | null => {
-  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!regexEmail.test(email)) {
-    return 'Por favor, insira um email válido.';
-  }
-  return null;
-};
-
-const validarSenha = (senha: string): string | null => {
-  if (senha.length < 6) {
-    return 'A senha deve ter pelo menos 6 caracteres.';
-  } else if (/[!@#$%^&*]/.test(senha)) {
-    return 'A senha não pode conter caracteres especiais como @, #, $, %, &, *.';
-  }
-  return null;
-};
-
-const validarCPF = (cpf: string): string | null => {
-  if (cpf.length !== 14) {
-    return 'Por favor, insira um CPF válido.';
-  }
-  return null;
-};
-
-const validarDataNascimento = (dataNascimento: string): string | null => {
-  if (!dataNascimento) {
-    return 'Por favor, insira a data de nascimento.';
-  }
-  return null;
-};
-
-  const validarCadastro = (): boolean => {
-    const erros: string[] = [];
-  
-    // Verifica se todos os campos estão preenchidos
-    if (!cadastroNome || !cadastroEmail || !cadastroSenha || !cadastroCPF || !cadastroDataNascimento) {
-      erros.push('Por favor, preencha todos os campos.');
-    }
   
     // Validações individuais
     const erroNome = validarNome(cadastroNome);
-    if (erroNome) erros.push(erroNome);
-
+    if (erroNome) {
+      setModalErro(erroNome);
+      return false;
+    }
+  
     const erroEmail = validarEmail(cadastroEmail);
-    if (erroEmail) erros.push(erroEmail);
+    if (erroEmail) {
+      setModalErro(erroEmail);
+      return false;
+    }
   
     const erroSenha = validarSenha(cadastroSenha);
-    if (erroSenha) erros.push(erroSenha);
+    if (erroSenha) {
+      setModalErro(erroSenha);
+      return false;
+    }
   
     const erroCPF = validarCPF(cadastroCPF);
-    if (erroCPF) erros.push(erroCPF);
+    if (erroCPF) {
+      setModalErro(erroCPF);
+      return false;
+    }
   
     const erroDataNascimento = validarDataNascimento(cadastroDataNascimento);
-    if (erroDataNascimento) erros.push(erroDataNascimento);
-  
-    // Exibe os erros no modal, separados por <br>
-    if (erros.length > 0) {
-      setModalErro(erros.join('<br>'));
+    if (erroDataNascimento) {
+      setModalErro(erroDataNascimento);
       return false;
     }
   
@@ -131,11 +128,10 @@ const validarDataNascimento = (dataNascimento: string): string | null => {
       return;
     }
 
-    fetch('http://localhost:3000/usuarios', {
+    fetch('http://localhost:8080/usuarios', { 
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
       },
     })
       .then((response) => response.json())
@@ -146,7 +142,7 @@ const validarDataNascimento = (dataNascimento: string): string | null => {
 
         if (usuario) {
           alert('Login bem-sucedido!');
-          window.location.href = '../index.html';
+          window.location.href = '/agenda'; // Ajuste para rota relativa
         } else {
           setModalErro('Email ou senha incorretos.');
         }
@@ -158,9 +154,6 @@ const validarDataNascimento = (dataNascimento: string): string | null => {
 
   // Cadastro
   const handleCadastro = () => {
-    if (!validarCamposCadastro()) {
-      return;
-    }
     if (!validarCadastro()) {
       return;
     }
@@ -173,20 +166,25 @@ const validarDataNascimento = (dataNascimento: string): string | null => {
       dataNascimento: cadastroDataNascimento,
     };
 
-    fetch('http://localhost:3000/usuarios', {
+    fetch('http://localhost:8080/usuarios', { // Ajuste para porta 3000
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify(novoUsuario),
     })
-      .then(() => {
-        alert('Usuário cadastrado com sucesso!');
-        setIsSignUpMode(false);
+      .then((response) => {
+        if (response.ok) {
+          alert('Usuário cadastrado com sucesso!');
+          setIsSignUpMode(false);
+        } else {
+          return response.json().then((data) => {
+            throw new Error(data.message || 'Erro ao tentar cadastrar usuário.');
+          });
+        }
       })
-      .catch(() => {
-        setModalErro('Erro ao tentar cadastrar usuário.');
+      .catch((error) => {
+        setModalErro(error.message);
       });
   };
 
