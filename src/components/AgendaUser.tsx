@@ -28,16 +28,16 @@ interface Appointment {
   period: string;
 }
 
-const Agenda = () => {
+const AgendaUser = () => {
   const { t } = useTranslation();
   const [date, setDate] = useState<Date>(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([
-    { time: "09:00", name: "Ana Silva", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
-    { time: "10:30", name: "Carlos Souza", type: "Nutrição", serviceType: "Consulta Presencial", period: "Manhã" },
-    { time: "14:00", name: "Beatriz Lima", type: "Fisioterapia", serviceType: "Atendimento Online", period: "Tarde" },
-    { time: "15:30", name: "João Pedro", type: "Psicologia", serviceType: "Consulta Presencial", period: "Tarde" },
-    { time: "19:00", name: "Mariana Costa", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
-    { time: "20:30", name: "Rafael Almeida", type: "Nutrição", serviceType: "Consulta Presencial", period: "Noite" },
+    { time: "09:00", name: "Dr. Ricardo Santos", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
+    { time: "10:30", name: "Dra. Carolina Mendes", type: "Nutrição", serviceType: "Consulta Presencial", period: "Manhã" },
+    { time: "14:00", name: "Dr. Marcelo Pereira", type: "Fisioterapia", serviceType: "Atendimento Online", period: "Tarde" },
+    { time: "15:30", name: "Dra. Juliana Costa", type: "Psicologia", serviceType: "Consulta Presencial", period: "Tarde" },
+    { time: "19:00", name: "Dr. Felipe Oliveira", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
+    { time: "20:30", name: "Dra. Isabela Martins", type: "Nutrição", serviceType: "Consulta Presencial", period: "Noite" },
   ]);
 
   const { profileImage } = useProfileImage();
@@ -144,8 +144,8 @@ const Agenda = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/home" className="flex items-center gap-3">
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/home-user" className="flex items-center gap-3">
                       <HomeIcon className="w-6 h-6" color="#ED4231" />
                       <span>Home</span>
                     </Link>
@@ -159,52 +159,52 @@ const Agenda = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/agenda" className="flex items-center gap-3">
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/agenda-user" className="flex items-center gap-3">
                       <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Agenda</span>
+                      <span>Meus Agendamentos</span>
                     </Link>
                   </SidebarMenuButton>
                 </TooltipTrigger>
                 <TooltipContent className="z-50">
-                  Veja sua agenda de atendimentos
+                  Veja sua agenda de consultas
                 </TooltipContent>
               </Tooltip>            </SidebarMenuItem>
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/historico" className="flex items-center gap-3">
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/historico-user" className="flex items-center gap-3">
                       <History className="w-6 h-6" color="#ED4231" />
                       <span>Histórico</span>
                     </Link>
                   </SidebarMenuButton>
                 </TooltipTrigger>
                 <TooltipContent className="z-50">
-                  Veja seu histórico de atendimentos
+                  Veja seu histórico de consultas
                 </TooltipContent>
               </Tooltip>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/disponibilizar-horario" className="flex items-center gap-3">
+                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agendar-horario-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/agendar-horario-user" className="flex items-center gap-3">
                       <Clock className="w-6 h-6" color="#ED4231" />
-                      <span>Disponibilizar Horário</span>
+                      <span>Agendar Consulta</span>
                     </Link>
                   </SidebarMenuButton>
                 </TooltipTrigger>
                 <TooltipContent className="z-50">
-                  Disponibilize novos horários para atendimento
+                  Agende uma nova consulta com um profissional
                 </TooltipContent>
               </Tooltip>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/profile-form" className="flex items-center gap-3">
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/profile-form-user" className="flex items-center gap-3">
                       <User className="w-6 h-6" color="#ED4231" />
                       <span>Editar Perfil</span>
                     </Link>
@@ -257,7 +257,7 @@ const Agenda = () => {
           </header>
           <div className="h-20" />
           <div className="max-w-5xl mx-auto p-2 md:p-6 bg-[#EDF2FB] dark:bg-[#181A20]">
-            <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">{t('your_schedule')}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">Minhas Consultas</h1>
 
             {!formData.nome && (
               <div className="p-4">
@@ -274,7 +274,7 @@ const Agenda = () => {
                 exit={{ opacity: 0, y: -24 }}
                 transition={{ duration: 0.4 }}
               >
-                <div className="space-y-4" role="region" aria-label="Lista de atendimentos" ref={listRef}>
+                <div className="space-y-4" role="region" aria-label="Lista de consultas" ref={listRef}>
                   {loading ? (
                     <div className="space-y-4" aria-busy="true" aria-live="polite">
                       {[...Array(3)].map((_, i) => <AgendaCardSkeleton key={i} />)}
@@ -295,7 +295,7 @@ const Agenda = () => {
                               <TooltipTrigger asChild>
                                 <span tabIndex={0} className="ml-2 cursor-pointer text-gray-400 hover:text-[#ED4231] focus:text-[#ED4231]" aria-label={`Dica sobre o período ${period}`}>?</span>
                               </TooltipTrigger>
-                              <TooltipContent className="z-50">Veja os atendimentos do período {period.toLowerCase()}.</TooltipContent>
+                              <TooltipContent className="z-50">Veja suas consultas do período {period.toLowerCase()}.</TooltipContent>
                             </Tooltip>
                           </div>
                           <span className="text-gray-400 dark:text-gray-500 text-xs md:text-sm ml-0 sm:ml-auto">{timeRange}</span>
@@ -402,8 +402,8 @@ function AppointmentList({ appointments, onCancel, onReschedule, nextIdx }: { ap
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
         <CalendarX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-        <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Nenhum atendimento neste período</div>
-        <div className="text-gray-400 dark:text-gray-500 text-sm">Você ainda não possui agendamentos para este período.<br/>Quando houver, eles aparecerão aqui!</div>
+        <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Nenhuma consulta neste período</div>
+        <div className="text-gray-400 dark:text-gray-500 text-sm">Você ainda não possui consultas agendadas para este período.<br/>Quando houver, elas aparecerão aqui!</div>
       </div>
     );
   }
@@ -416,11 +416,11 @@ function AppointmentList({ appointments, onCancel, onReschedule, nextIdx }: { ap
           onCancel={onCancel}
           onReschedule={onReschedule}
           highlight={nextIdx === idx}
-          aria-label={`Atendimento de ${appointment.name} às ${appointment.time}`}
+          aria-label={`Consulta com ${appointment.name} às ${appointment.time}`}
         />
       ))}
     </div>
   );
 }
 
-export default Agenda;
+export default AgendaUser;

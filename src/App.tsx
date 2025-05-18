@@ -2,16 +2,24 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DisponibilizarHorario from "./pages/DisponibilizarHorario";
 import Agenda from "@/components/Agenda";
+import AgendaUser from "@/components/AgendaUser";
+import Home from "@/components/Home";
+import HomeUser from "@/components/HomeUser";
+import Historico from "@/components/Historico";
+import HistoricoUser from "@/components/HistoricoUser";
 import ProfileForm from "@/components/ProfileForm";
+import ProfileFormUser from "@/components/ProfileFormUser";
 import TelaLogin from "@/components/TelaLogin";
 import { ProfileImageProvider } from "@/components/ProfileImageContext";
 import { ThemeProvider } from "next-themes";
 import { useEffect, useState } from "react";
+import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
+import AgendarHorarioUser from "@/components/AgendarHorarioUser";
 
 const queryClient = new QueryClient();
 
@@ -49,19 +57,31 @@ const App = () => {
           <Toaster />
           <Sonner />
           <ProfileImageProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<DisponibilizarHorario />} />
-                <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
-                <Route path="/agenda" element={<Agenda />} />
-                <Route path="/profile-form" element={<ProfileForm />} />
-                <Route path="/not-found" element={<NotFound />} />
-                <Route path="/login" element={<TelaLogin />} />
-                {/* Adicione outras rotas aqui */}
-                {/* Rota padrão para página não encontrada */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <Router>
+              <UserNavigationProvider>
+                <Routes>
+                  {/* Rotas do usuário */}
+                  <Route path="/home-user" element={<HomeUser />} />
+                  <Route path="/agenda-user" element={<AgendaUser />} />
+                  <Route path="/historico-user" element={<HistoricoUser />} />
+                  <Route path="/agendar-horario-user" element={<AgendarHorarioUser />} />
+                  <Route path="/profile-form-user" element={<ProfileFormUser />} />
+
+                  {/* Rotas do profissional */}
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
+                  <Route path="/agenda" element={<Agenda />} />
+                  <Route path="/historico" element={<Historico />} />
+                  <Route path="/profile-form" element={<ProfileForm />} />
+                  <Route path="/login" element={<TelaLogin />} />
+
+                  {/* Redirecionamento para a home do usuário como fallback */}
+                  <Route path="/" element={<HomeUser />} />
+                  {/* Rota padrão para página não encontrada */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </UserNavigationProvider>
+            </Router>
           </ProfileImageProvider>
           {/* Botão de acessibilidade VLibras */}
           <button

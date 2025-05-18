@@ -1,8 +1,9 @@
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { ChevronRight, MoreHorizontal } from "lucide-react"
+import { ChevronRight, Home as HomeIcon, MoreHorizontal } from "lucide-react"
+import { Link } from "react-router-dom"
 
 import { cn } from "@/lib/utils"
+import { Slot } from "@radix-ui/react-slot"
 
 const Breadcrumb = React.forwardRef<
   HTMLElement,
@@ -104,6 +105,28 @@ const BreadcrumbEllipsis = ({
 )
 BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
 
+const BreadcrumbUserPath = ({ currentPath }: { currentPath: string }) => {
+  // Utiliza as rotas configuradas para garantir consistência na navegação
+  return (
+    <Breadcrumb className="mb-6">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link to="/home-user">
+              <HomeIcon className="h-3.5 w-3.5 text-[#ED4231]" />
+              <span className="sr-only">Página inicial do usuário</span>
+            </Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>{currentPath}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  )
+}
+
 export {
   Breadcrumb,
   BreadcrumbList,
@@ -112,4 +135,5 @@ export {
   BreadcrumbPage,
   BreadcrumbSeparator,
   BreadcrumbEllipsis,
+  BreadcrumbUserPath,
 }

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Sun, CloudMoon, Moon, Calendar as CalendarIcon, User, Clock, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sun, CloudMoon, Moon, Calendar as CalendarIcon, User, Clock, Menu, History, Home as HomeIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import TimeSlotSection from "@/components/TimeSlotSection";
 import AgendaSummary from "@/components/AgendaSummary";
@@ -275,6 +275,21 @@ const DisponibilizarHorario = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/home" className="flex items-center gap-3">
+                      <HomeIcon className="w-6 h-6" color="#ED4231" />
+                      <span>Home</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Painel principal com resumo
+                </TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
                     <Link to="/agenda" className="flex items-center gap-3">
                       <CalendarIcon className="w-6 h-6" color="#ED4231" />
@@ -284,6 +299,20 @@ const DisponibilizarHorario = () => {
                 </TooltipTrigger>
                 <TooltipContent>
                   Veja sua agenda de atendimentos
+                </TooltipContent>
+              </Tooltip>            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/historico" className="flex items-center gap-3">
+                      <History className="w-6 h-6" color="#ED4231" />
+                      <span>Histórico</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Veja seu histórico de atendimentos
                 </TooltipContent>
               </Tooltip>
             </SidebarMenuItem>

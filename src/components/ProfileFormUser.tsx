@@ -6,66 +6,15 @@ import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Sun, Mo
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useTheme } from "next-themes";
-import { appUrls } from "@/utils/userNavigation";
+import { userNavigationItems } from "@/utils/userNavigation";
+import { getUserNavigationPath } from "@/utils/userNavigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Componente de breadcrumb simples para o profissional
-const getProfessionalNavigationPath = (currentPath: string) => {
-  const pathLabels: Record<string, string> = {
-    "/home": "Home",
-    "/agenda": "Agenda",
-    "/historico": "Histórico",
-    "/disponibilizar-horario": "Disponibilizar Horário",
-    "/profile-form": "Editar Perfil"
-  };
-
-  return (
-    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mb-4">
-      <Link to="/home" className="flex items-center hover:text-indigo-600 dark:hover:text-indigo-400">
-        <HomeIcon className="h-3.5 w-3.5 text-[#ED4231]" />
-      </Link>
-      <span className="mx-1">/</span>
-      <span className="text-gray-900 dark:text-gray-200 font-medium">
-        {pathLabels[currentPath] || "Página atual"}
-      </span>
-    </div>
-  );
-};
-
-// Itens de navegação para o profissional
-const professionalNavItems = [
-  {
-    path: "/home",
-    label: "Home",
-    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/agenda",
-    label: "Agenda",
-    icon: <CalendarIcon className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/historico",
-    label: "Histórico",
-    icon: <History className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/disponibilizar-horario",
-    label: "Disponibilizar Horário",
-    icon: <Clock className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/profile-form",
-    label: "Editar Perfil", 
-    icon: <User className="w-6 h-6" color="#ED4231" />
-  }
-];
-
-const ProfileForm = () => {
+const ProfileFormUser = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -75,23 +24,22 @@ const ProfileForm = () => {
 
   // Estado para o formulário
   const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("profileData");
+    const savedData = localStorage.getItem("userData");
     return savedData ? JSON.parse(savedData) : {
-      nome: "Ricardo",
-      sobrenome: "Santos",
-      email: "ricardo.santos@email.com",
-      telefone: "(11) 97654-3210",
-      dataNascimento: "1985-10-25",
-      especialidade: "Psicologia",
-      crm: "CRP 06/123456",
+      nome: "Maria",
+      sobrenome: "Silva",
+      email: "maria.silva@email.com",
+      telefone: "(11) 98765-4321",
+      dataNascimento: "1990-05-15",
+      genero: "Feminino",
       endereco: {
         rua: "Av. Paulista",
-        numero: "2000",
-        complemento: "Sala 405",
-        bairro: "Centro",
+        numero: "1000",
+        complemento: "Apto 123",
+        bairro: "Bela Vista",
         cidade: "São Paulo",
         estado: "SP",
-        cep: "01310-200"
+        cep: "01310-100"
       }
     };
   });
@@ -143,7 +91,7 @@ const ProfileForm = () => {
     // Simulando uma chamada de API
     setTimeout(() => {
       // Salvando os dados no localStorage
-      localStorage.setItem("profileData", JSON.stringify(formData));
+      localStorage.setItem("userData", JSON.stringify(formData));
       
       // Se houver uma nova imagem, atualize-a
       if (selectedImage && imagePreview) {
@@ -168,7 +116,7 @@ const ProfileForm = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
           </div>
         )}
         
@@ -184,13 +132,12 @@ const ProfileForm = () => {
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {formData?.nome} {formData?.sobrenome}</span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">{formData?.especialidade}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* Utilizando os itens de navegação do professional */}
-            {professionalNavItems.map((item) => (
+            {/* Utilizando os itens de navegação do userNavigationItems */}
+            {Object.values(userNavigationItems).map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -236,7 +183,7 @@ const ProfileForm = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button
@@ -251,12 +198,12 @@ const ProfileForm = () => {
 
           <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
             {/* Breadcrumb navigation */}
-            {getProfessionalNavigationPath(location.pathname)}
+            {getUserNavigationPath(location.pathname)}
 
             <div className="flex flex-col">
               <div className="flex items-center gap-4 mb-6">
                 <Button 
-                  onClick={() => navigate("/home")} 
+                  onClick={() => navigate("/home-user")} 
                   variant="ghost" 
                   className="p-2 rounded-full"
                   aria-label="Voltar"
@@ -266,7 +213,7 @@ const ProfileForm = () => {
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">Editar Perfil</h1>
                   <p className="text-base text-gray-500 dark:text-gray-400">
-                    Atualize suas informações profissionais
+                    Atualize suas informações pessoais
                   </p>
                 </div>
               </div>
@@ -274,7 +221,6 @@ const ProfileForm = () => {
               <Tabs defaultValue="pessoal" className="w-full">
                 <TabsList className="mb-6">
                   <TabsTrigger value="pessoal">Dados Pessoais</TabsTrigger>
-                  <TabsTrigger value="profissional">Dados Profissionais</TabsTrigger>
                   <TabsTrigger value="endereco">Endereço</TabsTrigger>
                   <TabsTrigger value="foto">Foto de Perfil</TabsTrigger>
                 </TabsList>
@@ -345,6 +291,17 @@ const ProfileForm = () => {
                           />
                         </div>
                       </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="genero">Gênero</Label>
+                        <Input 
+                          id="genero" 
+                          name="genero" 
+                          value={formData.genero} 
+                          onChange={handleInputChange}
+                          className="bg-white dark:bg-gray-800" 
+                        />
+                      </div>
                     </CardContent>
                     <CardFooter>
                       <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
@@ -362,62 +319,12 @@ const ProfileForm = () => {
                   </Card>
                 </TabsContent>
                 
-                {/* Aba de Dados Profissionais */}
-                <TabsContent value="profissional">
-                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
-                    <CardHeader>
-                      <CardTitle>Dados Profissionais</CardTitle>
-                      <CardDescription>Atualize suas informações profissionais</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="especialidade">Especialidade</Label>
-                          <Input 
-                            id="especialidade" 
-                            name="especialidade" 
-                            value={formData.especialidade} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="crm">CRM/CRP/Registro Profissional</Label>
-                          <Input 
-                            id="crm" 
-                            name="crm" 
-                            value={formData.crm} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="bio">Biografia Profissional</Label>
-                        <textarea 
-                          id="bio" 
-                          name="bio" 
-                          value={formData.bio || ''} 
-                          onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                          className="w-full min-h-[150px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]" 
-                        />
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </TabsContent>
-                
                 {/* Aba de Endereço */}
                 <TabsContent value="endereco">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
-                      <CardTitle>Endereço Profissional</CardTitle>
-                      <CardDescription>Atualize seu endereço de atendimento</CardDescription>
+                      <CardTitle>Endereço</CardTitle>
+                      <CardDescription>Atualize seu endereço</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -511,7 +418,7 @@ const ProfileForm = () => {
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
                       <CardTitle>Foto de Perfil</CardTitle>
-                      <CardDescription>Atualize sua foto de perfil profissional</CardDescription>
+                      <CardDescription>Atualize sua foto de perfil</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-col items-center gap-6">
@@ -560,4 +467,4 @@ const ProfileForm = () => {
   );
 };
 
-export default ProfileForm;
+export default ProfileFormUser;

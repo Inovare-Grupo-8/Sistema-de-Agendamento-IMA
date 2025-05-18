@@ -3,6 +3,7 @@ import Agenda from "@/components/Agenda";
 import TelaLogin from "@/components/TelaLogin";
 import ProfileForm from "@/components/ProfileForm";
 import DisponibilizarHorario from "@/pages/DisponibilizarHorario";
+import ProfileFormUser from "@/components/ProfileFormUser";
 import NotFound from "./NotFound";
 import Header from "@/components/Header";
 import { useState } from "react";
@@ -27,6 +28,8 @@ const Index = () => {
           <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/login" element={<TelaLogin />}/>
+          <Route path="/profile-form-user" element={<ProfileFormUser />} />
+          {/* Adicione outras rotas aqui */}  
         </Routes>
       </div>
     </div>
