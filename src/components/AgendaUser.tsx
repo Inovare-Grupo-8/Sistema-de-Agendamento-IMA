@@ -242,15 +242,22 @@ const AgendaUser = () => {
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {formData?.nome} {formData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">              <Button
-                onClick={toggleTheme}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-                tabIndex={0}
-                title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              >
-                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-              </Button>
+            <div className="flex items-center gap-3">              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                    aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                    tabIndex={0}
+                    title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                  >
+                    {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{theme === 'dark' ? 'Alternar para modo claro' : 'Alternar para modo escuro'}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </header>
           <div className="h-20" />

@@ -332,23 +332,35 @@ const HistoricoUser = () => {
                     />
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setFilterStatus(filterStatus === "realizada" ? null : "realizada")}
-                      variant={filterStatus === "realizada" ? "default" : "outline"}
-                      className={`flex items-center gap-2 ${filterStatus === "realizada" ? "bg-[#ED4231]" : ""}`}
-                    >
-                      <FileText size={16} />
-                      <span>Realizadas</span>
-                    </Button>
-                    <Button
-                      onClick={() => setFilterStatus(filterStatus === "cancelada" ? null : "cancelada")}
-                      variant={filterStatus === "cancelada" ? "default" : "outline"}
-                      className={`flex items-center gap-2 ${filterStatus === "cancelada" ? "bg-[#ED4231]" : ""}`}
-                    >
-                      <FileText size={16} />
-                      <span>Canceladas</span>
-                    </Button>
+                  <div className="flex gap-2">                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setFilterStatus(filterStatus === "realizada" ? null : "realizada")}
+                          variant={filterStatus === "realizada" ? "default" : "outline"}
+                          className={`flex items-center gap-2 ${filterStatus === "realizada" ? "bg-[#ED4231]" : ""}`}
+                        >
+                          <FileText size={16} />
+                          <span>Realizadas</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Filtrar apenas consultas realizadas</p>
+                      </TooltipContent>
+                    </Tooltip>                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setFilterStatus(filterStatus === "cancelada" ? null : "cancelada")}
+                          variant={filterStatus === "cancelada" ? "default" : "outline"}
+                          className={`flex items-center gap-2 ${filterStatus === "cancelada" ? "bg-[#ED4231]" : ""}`}
+                        >
+                          <FileText size={16} />
+                          <span>Canceladas</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Filtrar apenas consultas canceladas</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
 
@@ -454,14 +466,20 @@ const HistoricoUser = () => {
               </motion.div>
             </AnimatePresence>
 
-            {filteredHistorico.length > 5 && (
-              <Button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
-                aria-label="Voltar ao topo"
-              >
-                ↑
-              </Button>
+            {filteredHistorico.length > 5 && (              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
+                    aria-label="Voltar ao topo"
+                  >
+                    ↑
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Voltar ao topo da página</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </main>

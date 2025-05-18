@@ -319,13 +319,20 @@ const ProfileFormUser = () => {
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">              <Button
-                onClick={toggleTheme}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              >
-                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-              </Button>
+            <div className="flex items-center gap-3">              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                    aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                  >
+                    {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </header>
 
@@ -335,14 +342,21 @@ const ProfileFormUser = () => {
 
             <div className="flex flex-col">
               <div className="flex items-center gap-4 mb-6">
-                <Button 
-                  onClick={() => navigate("/home-user")} 
-                  variant="ghost" 
-                  className="p-2 rounded-full"
-                  aria-label="Voltar"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => navigate("/home-user")} 
+                      variant="ghost" 
+                      className="p-2 rounded-full"
+                      aria-label="Voltar"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Voltar para página inicial</p>
+                  </TooltipContent>
+                </Tooltip>
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">Editar Perfil</h1>
                   <p className="text-base text-gray-500 dark:text-gray-400">
@@ -380,13 +394,20 @@ const ProfileFormUser = () => {
                               <span className="text-xs text-red-500">{validationErrors.nome}</span>
                             )}
                           </Label>
-                          <Input 
-                            id="nome" 
-                            name="nome" 
-                            value={formData.nome} 
-                            onChange={handleInputChange} 
-                            className={`bg-white dark:bg-gray-800 ${validationErrors.nome ? 'border-red-500 focus:ring-red-500' : ''}`}
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input 
+                                id="nome" 
+                                name="nome" 
+                                value={formData.nome} 
+                                onChange={handleInputChange} 
+                                className={`bg-white dark:bg-gray-800 ${validationErrors.nome ? 'border-red-500 focus:ring-red-500' : ''}`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Digite seu primeiro nome</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="sobrenome" className="flex items-center justify-between">
@@ -395,13 +416,20 @@ const ProfileFormUser = () => {
                               <span className="text-xs text-red-500">{validationErrors.sobrenome}</span>
                             )}
                           </Label>
-                          <Input 
-                            id="sobrenome" 
-                            name="sobrenome" 
-                            value={formData.sobrenome} 
-                            onChange={handleInputChange}
-                            className={`bg-white dark:bg-gray-800 ${validationErrors.sobrenome ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input 
+                                id="sobrenome" 
+                                name="sobrenome" 
+                                value={formData.sobrenome} 
+                                onChange={handleInputChange}
+                                className={`bg-white dark:bg-gray-800 ${validationErrors.sobrenome ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Digite seu sobrenome</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                       
@@ -412,14 +440,21 @@ const ProfileFormUser = () => {
                             <span className="text-xs text-red-500">{validationErrors.email}</span>
                           )}
                         </Label>
-                        <Input 
-                          id="email" 
-                          name="email" 
-                          type="email" 
-                          value={formData.email} 
-                          onChange={handleInputChange}
-                          className={`bg-white dark:bg-gray-800 ${validationErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Input 
+                              id="email" 
+                              name="email" 
+                              type="email" 
+                              value={formData.email} 
+                              onChange={handleInputChange}
+                              className={`bg-white dark:bg-gray-800 ${validationErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Insira seu e-mail principal para contato</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -430,13 +465,20 @@ const ProfileFormUser = () => {
                               <span className="text-xs text-red-500">{validationErrors.telefone}</span>
                             )}
                           </Label>
-                          <Input 
-                            id="telefone" 
-                            name="telefone" 
-                            value={formData.telefone} 
-                            onChange={handleInputChange}
-                            className={`bg-white dark:bg-gray-800 ${validationErrors.telefone ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input 
+                                id="telefone" 
+                                name="telefone" 
+                                value={formData.telefone} 
+                                onChange={handleInputChange}
+                                className={`bg-white dark:bg-gray-800 ${validationErrors.telefone ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Formato: (XX) XXXXX-XXXX</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="dataNascimento" className="flex items-center justify-between">
@@ -445,14 +487,21 @@ const ProfileFormUser = () => {
                               <span className="text-xs text-red-500">{validationErrors.dataNascimento}</span>
                             )}
                           </Label>
-                          <Input 
-                            id="dataNascimento" 
-                            name="dataNascimento" 
-                            type="date" 
-                            value={formData.dataNascimento} 
-                            onChange={handleInputChange}
-                            className={`bg-white dark:bg-gray-800 ${validationErrors.dataNascimento ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input 
+                                id="dataNascimento" 
+                                name="dataNascimento" 
+                                type="date" 
+                                value={formData.dataNascimento} 
+                                onChange={handleInputChange}
+                                className={`bg-white dark:bg-gray-800 ${validationErrors.dataNascimento ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Selecione sua data de nascimento</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                       
@@ -463,39 +512,60 @@ const ProfileFormUser = () => {
                             <span className="text-xs text-red-500">{validationErrors.genero}</span>
                           )}
                         </Label>
-                        <Input 
-                          id="genero" 
-                          name="genero" 
-                          value={formData.genero} 
-                          onChange={handleInputChange}
-                          className={`bg-white dark:bg-gray-800 ${validationErrors.genero ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Input 
+                              id="genero" 
+                              name="genero" 
+                              value={formData.genero} 
+                              onChange={handleInputChange}
+                              className={`bg-white dark:bg-gray-800 ${validationErrors.genero ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Informe como você se identifica</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleCancel} 
-                        disabled={loading || (!formChanged && !selectedImage)}
-                        className="border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button 
-                        onClick={handleSave} 
-                        disabled={loading || (!formChanged && !selectedImage)} 
-                        className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]"
-                      >
-                        {loading ? (
-                          <div className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Salvando...
-                          </div>
-                        ) : "Salvar Alterações"}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            onClick={handleCancel} 
+                            disabled={loading || (!formChanged && !selectedImage)}
+                            className="border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
+                          >
+                            Cancelar
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Descartar alterações feitas no perfil</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            onClick={handleSave} 
+                            disabled={loading || (!formChanged && !selectedImage)} 
+                            className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]"
+                          >
+                            {loading ? (
+                              <div className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Salvando...
+                              </div>
+                            ) : "Salvar Alterações"}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Salvar todas as alterações feitas no perfil</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -511,13 +581,20 @@ const ProfileFormUser = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-2">
                           <Label htmlFor="rua">Rua</Label>
-                          <Input 
-                            id="rua" 
-                            name="endereco.rua" 
-                            value={formData.endereco.rua} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input 
+                                id="rua" 
+                                name="endereco.rua" 
+                                value={formData.endereco.rua} 
+                                onChange={handleInputChange}
+                                className="bg-white dark:bg-gray-800"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Nome da rua, avenida ou logradouro</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="numero">Número</Label>
@@ -577,16 +654,23 @@ const ProfileFormUser = () => {
                         <div className="space-y-2">
                           <Label htmlFor="cep">CEP</Label>
                           <div className="relative">
-                            <Input 
-                              id="cep" 
-                              name="endereco.cep" 
-                              value={formData.endereco.cep} 
-                              onChange={handleInputChange}
-                              onBlur={handleCepBlur}
-                              placeholder="00000-000"
-                              maxLength={9}
-                              className="bg-white dark:bg-gray-800"
-                            />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Input 
+                                  id="cep" 
+                                  name="endereco.cep" 
+                                  value={formData.endereco.cep} 
+                                  onChange={handleInputChange}
+                                  onBlur={handleCepBlur}
+                                  placeholder="00000-000"
+                                  maxLength={9}
+                                  className="bg-white dark:bg-gray-800"
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p>Formato: 00000-000 (preenchimento automático ao sair do campo)</p>
+                              </TooltipContent>
+                            </Tooltip>
                             {loadingCep && (
                               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                 <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
@@ -598,9 +682,16 @@ const ProfileFormUser = () => {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                            {loading ? "Salvando..." : "Salvar Alterações"}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Salvar alterações feitas no endereço</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -623,12 +714,19 @@ const ProfileFormUser = () => {
                         </div>
                         
                         <div className="flex flex-col items-center gap-4">
-                          <Label 
-                            htmlFor="photo-upload"
-                            className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-                          >
-                            Escolher Foto
-                          </Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Label 
+                                htmlFor="photo-upload"
+                                className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                              >
+                                Escolher Foto
+                              </Label>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Clique para selecionar uma nova foto de perfil</p>
+                            </TooltipContent>
+                          </Tooltip>
                           <Input 
                             id="photo-upload" 
                             type="file" 
@@ -644,9 +742,16 @@ const ProfileFormUser = () => {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                            {loading ? "Salvando..." : "Salvar Alterações"}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Salvar a nova foto de perfil</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </CardFooter>
                   </Card>
                 </TabsContent>

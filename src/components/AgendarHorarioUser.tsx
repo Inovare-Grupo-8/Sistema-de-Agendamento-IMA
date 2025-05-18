@@ -279,17 +279,23 @@ const AgendarHorarioUser = () => {
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Selecione uma data para a consulta com {especialistaAtual?.nome}:</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {horariosDisponiveis.map((dia, index) => (
-                          <Button
-                            key={index}
-                            variant={dataSelecionada === dia.data ? "default" : "outline"}
-                            onClick={() => setDataSelecionada(dia.data)}
-                            className={`flex flex-col p-4 h-auto ${dataSelecionada === dia.data ? 'bg-[#ED4231]' : ''}`}
-                          >
-                            <span className="font-medium">{format(dia.data, "eeee", { locale: ptBR })}</span>
-                            <span>{format(dia.data, "dd/MM/yyyy")}</span>
-                            <span className="text-xs mt-1">{dia.horarios.length} horários disponíveis</span>
-                          </Button>
+                        {horariosDisponiveis.map((dia, index) => (                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                key={index}
+                                variant={dataSelecionada === dia.data ? "default" : "outline"}
+                                onClick={() => setDataSelecionada(dia.data)}
+                                className={`flex flex-col p-4 h-auto ${dataSelecionada === dia.data ? 'bg-[#ED4231]' : ''}`}
+                              >
+                                <span className="font-medium">{format(dia.data, "eeee", { locale: ptBR })}</span>
+                                <span>{format(dia.data, "dd/MM/yyyy")}</span>
+                                <span className="text-xs mt-1">{dia.horarios.length} horários disponíveis</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Selecionar {format(dia.data, "eeee, dd 'de' MMMM", { locale: ptBR })}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         ))}
                       </div>
                     </div>
@@ -385,30 +391,42 @@ const AgendarHorarioUser = () => {
                   
                   {/* Botões de navegação */}
                   <div className="flex justify-between mt-6">
-                    {step > 1 ? (
-                      <Button variant="outline" onClick={handleBack} className="flex items-center">
-                        <ChevronLeft className="w-4 h-4 mr-2" /> Voltar
-                      </Button>
+                    {step > 1 ? (                    <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" onClick={handleBack} className="flex items-center">
+                            <ChevronLeft className="w-4 h-4 mr-2" /> Voltar
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Retornar ao passo anterior</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ) : (
                       <div></div>
-                    )}
-                    <Button onClick={handleNext} disabled={loading} className="bg-[#ED4231] hover:bg-[#d53a2a] ml-auto">
-                      {loading ? (
-                        <div className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Processando...
-                        </div>
-                      ) : step === 5 ? (
-                        "Confirmar Agendamento"
-                      ) : (
-                        <span className="flex items-center">
-                          Avançar <ChevronRight className="w-4 h-4 ml-2" />
-                        </span>
-                      )}
-                    </Button>
+                    )}                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button onClick={handleNext} disabled={loading} className="bg-[#ED4231] hover:bg-[#d53a2a] ml-auto">
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Processando...
+                            </div>
+                          ) : step === 5 ? (
+                            "Confirmar Agendamento"
+                          ) : (
+                            <span className="flex items-center">
+                              Avançar <ChevronRight className="w-4 h-4 ml-2" />
+                            </span>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{step === 5 ? "Finalizar e agendar a consulta" : "Avançar para o próximo passo"}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </CardContent>
               </Card>
