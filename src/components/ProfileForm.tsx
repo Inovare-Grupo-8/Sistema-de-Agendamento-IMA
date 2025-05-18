@@ -5,8 +5,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Sun, Moon, Home as HomeIcon, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
-import { useTheme } from "next-themes";
 import { appUrls } from "@/utils/userNavigation";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,11 +68,10 @@ const professionalNavItems = [
 
 const ProfileForm = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();  const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
-  const { theme = "light", setTheme = () => {} } = useTheme();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
   
   // Adicionando estado para feedback visual de validação
@@ -344,9 +343,8 @@ const ProfileForm = () => {
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            <div className="flex items-center gap-3">              <Button
+                onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
               >

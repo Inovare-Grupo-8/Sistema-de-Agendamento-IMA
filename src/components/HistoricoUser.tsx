@@ -9,8 +9,8 @@ import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Search,
 import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
-import { useTheme } from "next-themes";
 import { STATUS_COLORS } from "../constants/ui";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { useTranslation } from "react-i18next";
 import { AgendaCardSkeleton } from "./ui/custom-skeletons";
 import { motion, AnimatePresence } from "framer-motion";
@@ -97,11 +97,10 @@ const HistoricoUser = () => {
     return savedData ? JSON.parse(savedData) : { nome: "", sobrenome: "" };
   });
 
-  const location = useLocation();
-  const [loading, setLoading] = useState(false);
+  const location = useLocation();  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
-  const { theme = "light", setTheme = () => {} } = useTheme();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
@@ -284,9 +283,8 @@ const HistoricoUser = () => {
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {formData?.nome} {formData?.sobrenome}</span>
-            </div>
-            <div className="flex items-center gap-3">              <Button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            </div>            <div className="flex items-center gap-3">              <Button
+                onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
                 tabIndex={0}

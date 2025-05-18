@@ -10,12 +10,12 @@ import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Chevron
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
-import { useTheme } from "next-themes";
 import { STATUS_COLORS } from "../constants/ui";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 
 interface ConsultaSummary {
   total: number;
@@ -40,10 +40,9 @@ const Home = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [error, setError] = useState("");  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
-  const { theme = "light", setTheme = () => {} } = useTheme();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
 
   const [formData, setFormData] = useState(() => {
     const savedData = localStorage.getItem("profileData");
@@ -337,9 +336,8 @@ const Home = () => {
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            <div className="flex items-center gap-3">              <Button
+                onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
               >

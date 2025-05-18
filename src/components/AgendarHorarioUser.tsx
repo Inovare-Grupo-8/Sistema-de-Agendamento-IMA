@@ -5,8 +5,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, ChevronLeft, ChevronRight, Sun, Moon, Home as HomeIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
-import { useTheme } from "next-themes";
 import { userNavigationItems } from "@/utils/userNavigation";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +39,7 @@ const AgendarHorarioUser = () => {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
-  const { theme = "light", setTheme = () => {} } = useTheme();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
 
   const [userData, setUserData] = useState(() => {
     const savedData = localStorage.getItem("userData");
@@ -211,9 +211,8 @@ const AgendarHorarioUser = () => {
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            <div className="flex items-center gap-3">              <Button
+                onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
               >
