@@ -1,0 +1,83 @@
+@media (max-width: 768px) {
+  /* Ajustes de sidebar */
+  .sidebar-collapsed {
+    position: fixed;
+    left: -100%;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .sidebar-open {
+    left: 0;
+    width: 85%;
+    max-width: 300px;
+  }
+  
+  /* Melhorar apresentação em telas pequenas */
+  .form-grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Melhorar navegação entre abas em telas pequenas */
+  .tabs-responsive {
+    flex-direction: column;
+  }
+  
+  /* Ajustar tamanhos de texto */
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Melhorar espaçamentos */
+  .content-spacing {
+    padding: 1rem !important;
+  }
+  
+  /* Fazer botões ocuparem largura total em mobile */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+}
+
+/* Melhorias para impressão */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .print-content {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Estilos personalizados para acessibilidade */
+.high-contrast-mode {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #ffff00;
+  --card: #333333;
+  --border: #ffffff;
+  --muted: #666666;
+}
+
+.dyslexia-friendly {
+  --font-family: 'OpenDyslexic', sans-serif;
+  --letter-spacing: 0.05em;
+  --line-height: 1.8;
+}
+
+body.dyslexia-friendly * {
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing) !important;
+  line-height: var(--line-height) !important;
+}

@@ -13,14 +13,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCep } from "@/hooks/useCep";
 
 const ProfileFormUser = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage, setProfileImage } = useProfileImage(); // Trocando updateProfileImage para setProfileImage
+  const { profileImage, setProfileImage } = useProfileImage();
   const { theme = "light", setTheme = () => {} } = useTheme();
+  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  
+  // Adicionando estado para feedback visual de validação
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState("");
+  const [formChanged, setFormChanged] = useState(false);
 
   // Estado para o formulário
   const [formData, setFormData] = useState(() => {
@@ -50,7 +57,21 @@ const ProfileFormUser = () => {
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormChanged(true);
     const { name, value } = e.target;
+    
+    // Formatação específica para o CEP
+    if (name === "endereco.cep") {
+      const formattedCep = formatCep(value);
+      setFormData({
+        ...formData,
+        endereco: {
+          ...formData.endereco,
+          cep: formattedCep
+        }
+      });
+      return;
+    }
     
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
@@ -84,27 +105,141 @@ const ProfileFormUser = () => {
     }
   };
 
+  // Função para validar o formulário antes de salvar
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Validação básica de campos obrigatórios
+    if (!formData.nome.trim()) errors.nome = "Nome é obrigatório";
+    if (!formData.sobrenome.trim()) errors.sobrenome = "Sobrenome é obrigatório";
+    
+    // Validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      errors.email = "Email é obrigatório";
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = "Email inválido";
+    }
+    
+    // Validação de telefone (formato brasileiro)
+    const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
+    if (formData.telefone && !phoneRegex.test(formData.telefone)) {
+      errors.telefone = "Formato de telefone inválido. Ex: (11) 98765-4321";
+    }
+    
+    // Validação de CEP (formato brasileiro)
+    const cepRegex = /^\d{5}-\d{3}$/;
+    if (formData.endereco.cep && !cepRegex.test(formData.endereco.cep)) {
+      errors["endereco.cep"] = "Formato de CEP inválido. Ex: 12345-678";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Função para salvar as alterações
   const handleSave = () => {
+    // Se não houve mudanças, apenas dê feedback
+    if (!formChanged && !selectedImage) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+    
+    // Validar o formulário antes de salvar
+    if (!validateForm()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
     
     // Simulando uma chamada de API
     setTimeout(() => {
-      // Salvando os dados no localStorage
-      localStorage.setItem("userData", JSON.stringify(formData));
-      
-      // Se houver uma nova imagem, atualize-a
-      if (selectedImage && imagePreview) {
-        setProfileImage(imagePreview); // Usando setProfileImage em vez de updateProfileImage
+      try {
+        // Salvando os dados no localStorage
+        localStorage.setItem("userData", JSON.stringify(formData));
+        
+        // Se houver uma nova imagem, atualize-a
+        if (selectedImage && imagePreview) {
+          setProfileImage(imagePreview);
+        }
+        
+        // Feedback de sucesso
+        setSuccessMessage("Perfil atualizado com sucesso!");
+        setFormChanged(false);
+        
+        toast({
+          title: "Perfil atualizado",
+          description: "Suas informações foram atualizadas com sucesso!",
+        });
+        
+        // Esconder a mensagem de sucesso após alguns segundos
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } catch (error) {
+        toast({
+          title: "Erro ao salvar",
+          description: "Ocorreu um erro ao salvar suas informações.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
+    }, 1500);
+  };
+  
+  // Função para buscar endereço pelo CEP
+  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    if (!cep || cep.length < 8) return;
+    
+    const endereco = await fetchAddressByCep(cep);
+    if (endereco) {
+      setFormData(prev => ({
+        ...prev,
+        endereco: {
+          ...prev.endereco,
+          rua: endereco.logradouro,
+          bairro: endereco.bairro,
+          cidade: endereco.localidade,
+          estado: endereco.uf,
+          cep: endereco.cep
+        }
+      }));
+      setFormChanged(true);
       
       toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram atualizadas com sucesso!",
+        title: "Endereço encontrado",
+        description: "Os campos foram preenchidos automaticamente.",
       });
-    }, 1500);
+    }
+  };
+  
+  // Função para descartar alterações
+  const handleCancel = () => {
+    // Recarregando dados originais do localStorage
+    const savedData = localStorage.getItem("userData");
+    if (savedData) {
+      setFormData(JSON.parse(savedData));
+    }
+    
+    // Resetando estados
+    setSelectedImage(null);
+    setImagePreview(null);
+    setFormChanged(false);
+    setValidationErrors({});
+    
+    toast({
+      title: "Alterações descartadas",
+      description: "Suas alterações foram descartadas com sucesso.",
+    });
   };
 
   return (
@@ -233,78 +368,126 @@ const ProfileFormUser = () => {
                       <CardDescription>Atualize suas informações pessoais</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 p-3 rounded-md mb-4">
+                          {successMessage}
+                        </div>
+                      )}
+                    
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="nome">Nome</Label>
+                          <Label htmlFor="nome" className="flex items-center justify-between">
+                            Nome
+                            {validationErrors.nome && (
+                              <span className="text-xs text-red-500">{validationErrors.nome}</span>
+                            )}
+                          </Label>
                           <Input 
                             id="nome" 
                             name="nome" 
                             value={formData.nome} 
                             onChange={handleInputChange} 
-                            className="bg-white dark:bg-gray-800"
+                            className={`bg-white dark:bg-gray-800 ${validationErrors.nome ? 'border-red-500 focus:ring-red-500' : ''}`}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="sobrenome">Sobrenome</Label>
+                          <Label htmlFor="sobrenome" className="flex items-center justify-between">
+                            Sobrenome
+                            {validationErrors.sobrenome && (
+                              <span className="text-xs text-red-500">{validationErrors.sobrenome}</span>
+                            )}
+                          </Label>
                           <Input 
                             id="sobrenome" 
                             name="sobrenome" 
                             value={formData.sobrenome} 
                             onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
+                            className={`bg-white dark:bg-gray-800 ${validationErrors.sobrenome ? 'border-red-500 focus:ring-red-500' : ''}`} 
                           />
                         </div>
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" className="flex items-center justify-between">
+                          Email
+                          {validationErrors.email && (
+                            <span className="text-xs text-red-500">{validationErrors.email}</span>
+                          )}
+                        </Label>
                         <Input 
                           id="email" 
                           name="email" 
                           type="email" 
                           value={formData.email} 
                           onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800" 
+                          className={`bg-white dark:bg-gray-800 ${validationErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`} 
                         />
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="telefone">Telefone</Label>
+                          <Label htmlFor="telefone" className="flex items-center justify-between">
+                            Telefone
+                            {validationErrors.telefone && (
+                              <span className="text-xs text-red-500">{validationErrors.telefone}</span>
+                            )}
+                          </Label>
                           <Input 
                             id="telefone" 
                             name="telefone" 
                             value={formData.telefone} 
                             onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
+                            className={`bg-white dark:bg-gray-800 ${validationErrors.telefone ? 'border-red-500 focus:ring-red-500' : ''}`} 
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                          <Label htmlFor="dataNascimento" className="flex items-center justify-between">
+                            Data de Nascimento
+                            {validationErrors.dataNascimento && (
+                              <span className="text-xs text-red-500">{validationErrors.dataNascimento}</span>
+                            )}
+                          </Label>
                           <Input 
                             id="dataNascimento" 
                             name="dataNascimento" 
                             type="date" 
                             value={formData.dataNascimento} 
                             onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
+                            className={`bg-white dark:bg-gray-800 ${validationErrors.dataNascimento ? 'border-red-500 focus:ring-red-500' : ''}`} 
                           />
                         </div>
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="genero">Gênero</Label>
+                        <Label htmlFor="genero" className="flex items-center justify-between">
+                          Gênero
+                          {validationErrors.genero && (
+                            <span className="text-xs text-red-500">{validationErrors.genero}</span>
+                          )}
+                        </Label>
                         <Input 
                           id="genero" 
                           name="genero" 
                           value={formData.genero} 
                           onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800" 
+                          className={`bg-white dark:bg-gray-800 ${validationErrors.genero ? 'border-red-500 focus:ring-red-500' : ''}`} 
                         />
                       </div>
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancel} 
+                        disabled={loading || (!formChanged && !selectedImage)}
+                        className="border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleSave} 
+                        disabled={loading || (!formChanged && !selectedImage)} 
+                        className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]"
+                      >
                         {loading ? (
                           <div className="flex items-center">
                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -395,13 +578,24 @@ const ProfileFormUser = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="cep">CEP</Label>
-                          <Input 
-                            id="cep" 
-                            name="endereco.cep" 
-                            value={formData.endereco.cep} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
-                          />
+                          <div className="relative">
+                            <Input 
+                              id="cep" 
+                              name="endereco.cep" 
+                              value={formData.endereco.cep} 
+                              onChange={handleInputChange}
+                              onBlur={handleCepBlur}
+                              placeholder="00000-000"
+                              maxLength={9}
+                              className="bg-white dark:bg-gray-800"
+                            />
+                            {loadingCep && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
                         </div>
                       </div>
                     </CardContent>

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCep } from "@/hooks/useCep";
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -70,8 +71,14 @@ const ProfileForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage, setProfileImage } = useProfileImage(); // Trocando updateProfileImage para setProfileImage
+  const { profileImage, setProfileImage } = useProfileImage();
   const { theme = "light", setTheme = () => {} } = useTheme();
+  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  
+  // Adicionando estado para feedback visual de validação
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState("");
+  const [formChanged, setFormChanged] = useState(false);
 
   // Estado para o formulário
   const [formData, setFormData] = useState(() => {
@@ -102,7 +109,21 @@ const ProfileForm = () => {
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormChanged(true);
     const { name, value } = e.target;
+    
+    // Formatação específica para o CEP
+    if (name === "endereco.cep") {
+      const formattedCep = formatCep(value);
+      setFormData({
+        ...formData,
+        endereco: {
+          ...formData.endereco,
+          cep: formattedCep
+        }
+      });
+      return;
+    }
     
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
@@ -157,6 +178,91 @@ const ProfileForm = () => {
         description: "Suas informações foram atualizadas com sucesso!",
       });
     }, 1500);
+  };
+  
+  // Função para exportar dados em PDF
+  const handleExportPDF = () => {
+    toast({
+      title: "Preparando PDF",
+      description: "Seu perfil profissional está sendo exportado..."
+    });
+    
+    // Aqui seria a implementação real de exportação para PDF
+    setTimeout(() => {
+      toast({
+        title: "PDF exportado com sucesso",
+        description: "O PDF com seu perfil profissional foi gerado."
+      });
+    }, 2000);
+  };
+  
+  // Adicione seção para disponibilidade de horários no perfil do profissional
+  const [disponibilidade, setDisponibilidade] = useState({
+    segunda: { manha: false, tarde: false, noite: false },
+    terca: { manha: false, tarde: false, noite: false },
+    quarta: { manha: false, tarde: false, noite: false },
+    quinta: { manha: false, tarde: false, noite: false },
+    sexta: { manha: false, tarde: false, noite: false },
+    sabado: { manha: false, tarde: false, noite: false },
+    domingo: { manha: false, tarde: false, noite: false },
+  });
+  
+  const handleDisponibilidadeChange = (dia: string, periodo: string) => {
+    setFormChanged(true);
+    setDisponibilidade(prev => ({
+      ...prev,
+      [dia]: {
+        ...prev[dia as keyof typeof prev],
+        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev[keyof typeof prev]],
+      }
+    }));
+  };
+  
+  // Corrigir implementação da função handleCancel que está incompleta
+  const handleCancel = () => {
+    // Recarregando dados originais do localStorage
+    const savedData = localStorage.getItem("profileData");
+    if (savedData) {
+      setFormData(JSON.parse(savedData));
+    }
+    
+    // Resetando estados
+    setSelectedImage(null);
+    setImagePreview(null);
+    setFormChanged(false);
+    setValidationErrors({});
+    
+    toast({
+      title: "Alterações descartadas",
+      description: "Suas alterações foram descartadas com sucesso.",
+    });
+  }
+
+  // Função para buscar endereço pelo CEP
+  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    if (!cep || cep.length < 8) return;
+    
+    const endereco = await fetchAddressByCep(cep);
+    if (endereco) {
+      setFormData(prev => ({
+        ...prev,
+        endereco: {
+          ...prev.endereco,
+          rua: endereco.logradouro,
+          bairro: endereco.bairro,
+          cidade: endereco.localidade,
+          estado: endereco.uf,
+          cep: endereco.cep
+        }
+      }));
+      setFormChanged(true);
+      
+      toast({
+        title: "Endereço encontrado",
+        description: "Os campos foram preenchidos automaticamente.",
+      });
+    }
   };
 
   return (
@@ -272,11 +378,12 @@ const ProfileForm = () => {
               </div>
               
               <Tabs defaultValue="pessoal" className="w-full">
-                <TabsList className="mb-6">
-                  <TabsTrigger value="pessoal">Dados Pessoais</TabsTrigger>
-                  <TabsTrigger value="profissional">Dados Profissionais</TabsTrigger>
-                  <TabsTrigger value="endereco">Endereço</TabsTrigger>
-                  <TabsTrigger value="foto">Foto de Perfil</TabsTrigger>
+                <TabsList className="mb-6 flex flex-wrap md:flex-nowrap w-full gap-2 md:gap-0">
+                  <TabsTrigger value="pessoal" className="flex-1">Dados Pessoais</TabsTrigger>
+                  <TabsTrigger value="profissional" className="flex-1">Dados Profissionais</TabsTrigger>
+                  <TabsTrigger value="endereco" className="flex-1">Endereço</TabsTrigger>
+                  <TabsTrigger value="disponibilidade" className="flex-1">Disponibilidade</TabsTrigger>
+                  <TabsTrigger value="foto" className="flex-1">Foto de Perfil</TabsTrigger>
                 </TabsList>
                 
                 {/* Aba de Dados Pessoais */}
@@ -488,17 +595,108 @@ const ProfileForm = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="cep">CEP</Label>
-                          <Input 
-                            id="cep" 
-                            name="endereco.cep" 
-                            value={formData.endereco.cep} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
-                          />
+                          <div className="relative">
+                            <Input 
+                              id="cep" 
+                              name="endereco.cep" 
+                              value={formData.endereco.cep} 
+                              onChange={handleInputChange}
+                              onBlur={handleCepBlur}
+                              placeholder="00000-000"
+                              maxLength={9}
+                              className="bg-white dark:bg-gray-800"
+                            />
+                            {loadingCep && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
                         </div>
                       </div>
                     </CardContent>
                     <CardFooter>
+                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                        {loading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+                
+                {/* Aba de Disponibilidade */}
+                <TabsContent value="disponibilidade">
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                    <CardHeader>
+                      <CardTitle>Disponibilidade de Atendimento</CardTitle>
+                      <CardDescription>Configure sua disponibilidade semanal</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="py-2 px-4 text-left"></th>
+                              <th className="py-2 px-4 text-center">Manhã<br/><span className="text-xs text-gray-500">(08:00 - 12:00)</span></th>
+                              <th className="py-2 px-4 text-center">Tarde<br/><span className="text-xs text-gray-500">(13:00 - 17:00)</span></th>
+                              <th className="py-2 px-4 text-center">Noite<br/><span className="text-xs text-gray-500">(18:00 - 22:00)</span></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(disponibilidade).map(([dia, periodos]) => {
+                              const diaNome = {
+                                segunda: "Segunda-feira", 
+                                terca: "Terça-feira", 
+                                quarta: "Quarta-feira", 
+                                quinta: "Quinta-feira", 
+                                sexta: "Sexta-feira", 
+                                sabado: "Sábado", 
+                                domingo: "Domingo"
+                              }[dia];
+                              
+                              return (
+                                <tr key={dia} className="border-t border-gray-200 dark:border-gray-700">
+                                  <td className="py-3 px-4 font-medium">{diaNome}</td>
+                                  {Object.entries(periodos).map(([periodo, checked]) => (
+                                    <td key={periodo} className="py-3 px-4 text-center">
+                                      <label className="inline-flex items-center cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => handleDisponibilidadeChange(dia, periodo)}
+                                          className="form-checkbox h-5 w-5 text-[#ED4231] rounded border-gray-300 focus:ring-[#ED4231]"
+                                        />
+                                      </label>
+                                    </td>
+                                  ))}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <h4 className="font-medium mb-2">Observações sobre sua disponibilidade:</h4>
+                        <textarea 
+                          value={formData.observacoesDisponibilidade || ''} 
+                          onChange={(e) => {
+                            setFormChanged(true);
+                            setFormData(prev => ({ ...prev, observacoesDisponibilidade: e.target.value }));
+                          }}
+                          className="w-full min-h-[100px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-sm"
+                          placeholder="Adicione observações sobre sua disponibilidade, como férias previstas, restrições de horário, etc."
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancel} 
+                        disabled={loading || (!formChanged && !selectedImage)}
+                      >
+                        Cancelar
+                      </Button>
                       <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
                         {loading ? "Salvando..." : "Salvar Alterações"}
                       </Button>

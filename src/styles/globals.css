@@ -1,0 +1,80 @@
+/* Adicionar ao seu arquivo de estilos globais */
+
+/* Estilos para acessibilidade */
+:root {
+  --font-scale: 1;
+  --cursor-size: normal;
+}
+
+html {
+  font-size: calc(100% * var(--font-scale));
+}
+
+body {
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Alto contraste */
+body.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #ffff00;
+  --card: #333333;
+  --card-foreground: #ffffff;
+  --border: #ffffff;
+}
+
+body.high-contrast a,
+body.high-contrast button,
+body.high-contrast input,
+body.high-contrast select {
+  outline: 2px solid white;
+}
+
+/* Cursor grande para acessibilidade */
+body.large-cursor * {
+  cursor: url('data:image/png;base64,iVBORw0KG...'), auto !important;
+}
+
+/* Melhorias de animação */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Melhorias no foco para acessibilidade */
+:focus-visible {
+  outline: 3px solid #ED4231 !important;
+  outline-offset: 2px;
+}
+
+/* Melhorias de responsividade */
+@media (max-width: 640px) {
+  .tabs-responsive {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .tabs-responsive > * {
+    width: 100%;
+  }
+}
+
+/* Melhorias no contraste do texto */
+.dark .text-low-contrast {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.light .text-low-contrast {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
