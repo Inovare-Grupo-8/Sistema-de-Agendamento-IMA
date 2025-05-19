@@ -7,7 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 3333,
+    port: 3030,
     historyApiFallback: true, // Redireciona todas as requisições para index.html
   },
   plugins: [
