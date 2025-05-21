@@ -14,14 +14,19 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
+import { useUserData } from "@/hooks/useUserData";
 
 const ProfileFormUser = () => {
   const location = useLocation();
-  const navigate = useNavigate();  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();  
+  const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  
+  // Get user data and setter from the hook
+  const { userData, setUserData } = useUserData();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -29,30 +34,18 @@ const ProfileFormUser = () => {
   const [formChanged, setFormChanged] = useState(false);
 
   // Estado para o formulário
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("userData");
-    return savedData ? JSON.parse(savedData) : {
-      nome: "Maria",
-      sobrenome: "Silva",
-      email: "maria.silva@email.com",
-      telefone: "(11) 98765-4321",
-      dataNascimento: "1990-05-15",
-      genero: "Feminino",
-      endereco: {
-        rua: "Av. Paulista",
-        numero: "1000",
-        complemento: "Apto 123",
-        bairro: "Bela Vista",
-        cidade: "São Paulo",
-        estado: "SP",
-        cep: "01310-100"
-      }
-    };
-  });
+  const [formData, setFormData] = useState(userData);
 
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Update form data when userData changes (sync across tabs)
+  useEffect(() => {
+    if (!formChanged) {
+      setFormData(userData);
+    }
+  }, [userData, formChanged]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +131,7 @@ const ProfileFormUser = () => {
 
   // Função para salvar as alterações
   const handleSave = () => {
-    // Se não houve mudanças, apenas dê feedback
+    // If no changes were made, just provide feedback
     if (!formChanged && !selectedImage) {
       toast({
         title: "Nenhuma alteração detectada",
@@ -148,7 +141,7 @@ const ProfileFormUser = () => {
       return;
     }
     
-    // Validar o formulário antes de salvar
+    // Validate the form before saving
     if (!validateForm()) {
       toast({
         title: "Formulário com erros",
@@ -160,18 +153,18 @@ const ProfileFormUser = () => {
     
     setLoading(true);
     
-    // Simulando uma chamada de API
+    // Simulating an API call
     setTimeout(() => {
       try {
-        // Salvando os dados no localStorage
-        localStorage.setItem("userData", JSON.stringify(formData));
+        // Use the setUserData function from the hook instead of directly setting localStorage
+        setUserData(formData);
         
-        // Se houver uma nova imagem, atualize-a
+        // If there's a new image, update it
         if (selectedImage && imagePreview) {
           setProfileImage(imagePreview);
         }
         
-        // Feedback de sucesso
+        // Success feedback
         setSuccessMessage("Perfil atualizado com sucesso!");
         setFormChanged(false);
         
@@ -180,7 +173,7 @@ const ProfileFormUser = () => {
           description: "Suas informações foram atualizadas com sucesso!",
         });
         
-        // Esconder a mensagem de sucesso após alguns segundos
+        // Hide success message after a few seconds
         setTimeout(() => setSuccessMessage(""), 3000);
       } catch (error) {
         toast({
@@ -250,7 +243,7 @@ const ProfileFormUser = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
           </div>
         )}
         
@@ -266,7 +259,7 @@ const ProfileFormUser = () => {
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -317,7 +310,7 @@ const ProfileFormUser = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">              <Tooltip>
                 <TooltipTrigger asChild>

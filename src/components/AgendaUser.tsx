@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { t } from "i18next";
 import { AgendaCardSkeleton } from "./ui/custom-skeletons";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUserData } from "@/hooks/useUserData"; // Import the useUserData hook
 
 interface Appointment {
   time: string;
@@ -31,23 +32,25 @@ interface Appointment {
 const AgendaUser = () => {
   const { t } = useTranslation();
   const [date, setDate] = useState<Date>(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    { time: "09:00", name: "Dr. Ricardo Santos", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
-    { time: "10:30", name: "Dra. Carolina Mendes", type: "Nutrição", serviceType: "Consulta Presencial", period: "Manhã" },
-    { time: "14:00", name: "Dr. Marcelo Pereira", type: "Fisioterapia", serviceType: "Atendimento Online", period: "Tarde" },
-    { time: "15:30", name: "Dra. Juliana Costa", type: "Psicologia", serviceType: "Consulta Presencial", period: "Tarde" },
-    { time: "19:00", name: "Dr. Felipe Oliveira", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
-    { time: "20:30", name: "Dra. Isabela Martins", type: "Nutrição", serviceType: "Consulta Presencial", period: "Noite" },
-  ]);
+  const [appointments, setAppointments] = useState<Appointment[]>(
+    [
+      { time: "09:00", name: "Dr. Ricardo Santos", type: "Psicologia", serviceType: "Atendimento Online", period: "Manhã" },
+      { time: "10:30", name: "Dra. Carolina Mendes", type: "Nutrição", serviceType: "Consulta Presencial", period: "Manhã" },
+      { time: "14:00", name: "Dr. Marcelo Pereira", type: "Fisioterapia", serviceType: "Atendimento Online", period: "Tarde" },
+      { time: "15:30", name: "Dra. Juliana Costa", type: "Psicologia", serviceType: "Consulta Presencial", period: "Tarde" },
+      { time: "19:00", name: "Dr. Felipe Oliveira", type: "Psicologia", serviceType: "Atendimento Online", period: "Noite" },
+      { time: "20:30", name: "Dra. Isabela Martins", type: "Nutrição", serviceType: "Consulta Presencial", period: "Noite" },
+    ]
+  );
 
   const { profileImage } = useProfileImage();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("profileData");
-    return savedData ? JSON.parse(savedData) : { nome: "", sobrenome: "" };
-  });
+  
+  // Use the userData hook to get synchronized user data
+  const { userData } = useUserData();
 
-  const location = useLocation();  const [loading, setLoading] = useState(false);
+  const location = useLocation();  
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
@@ -122,7 +125,8 @@ const AgendaUser = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
+            {/* Update to use userData from hook */}
+            <span className="font-bold text-indigo-900 text-sm md:text-lg">{userData.nome} {userData.sobrenome}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -137,8 +141,10 @@ const AgendaUser = () => {
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
+            {/* Update to use userData from hook */}
+            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{userData.nome} {userData.sobrenome}</span>
           </div>
+          
           <SidebarMenu className="gap-4 text-sm md:text-base">
             <SidebarMenuItem>
               <Tooltip>
@@ -240,9 +246,11 @@ const AgendaUser = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho da agenda">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {formData?.nome} {formData?.sobrenome}</span>
+              {/* Update to use userData from hook */}
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{userData.nome} {userData.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">              <Tooltip>
+            <div className="flex items-center gap-3">
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     onClick={toggleTheme}
@@ -264,7 +272,7 @@ const AgendaUser = () => {
           <div className="max-w-5xl mx-auto p-2 md:p-6 bg-[#EDF2FB] dark:bg-[#181A20]">
             <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">Minhas Consultas</h1>
 
-            {!formData.nome && (
+            {!userData.nome && (
               <div className="p-4">
                 <Skeleton className="h-8 w-1/2 mb-2" />
                 <Skeleton className="h-6 w-1/3" />

@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Sun, Moon, Home as HomeIcon, ArrowLeft } from "lucide-react";
+import { Calendar, User, Clock, Menu, History, Sun, Moon, ArrowLeft, Home as HomeIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
-import { appUrls } from "@/utils/userNavigation";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
+// Import the useUserData hook
+import { useUserData, UserData } from "@/hooks/useUserData"; // Import UserData type
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -47,7 +48,7 @@ const professionalNavItems = [
   {
     path: "/agenda",
     label: "Agenda",
-    icon: <CalendarIcon className="w-6 h-6" color="#ED4231" />
+    icon: <Calendar className="w-6 h-6" color="#ED4231" />
   },
   {
     path: "/historico",
@@ -68,43 +69,53 @@ const professionalNavItems = [
 
 const ProfileForm = () => {
   const location = useLocation();
-  const navigate = useNavigate();  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  // Get user data and setter from the hook
+  const { userData, setUserData } = useUserData();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
 
-  // Estado para o formulário
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("profileData");
-    return savedData ? JSON.parse(savedData) : {
-      nome: "Ricardo",
-      sobrenome: "Santos",
-      email: "ricardo.santos@email.com",
-      telefone: "(11) 97654-3210",
-      dataNascimento: "1985-10-25",
-      especialidade: "Psicologia",
-      crm: "CRP 06/123456",
-      endereco: {
-        rua: "Av. Paulista",
-        numero: "2000",
-        complemento: "Sala 405",
-        bairro: "Centro",
-        cidade: "São Paulo",
-        estado: "SP",
-        cep: "01310-200"
-      }
-    };
+  // Define a type that extends UserData with required professional fields
+  interface ProfessionalUserData extends UserData {
+    crm: string;
+    especialidade: string;
+    observacoesDisponibilidade: string;
+    bio: string;
+  }
+
+  // Estado para o formulário with properly typed defaults for professional fields
+  const [formData, setFormData] = useState<ProfessionalUserData>({
+    ...userData,
+    crm: userData.crm || '',
+    especialidade: userData.especialidade || '',
+    observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
+    bio: userData.bio || '',
   });
 
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Update form data when userData changes (sync across tabs)
+  useEffect(() => {
+    if (!formChanged) {
+      setFormData({
+        ...userData,
+        crm: userData.crm || '',
+        especialidade: userData.especialidade || '',
+        observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
+        bio: userData.bio || '',
+      });
+    }
+  }, [userData, formChanged]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,26 +167,78 @@ const ProfileForm = () => {
     }
   };
 
-  // Função para salvar as alterações
+  // Função para validar o formulário antes de salvar
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Validações simples como exemplo
+    if (!formData.nome) {
+      errors.nome = "Nome é obrigatório";
+    }
+    
+    if (!formData.email) {
+      errors.email = "Email é obrigatório";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Email inválido";
+    }
+    
+    if (formData.telefone && formData.telefone.length < 10) {
+      errors.telefone = "Telefone deve ter pelo menos 10 dígitos";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Update to use setUserData from the hook
   const handleSave = () => {
+    if (!formChanged && !selectedImage) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+    
+    if (!validateForm()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
     
-    // Simulando uma chamada de API
     setTimeout(() => {
-      // Salvando os dados no localStorage
-      localStorage.setItem("profileData", JSON.stringify(formData));
-      
-      // Se houver uma nova imagem, atualize-a
-      if (selectedImage && imagePreview) {
-        setProfileImage(imagePreview); // Usando setProfileImage em vez de updateProfileImage
+      try {
+        // Use the setUserData function from the hook
+        setUserData(formData);
+        
+        if (selectedImage && imagePreview) {
+          setProfileImage(imagePreview);
+        }
+        
+        setSuccessMessage("Perfil atualizado com sucesso!");
+        setFormChanged(false);
+        
+        toast({
+          title: "Perfil atualizado",
+          description: "Suas informações foram atualizadas com sucesso!",
+        });
+        
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } catch (error) {
+        toast({
+          title: "Erro ao salvar",
+          description: "Ocorreu um erro ao salvar suas informações.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
-      
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram atualizadas com sucesso!",
-      });
     }, 1500);
   };
   
@@ -212,17 +275,23 @@ const ProfileForm = () => {
       ...prev,
       [dia]: {
         ...prev[dia as keyof typeof prev],
-        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev[keyof typeof prev]],
+        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev[keyof typeof prev]]
       }
     }));
   };
   
-  // Corrigir implementação da função handleCancel que está incompleta
+  // Fix the duplicate and incorrectly formatted handleCancel function
   const handleCancel = () => {
     // Recarregando dados originais do localStorage
-    const savedData = localStorage.getItem("profileData");
+    const savedData = localStorage.getItem("userData");
     if (savedData) {
-      setFormData(JSON.parse(savedData));
+      setFormData({
+        ...JSON.parse(savedData),
+        crm: JSON.parse(savedData).crm || '',
+        especialidade: JSON.parse(savedData).especialidade || '',
+        observacoesDisponibilidade: JSON.parse(savedData).observacoesDisponibilidade || '',
+        bio: JSON.parse(savedData).bio || ''
+      });
     }
     
     // Resetando estados
@@ -235,7 +304,7 @@ const ProfileForm = () => {
       title: "Alterações descartadas",
       description: "Suas alterações foram descartadas com sucesso.",
     });
-  }
+  };
 
   // Função para buscar endereço pelo CEP
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
@@ -266,31 +335,32 @@ const ProfileForm = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
         {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
-            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
+            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-primary text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>
-            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
+            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow" />
+            {/* Use formData to show the current edited values */}
+            <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
           </div>
         )}
         
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>
+          bg-white dark:bg-gray-900 shadow-2xl p-6 flex flex-col gap-6 overflow-hidden
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto`}
+        >
           <div className="w-full flex justify-start mb-6">
-            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-primary text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {formData?.nome} {formData?.sobrenome}</span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">{formData?.especialidade}</span>
+            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-background shadow" />
+            {/* Use formData to show the current edited values */}
+            <span className="font-extrabold text-xl text-foreground tracking-wide">{formData.nome} {formData.sobrenome}</span>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -338,11 +408,13 @@ const ProfileForm = () => {
         </div>
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
+              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
+              {/* Use formData to show the current edited values */}
+              <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
             </div>
+            
             <div className="flex items-center gap-3">              <Button
                 onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
@@ -504,7 +576,13 @@ const ProfileForm = () => {
                           id="bio" 
                           name="bio" 
                           value={formData.bio || ''} 
-                          onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                          onChange={(e) => {
+                            setFormChanged(true);
+                            setFormData({
+                              ...formData, 
+                              bio: e.target.value
+                            } as typeof formData);
+                          }}
                           className="w-full min-h-[150px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]" 
                         />
                       </div>

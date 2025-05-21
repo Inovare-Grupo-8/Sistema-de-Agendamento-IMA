@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getUserNavigationPath, userNavigationItems } from "@/utils/userNavigation";
+import { useUserData } from "@/hooks/useUserData"; // Import the useUserData hook
 
 interface HistoricoConsulta {
   date: Date;
@@ -92,12 +93,12 @@ const HistoricoUser = () => {
 
   const { profileImage } = useProfileImage();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("profileData");
-    return savedData ? JSON.parse(savedData) : { nome: "", sobrenome: "" };
-  });
+  
+  // Use the userData hook to get synchronized user data
+  const { userData } = useUserData();
 
-  const location = useLocation();  const [loading, setLoading] = useState(false);
+  const location = useLocation();  
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
@@ -160,7 +161,8 @@ const HistoricoUser = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
+            {/* Update to use userData from hook */}
+            <span className="font-bold text-indigo-900 text-sm md:text-lg">{userData.nome} {userData.sobrenome}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -175,8 +177,10 @@ const HistoricoUser = () => {
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
+            {/* Update to use userData from hook */}
+            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{userData.nome} {userData.sobrenome}</span>
           </div>
+          
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Uniform sidebar navigation using the items from userNavigationItems */}
             <SidebarMenuItem>
@@ -282,7 +286,8 @@ const HistoricoUser = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do histórico">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {formData?.nome} {formData?.sobrenome}</span>
+              {/* Update to use userData from hook */}
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {userData.nome} {userData.sobrenome}</span>
             </div>            <div className="flex items-center gap-3">              <Button
                 onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
@@ -306,12 +311,12 @@ const HistoricoUser = () => {
               </h1>
             </div>
 
-            {!formData.nome && (
+            {/* {!formData.nome && (
               <div className="p-4">
                 <Skeleton className="h-8 w-1/2 mb-2" />
                 <Skeleton className="h-6 w-1/3" />
               </div>
-            )}
+            )} */}
 
             <AnimatePresence mode="wait">
               <motion.div
