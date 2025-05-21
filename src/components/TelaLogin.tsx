@@ -1,10 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../TelaLogin.css';
 import ModalErro from './ui/ModalErro';
 
 const TelaLogin: React.FC = () => {
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Define o modo com base na URL
+  const isCadastro = location.pathname === '/cadastro';
+  const [isSignUpMode, setIsSignUpMode] = useState(isCadastro);
   const [modalErro, setModalErro] = useState<string | null>(null);
+
+  // Sincroniza o modo com a URL
+  useEffect(() => {
+    setIsSignUpMode(location.pathname === '/cadastro');
+  }, [location.pathname]);
+
+  // Atualiza o título da página conforme o modo
+  useEffect(() => {
+    document.title = isSignUpMode ? 'Cadastro' : 'Login';
+  }, [isSignUpMode]);
+
+  // Alternar entre login e cadastro e atualizar a URL
+  const toggleMode = () => {
+    if (isSignUpMode) {
+      navigate('/login');
+    } else {
+      navigate('/cadastro');
+    }
+  };
 
   // Estados para os campos de login e cadastro
   const [loginEmail, setLoginEmail] = useState('');
@@ -14,11 +39,6 @@ const TelaLogin: React.FC = () => {
   const [cadastroSenha, setCadastroSenha] = useState('');
   const [cadastroCPF, setCadastroCPF] = useState('');
   const [cadastroDataNascimento, setCadastroDataNascimento] = useState('');
-
-  // Alternar entre login e cadastro
-  const toggleMode = () => {
-    setIsSignUpMode(!isSignUpMode);
-  };
 
   // Validações individuais
   const validarNome = (nome: string): string | null => {
@@ -59,45 +79,44 @@ const TelaLogin: React.FC = () => {
     return null;
   };
 
-  
   const validarCadastro = (): boolean => {
     // Verifica se todos os campos estão preenchidos
     if (!cadastroNome || !cadastroEmail || !cadastroSenha || !cadastroCPF || !cadastroDataNascimento) {
       setModalErro('Por favor, preencha todos os campos.');
       return false;
     }
-  
+
     // Validações individuais
     const erroNome = validarNome(cadastroNome);
     if (erroNome) {
       setModalErro(erroNome);
       return false;
     }
-  
+
     const erroEmail = validarEmail(cadastroEmail);
     if (erroEmail) {
       setModalErro(erroEmail);
       return false;
     }
-  
+
     const erroSenha = validarSenha(cadastroSenha);
     if (erroSenha) {
       setModalErro(erroSenha);
       return false;
     }
-  
+
     const erroCPF = validarCPF(cadastroCPF);
     if (erroCPF) {
       setModalErro(erroCPF);
       return false;
     }
-  
+
     const erroDataNascimento = validarDataNascimento(cadastroDataNascimento);
     if (erroDataNascimento) {
       setModalErro(erroDataNascimento);
       return false;
     }
-  
+
     return true;
   };
 
@@ -166,7 +185,7 @@ const TelaLogin: React.FC = () => {
       dataNascimento: cadastroDataNascimento,
     };
 
-    fetch('http://localhost:8080/usuarios', { // Ajuste para porta 3000
+    fetch('http://localhost:8080/usuarios', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -176,7 +195,7 @@ const TelaLogin: React.FC = () => {
       .then((response) => {
         if (response.ok) {
           alert('Usuário cadastrado com sucesso!');
-          setIsSignUpMode(false);
+          navigate('/login');
         } else {
           return response.json().then((data) => {
             throw new Error(data.message || 'Erro ao tentar cadastrar usuário.');

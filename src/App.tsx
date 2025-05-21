@@ -49,7 +49,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <ProfileImageProvider>
-            <BrowserRouter>
+            <BrowserRouter basename="/Sistema-de-Agendamento-IMA">
               <Routes>
                 <Route path="/" element={<DisponibilizarHorario />} />
                 <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
@@ -57,8 +57,7 @@ const App = () => {
                 <Route path="/profile-form" element={<ProfileForm />} />
                 <Route path="/not-found" element={<NotFound />} />
                 <Route path="/login" element={<TelaLogin />} />
-                {/* Adicione outras rotas aqui */}
-                {/* Rota padrão para página não encontrada */}
+                <Route path="/cadastro" element={<TelaLogin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
