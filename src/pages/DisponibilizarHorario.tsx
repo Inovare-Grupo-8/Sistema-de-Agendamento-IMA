@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Sun, CloudMoon, Moon, Calendar as CalendarIcon, User, Clock, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sun, CloudMoon, Moon, Calendar as CalendarIcon, User, Clock, Menu, History, Home as HomeIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import TimeSlotSection from "@/components/TimeSlotSection";
 import AgendaSummary from "@/components/AgendaSummary";
@@ -18,8 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CustomTimeModal from "../components/CustomTimeModal";
 import ErrorMessage from "@/components/ErrorMessage";
 import { isValidTime, isFutureDate, getErrorMessage } from "@/lib/utils";
-import { useTheme } from "next-themes";
 import { Badge } from "@/components/ui/badge";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { STATUS_COLORS, MESSAGES } from "../constants/ui";
 import { useTranslation } from "react-i18next";
 import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons";
@@ -73,7 +73,7 @@ const DisponibilizarHorario = () => {
   // Estado para modal de sucesso após disponibilizar horário
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
-  const { theme = "light", setTheme = () => {} } = useTheme();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
 
   // Referência para o resumo fixo
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -275,6 +275,21 @@ const DisponibilizarHorario = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/home" className="flex items-center gap-3">
+                      <HomeIcon className="w-6 h-6" color="#ED4231" />
+                      <span>Home</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Painel principal com resumo
+                </TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
                     <Link to="/agenda" className="flex items-center gap-3">
                       <CalendarIcon className="w-6 h-6" color="#ED4231" />
@@ -284,6 +299,20 @@ const DisponibilizarHorario = () => {
                 </TooltipTrigger>
                 <TooltipContent>
                   Veja sua agenda de atendimentos
+                </TooltipContent>
+              </Tooltip>            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <Link to="/historico" className="flex items-center gap-3">
+                      <History className="w-6 h-6" color="#ED4231" />
+                      <span>Histórico</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Veja seu histórico de atendimentos
                 </TooltipContent>
               </Tooltip>
             </SidebarMenuItem>
@@ -365,9 +394,8 @@ const DisponibilizarHorario = () => {
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100 text-base md:text-lg">{formData?.nome} {formData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            <div className="flex items-center gap-3">              <button
+                onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
                 tabIndex={0}

@@ -1,1045 +1,837 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, Clock, Menu, Sun, Moon, UserX } from "lucide-react";
-import { useState, useEffect, useContext } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Link, useLocation, UNSAFE_NavigationContext as NavigationContext } from "react-router-dom";
-import { useProfileImage } from "@/components/useProfileImage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Calendar, User, Clock, Menu, History, Sun, Moon, ArrowLeft, Home as HomeIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useProfileImage } from "@/components/useProfileImage";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import React from "react";
-import { useTheme } from "next-themes";
-import { z } from "zod";
-import { STATUS_COLORS, MESSAGES } from "../constants/ui";
-import { useTranslation } from "react-i18next";
-import { ProfileFormSkeleton } from "./ui/custom-skeletons";
-import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCep } from "@/hooks/useCep";
+// Import the useUserData hook
+import { useUserData, UserData } from "@/hooks/useUserData"; // Import UserData type
 
-// Schema de validação com zod
-const profileSchema = z.object({
-    nome: z.string().min(1, "Nome é obrigatório."),
-    sobrenome: z.string().min(1, "Sobrenome é obrigatório."),
-    email: z.string().min(1, "E-mail é obrigatório.").email("E-mail inválido."),
-    emailConfirm: z.string().min(1, "Confirmação de e-mail é obrigatória.").email("E-mail inválido."),
-    endereco: z.string().optional(),
-    telefone: z.string().min(1, "Telefone é obrigatório.").regex(/\(?\d{2}\)?\s?\d{4,5}-?\d{4}/, "Telefone inválido."),
-    cidade: z.string().optional(),
-    uf: z.string().optional(),
-    atividade: z.string().optional(),
-    bio: z.string().optional(),
-    profileImage: z.string().optional(),
-    cpf: z.string().optional().refine(val => !val || /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(val), {
-        message: "CPF inválido. Use o formato 000.000.000-00",
-    }),
-    cep: z.string().optional().refine(val => !val || /^\d{5}-\d{3}$/.test(val), {
-        message: "CEP inválido. Use o formato 00000-000",
-    }),
-    nascimento: z.string().optional().refine(val => !val || /^\d{2}\/\d{2}\/\d{4}$/.test(val), {
-        message: "Data inválida. Use o formato dd/mm/aaaa",
-    }),
-}).refine((data) => data.email === data.emailConfirm, {
-    message: "Os e-mails não coincidem.",
-    path: ["emailConfirm"],
-});
+// Componente de breadcrumb simples para o profissional
+const getProfessionalNavigationPath = (currentPath: string) => {
+  const pathLabels: Record<string, string> = {
+    "/home": "Home",
+    "/agenda": "Agenda",
+    "/historico": "Histórico",
+    "/disponibilizar-horario": "Disponibilizar Horário",
+    "/profile-form": "Editar Perfil"
+  };
 
-type ProfileFormData = z.infer<typeof profileSchema>;
+  return (
+    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <Link to="/home" className="flex items-center hover:text-indigo-600 dark:hover:text-indigo-400">
+        <HomeIcon className="h-3.5 w-3.5 text-[#ED4231]" />
+      </Link>
+      <span className="mx-1">/</span>
+      <span className="text-gray-900 dark:text-gray-200 font-medium">
+        {pathLabels[currentPath] || "Página atual"}
+      </span>
+    </div>
+  );
+};
+
+// Itens de navegação para o profissional
+const professionalNavItems = [
+  {
+    path: "/home",
+    label: "Home",
+    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />
+  },
+  {
+    path: "/agenda",
+    label: "Agenda",
+    icon: <Calendar className="w-6 h-6" color="#ED4231" />
+  },
+  {
+    path: "/historico",
+    label: "Histórico",
+    icon: <History className="w-6 h-6" color="#ED4231" />
+  },
+  {
+    path: "/disponibilizar-horario",
+    label: "Disponibilizar Horário",
+    icon: <Clock className="w-6 h-6" color="#ED4231" />
+  },
+  {
+    path: "/profile-form",
+    label: "Editar Perfil", 
+    icon: <User className="w-6 h-6" color="#ED4231" />
+  }
+];
 
 const ProfileForm = () => {
-    const { theme = "light", setTheme = () => {} } = useTheme();
-    const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { profileImage, setProfileImage } = useProfileImage();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
+  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  // Get user data and setter from the hook
+  const { userData, setUserData } = useUserData();
+  
+  // Adicionando estado para feedback visual de validação
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState("");
+  const [formChanged, setFormChanged] = useState(false);
 
-    const [formData, setFormData] = useState(() => {
-        const savedData = localStorage.getItem("profileData");
-        return savedData ? JSON.parse(savedData) : {
-            nome: "Samuel",
-            sobrenome: "Batista",
-            email: "samuel.ima@gmail.com",
-            endereco: "Rua x",
-            telefone: "(11)11111-1111",
-            cidade: "São Paulo",
-            uf: "SP",
-            atividade: "Lorem Lorem Lorem",
-            profileImage: "",
-            cpf: "",
-            cep: "",
-            nascimento: "",
-        };
-    });
+  // Define a type that extends UserData with required professional fields
+  interface ProfessionalUserData extends UserData {
+    crm: string;
+    especialidade: string;
+    observacoesDisponibilidade: string;
+    bio: string;
+  }
 
-    const { profileImage, setProfileImage } = useProfileImage();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const location = useLocation();
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [isSaving, setIsSaving] = useState(false);
-    const [showCancelDialog, setShowCancelDialog] = useState(false);
-    const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-    const [hasChanged, setHasChanged] = useState(false);
-    const [bio, setBio] = useState(formData.bio || "");
-    const [emailConfirm, setEmailConfirm] = useState(formData.email || "");
-    const [lastUpdated, setLastUpdated] = useState(localStorage.getItem("profileLastUpdated") || "");
-    const [imageLoading, setImageLoading] = useState(false);
-    const [profileStatus, setProfileStatus] = useState("incompleto");
-    const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
-    const [ufSuggestions, setUfSuggestions] = useState<string[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [showProfileView, setShowProfileView] = useState(false);
-    const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-    const [pendingNavigation, setPendingNavigation] = useState<null | (() => void)>(null);
+  // Estado para o formulário with properly typed defaults for professional fields
+  const [formData, setFormData] = useState<ProfessionalUserData>({
+    ...userData,
+    crm: userData.crm || '',
+    especialidade: userData.especialidade || '',
+    observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
+    bio: userData.bio || '',
+  });
 
-    const requiredFields = [
-        formData.nome,
-        formData.sobrenome,
-        formData.email,
-        formData.telefone,
-        bio,
-        formData.cpf,
-        formData.cep,
-        formData.nascimento
-    ];
-    const progress = Math.round((requiredFields.filter(Boolean).length / requiredFields.length) * 100);
+  // Estado para a imagem selecionada
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Update form data when userData changes (sync across tabs)
+  useEffect(() => {
+    if (!formChanged) {
+      setFormData({
+        ...userData,
+        crm: userData.crm || '',
+        especialidade: userData.especialidade || '',
+        observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
+        bio: userData.bio || '',
+      });
+    }
+  }, [userData, formChanged]);
 
-    useEffect(() => {
-        setLoading(true);
-        setTimeout(() => setLoading(false), 800);
-    }, []);
-
-    useEffect(() => {
-        const savedData = localStorage.getItem("profileData");
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            setProfileImage(parsed.profileImage || "/image/perfilProfile.svg");
-        } else {
-            setProfileImage("/image/perfilProfile.svg");
+  // Função para lidar com a mudança nos campos
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormChanged(true);
+    const { name, value } = e.target;
+    
+    // Formatação específica para o CEP
+    if (name === "endereco.cep") {
+      const formattedCep = formatCep(value);
+      setFormData({
+        ...formData,
+        endereco: {
+          ...formData.endereco,
+          cep: formattedCep
         }
-    }, [setProfileImage]);
-
-    useEffect(() => {
-        localStorage.setItem("profileData", JSON.stringify({ ...formData, bio }));
-    }, [formData, bio]);
-
-    useEffect(() => {
-        const savedData = localStorage.getItem("profileData");
-        const current = JSON.stringify({ ...formData, bio, emailConfirm });
-        setHasChanged(savedData ? current !== savedData : true);
-    }, [formData, bio, emailConfirm]);
-
-    useEffect(() => {
-        const required = [formData.nome, formData.sobrenome, formData.email, formData.telefone, bio, formData.cpf, formData.cep, formData.nascimento];
-        setProfileStatus(required.every(Boolean) ? "completo" : "incompleto");
-    }, [formData, bio]);
-
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasChanged) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [hasChanged]);
-
-    const navigator = useContext(NavigationContext)?.navigator;
-    useEffect(() => {
-        if (!navigator) return;
-        const origPush = navigator.push;
-        navigator.push = (path: string, state?: Record<string, unknown>) => {
-            if (hasChanged) {
-                setShowUnsavedDialog(true);
-                setPendingNavigation(() => () => origPush(path, state));
-            } else {
-                origPush(path, state);
-            }
-        };
-        return () => { navigator.push = origPush; };
-    }, [hasChanged, navigator]);
-
-    const validate = (data: ProfileFormData) => {
-        const result = profileSchema.safeParse(data);
-        if (!result.success) {
-            const fieldErrors: { [key: string]: string } = {};
-            result.error.errors.forEach(err => {
-                if (err.path[0]) fieldErrors[err.path[0]] = err.message;
-            });
-            return fieldErrors;
+      });
+      return;
+    }
+    
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData({
+        ...formData,
+        [parent]: {
+          ...formData[parent],
+          [child]: value
         }
-        return {};
-    };
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
+  };
 
-    // Validação em tempo real aprimorada
-    useEffect(() => {
-        // Valida todos os campos relevantes sempre que formData, emailConfirm ou bio mudam
-        const validation = validate({ ...formData, emailConfirm, bio });
-        setErrors(validation);
-    }, [formData, emailConfirm, bio]);
+  // Função para lidar com a seleção da imagem
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedImage(file);
+      
+      // Criar preview da imagem
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-    // Função para mostrar toasts informativos de sucesso/erro
-    const showToast = (type: 'success' | 'error', message: string) => {
+  // Função para validar o formulário antes de salvar
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Validações simples como exemplo
+    if (!formData.nome) {
+      errors.nome = "Nome é obrigatório";
+    }
+    
+    if (!formData.email) {
+      errors.email = "Email é obrigatório";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Email inválido";
+    }
+    
+    if (formData.telefone && formData.telefone.length < 10) {
+      errors.telefone = "Telefone deve ter pelo menos 10 dígitos";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Update to use setUserData from the hook
+  const handleSave = () => {
+    if (!formChanged && !selectedImage) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+    
+    if (!validateForm()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    setTimeout(() => {
+      try {
+        // Use the setUserData function from the hook
+        setUserData(formData);
+        
+        if (selectedImage && imagePreview) {
+          setProfileImage(imagePreview);
+        }
+        
+        setSuccessMessage("Perfil atualizado com sucesso!");
+        setFormChanged(false);
+        
         toast({
-            title: type === 'success' ? 'Sucesso!' : 'Erro!',
-            description: message,
-            variant: type === 'success' ? 'default' : 'destructive',
-            duration: 4000,
+          title: "Perfil atualizado",
+          description: "Suas informações foram atualizadas com sucesso!",
         });
-    };
-
-    const handleBlur = (field: string) => {
-        if (errors[field]) {
-            setErrors((prev) => ({ ...prev, [field]: "" }));
-        }
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageLoading(true);
-            const reader = new FileReader();
-            reader.onload = () => {
-                setFormData({ ...formData, profileImage: reader.result as string });
-                setImageLoading(false);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const validation = validate({ ...formData, emailConfirm, bio });
-        setErrors(validation);
-        console.log('Validação:', validation); // <-- Adiciona log para depuração
-        if (Object.keys(validation).length > 0) {
-            showToast('error', 'Preencha todos os campos obrigatórios.');
-            return;
-        }
-        setIsSaving(true);
-        setTimeout(() => {
-            localStorage.setItem("profileData", JSON.stringify({ ...formData, bio }));
-            setProfileImage(formData.profileImage || "/image/perfilProfile.svg");
-            const now = new Date().toLocaleString();
-            setLastUpdated(now);
-            localStorage.setItem("profileLastUpdated", now);
-            setIsSaving(false);
-            setHasChanged(false);
-            showToast('success', 'Perfil salvo com sucesso!');
-        }, 300);
-    };
-
-    const handleCancel = () => {
-        const savedData = localStorage.getItem("profileData");
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            setFormData(parsed);
-            setEmailConfirm(parsed.email || "");
-            setBio(parsed.bio || "");
-            setErrors({});
-            setHasChanged(false);
-        }
-        setShowCancelDialog(false);
-    };
-
-    const handleClear = () => {
-        setFormData({
-            nome: '',
-            sobrenome: '',
-            email: '',
-            endereco: '',
-            telefone: '',
-            cidade: '',
-            uf: '',
-            atividade: '',
-            profileImage: '',
-            cpf: '',
-            cep: '',
-            nascimento: '',
+        
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } catch (error) {
+        toast({
+          title: "Erro ao salvar",
+          description: "Ocorreu um erro ao salvar suas informações.",
+          variant: "destructive"
         });
-        setBio('');
-        setEmailConfirm('');
-        setErrors({});
-        setHasChanged(true);
-    };
+      } finally {
+        setLoading(false);
+      }
+    }, 1500);
+  };
+  
+  // Função para exportar dados em PDF
+  const handleExportPDF = () => {
+    toast({
+      title: "Preparando PDF",
+      description: "Seu perfil profissional está sendo exportado..."
+    });
+    
+    // Aqui seria a implementação real de exportação para PDF
+    setTimeout(() => {
+      toast({
+        title: "PDF exportado com sucesso",
+        description: "O PDF com seu perfil profissional foi gerado."
+      });
+    }, 2000);
+  };
+  
+  // Adicione seção para disponibilidade de horários no perfil do profissional
+  const [disponibilidade, setDisponibilidade] = useState({
+    segunda: { manha: false, tarde: false, noite: false },
+    terca: { manha: false, tarde: false, noite: false },
+    quarta: { manha: false, tarde: false, noite: false },
+    quinta: { manha: false, tarde: false, noite: false },
+    sexta: { manha: false, tarde: false, noite: false },
+    sabado: { manha: false, tarde: false, noite: false },
+    domingo: { manha: false, tarde: false, noite: false },
+  });
+  
+  const handleDisponibilidadeChange = (dia: string, periodo: string) => {
+    setFormChanged(true);
+    setDisponibilidade(prev => ({
+      ...prev,
+      [dia]: {
+        ...prev[dia as keyof typeof prev],
+        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev[keyof typeof prev]]
+      }
+    }));
+  };
+  
+  // Fix the duplicate and incorrectly formatted handleCancel function
+  const handleCancel = () => {
+    // Recarregando dados originais do localStorage
+    const savedData = localStorage.getItem("userData");
+    if (savedData) {
+      setFormData({
+        ...JSON.parse(savedData),
+        crm: JSON.parse(savedData).crm || '',
+        especialidade: JSON.parse(savedData).especialidade || '',
+        observacoesDisponibilidade: JSON.parse(savedData).observacoesDisponibilidade || '',
+        bio: JSON.parse(savedData).bio || ''
+      });
+    }
+    
+    // Resetando estados
+    setSelectedImage(null);
+    setImagePreview(null);
+    setFormChanged(false);
+    setValidationErrors({});
+    
+    toast({
+      title: "Alterações descartadas",
+      description: "Suas alterações foram descartadas com sucesso.",
+    });
+  };
 
-    const handleRemovePhoto = () => {
-        setFormData({ ...formData, profileImage: '' });
-        setProfileImage('/image/perfilProfile.svg');
-        setHasChanged(true);
-    };
+  // Função para buscar endereço pelo CEP
+  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    if (!cep || cep.length < 8) return;
+    
+    const endereco = await fetchAddressByCep(cep);
+    if (endereco) {
+      setFormData(prev => ({
+        ...prev,
+        endereco: {
+          ...prev.endereco,
+          rua: endereco.logradouro,
+          bairro: endereco.bairro,
+          cidade: endereco.localidade,
+          estado: endereco.uf,
+          cep: endereco.cep
+        }
+      }));
+      setFormChanged(true);
+      
+      toast({
+        title: "Endereço encontrado",
+        description: "Os campos foram preenchidos automaticamente.",
+      });
+    }
+  };
 
-    const cidades = ["São Paulo", "Rio de Janeiro", "Belo Horizonte", "Campinas", "Curitiba"];
-    const ufs = ["SP", "RJ", "MG", "PR", "RS"];
-    const handleCidadeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, cidade: e.target.value });
-        setCitySuggestions(cidades.filter(c => c.toLowerCase().includes(e.target.value.toLowerCase())));
-    };
-    const handleUfInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, uf: e.target.value });
-        setUfSuggestions(ufs.filter(u => u.toLowerCase().includes(e.target.value.toLowerCase())));
-    };
-
-    const SuggestionInput = ({
-        id,
-        label,
-        value,
-        onChange,
-        suggestions,
-        onSuggestionClick,
-        onBlur,
-        error
-    }: {
-        id: string;
-        label: string;
-        value: string;
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-        suggestions: string[];
-        onSuggestionClick: (s: string) => void;
-        onBlur: () => void;
-        error?: string;
-    }) => (
-        <div className="space-y-2 relative">
-            <Tooltip>
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
+        {!sidebarOpen && (
+          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
+            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-primary text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+              <Menu className="w-7 h-7" />
+            </Button>
+            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow" />
+            {/* Use formData to show the current edited values */}
+            <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
+          </div>
+        )}
+        
+        <div className={`transition-all duration-500 ease-in-out
+          ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
+          bg-white dark:bg-gray-900 shadow-2xl p-6 flex flex-col gap-6 overflow-hidden
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto`}
+        >
+          <div className="w-full flex justify-start mb-6">
+            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-primary text-white focus:outline-none shadow-md">
+              <Menu className="w-7 h-7" />
+            </Button>
+          </div>
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-background shadow" />
+            {/* Use formData to show the current edited values */}
+            <span className="font-extrabold text-xl text-foreground tracking-wide">{formData.nome} {formData.sobrenome}</span>
+          </div>
+          
+          <SidebarMenu className="gap-4 text-sm md:text-base">
+            {/* Utilizando os itens de navegação do professional */}
+            {professionalNavItems.map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}
+            
+            <SidebarMenuItem>
+              <Tooltip>
                 <TooltipTrigger asChild>
-                    <label htmlFor={id} className="block text-sm font-medium cursor-help">{label}</label>
+                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
+                    <span className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                      <span>Sair</span>
+                    </span>
+                  </SidebarMenuButton>
                 </TooltipTrigger>
-                <TooltipContent>{`Digite seu ${label}`}</TooltipContent>
-            </Tooltip>
-            <Input
-                id={id}
-                type="text"
-                value={value}
-                onChange={onChange}
-                onBlur={onBlur}
-                className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${error ? 'border-red-500' : ''}`}
-                autoComplete="off"
-                aria-autocomplete="list"
-                aria-invalid={!!error}
-                aria-describedby={error ? `${id}-erro` : undefined}
-            />
-            {error && <span id={`${id}-erro`} className="text-red-500 text-xs" role="alert">{error}</span>}
-            {suggestions.length > 0 && (
-                <ul className="bg-white dark:bg-[#23272F] border rounded shadow absolute z-10 w-full" role="listbox" aria-label={`Sugestões para ${label}`}> 
-                    {suggestions.map(s => (
-                        <li key={s} role="option" className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-[#181A20] cursor-pointer transition-colors duration-200 hover:bg-[#ED4231]/10 focus:bg-[#ED4231]/20 rounded-md" onMouseDown={() => onSuggestionClick(s)}>{s}</li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
-
-    return (
-        <SidebarProvider>
-            <div className="min-h-screen w-full flex flex-col md:flex-row text-lg md:text-xl bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans">
-                {!sidebarOpen && (
-                    <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
-                        <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md focus:ring-2 focus:ring-[#ED4231]" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
-                            <Menu className="w-7 h-7" />
-                        </button>
-                        <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-                        <span className="font-normal text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
-                    </div>
-                )}
-                <div className={`transition-all duration-500 ease-in-out
-                    ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-                    bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-                    fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-base md:text-lg`
-                }>
-                    <div className="w-full flex justify-start mb-6">
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md focus:ring-2 focus:ring-[#ED4231]">
-                            <Menu className="w-7 h-7" />
-                        </button>
-                    </div>
-                    <div className="flex flex-col items-center gap-2 mb-8">
-                        <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] dark:border-[#23272F] shadow" />
-                        <span className="font-normal text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData?.nome} {formData?.sobrenome}</span>
-                    </div>
-                    <SidebarMenu className="gap-4 text-base md:text-lg">
-                        <SidebarMenuItem>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
-                                        <Link to="/agenda" className="flex items-center gap-3">
-                                            <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                                            <span>Agenda</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Veja sua agenda de atendimentos
-                                </TooltipContent>
-                            </Tooltip>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
-                                        <Link to="/disponibilizar-horario" className="flex items-center gap-3">
-                                            <Clock className="w-6 h-6" color="#ED4231" />
-                                            <span>Disponibilizar Horário</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Disponibilize novos horários para atendimento
-                                </TooltipContent>
-                            </Tooltip>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] dark:bg-[#23272F] border-l-4 border-[#ED4231]' : ''}`}>
-                                        <Link to="/profile-form" className="flex items-center gap-3">
-                                            <span>Editar Perfil</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Edite seu perfil e foto
-                                </TooltipContent>
-                            </Tooltip>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-base md:text-lg transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
-                                        <span className="flex items-center gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
-                                            <span>Sair</span>
-                                        </span>
-                                    </SidebarMenuButton>
-                                </TooltipTrigger>
-                                <TooltipContent>Sair da conta</TooltipContent>
-                            </Tooltip>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                    <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 dark:text-gray-500 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
-                        <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
-                        <div className="flex gap-2">
-                            <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
-                            <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
-                        </div>
-                    </div>
-                </div>
-                <div className={`flex-1 w-full md:w-auto mt-4 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
-                    <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 dark:bg-[#23272F]/90 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do perfil">
-                        <div className="flex items-center gap-3">
-                            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-                            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData?.nome} {formData?.sobrenome}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-                                tabIndex={0}
-                                title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-                            >
-                                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-                            </button>
-                        </div>
-                    </header>
-                    <div className="h-20" />
-                    <main id="main-content" role="main" aria-label="Conteúdo principal do perfil">
-                        <div className="max-w-5xl mx-auto p-6">
-                            <div className="flex items-center justify-between mb-8">
-                                <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">Editar Perfil</h1>
-                                <p className="text-lg md:text-xl mb-6 text-center animate-fade-in text-gray-500">Atualize suas informações pessoais abaixo.</p>
-                            </div>
-
-                            {loading ? (
-                                <ProfileFormSkeleton />
-                            ) : (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key="profile-form"
-                                        initial={{ opacity: 0, y: 24 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -24 }}
-                                        transition={{ duration: 0.4 }}
-                                    >
-                                        <form
-                                            onSubmit={handleSubmit}
-                                            className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white dark:bg-[#23272F] rounded-2xl shadow-lg dark:shadow-none p-8 transition-colors duration-300 border dark:border-[#23272F] animate-fade-in transition-transform duration-300 hover:scale-[1.01] hover:shadow-xl focus-within:scale-[1.01] focus-within:shadow-xl group"
-                                            aria-live="polite"
-                                            role="form"
-                                            tabIndex={0}
-                                        >
-                                            {/* Se todos os campos obrigatórios estão vazios, não mostra nada de erro ou imagem aqui, pois já existe o card fora do formulário */}
-                                            {Object.keys(errors).length > 0 && !(!formData.nome && !formData.sobrenome && !formData.email && !formData.telefone) && (
-                                                <div className="mb-8 p-5 bg-red-50 border border-red-300 rounded-xl flex items-start gap-3 animate-fade-in shadow-sm" role="alert" aria-live="assertive">
-                                                    <svg className="w-6 h-6 text-red-500 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                    <div>
-                                                        <div className="font-semibold text-red-700 mb-2 text-lg">Por favor, corrija os seguintes erros:</div>
-                                                        <ul className="list-disc pl-6 text-red-600 text-base space-y-1">
-                                                            {Object.entries(errors).map(([field, msg]) => (
-                                                                <li key={field}>{msg}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div className="space-y-6">
-                                                <Progress value={progress} className="my-4" />
-                                                <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Perfil {progress}% completo</div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <label htmlFor="nome" className="block text-sm font-medium cursor-help dark:text-gray-100">Nome</label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Digite seu nome completo</TooltipContent>
-                                                        </Tooltip>
-                                                        <Input
-                                                            id="nome"
-                                                            type="text"
-                                                            value={formData.nome}
-                                                            placeholder="Ex: Maria"
-                                                            onChange={e => {
-                                                                setFormData({ ...formData, nome: e.target.value });
-                                                                if (errors.nome) setErrors(prev => ({ ...prev, nome: "" }));
-                                                            }}
-                                                            onBlur={() => handleBlur("nome")}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nome ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                            aria-invalid={!!errors.nome}
-                                                            aria-describedby="nome-erro"
-                                                        />
-                                                        {errors.nome && (
-                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="nome-erro" role="alert">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                                {errors.nome}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <label htmlFor="sobrenome" className="block text-sm font-medium cursor-help dark:text-gray-100">Sobrenome</label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Digite seu sobrenome</TooltipContent>
-                                                        </Tooltip>
-                                                        <Input
-                                                            id="sobrenome"
-                                                            type="text"
-                                                            value={formData.sobrenome}
-                                                            placeholder="Ex: Silva"
-                                                            onChange={e => {
-                                                                setFormData({ ...formData, sobrenome: e.target.value });
-                                                                if (errors.sobrenome) setErrors(prev => ({ ...prev, sobrenome: "" }));
-                                                            }}
-                                                            onBlur={() => handleBlur("sobrenome")}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.sobrenome ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                            aria-invalid={!!errors.sobrenome}
-                                                            aria-describedby="sobrenome-erro"
-                                                        />
-                                                        {errors.sobrenome && (
-                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="sobrenome-erro" role="alert">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                                {errors.sobrenome}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <label htmlFor="email" className="block text-sm font-medium cursor-help dark:text-gray-100">Email</label>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Digite seu email</TooltipContent>
-                                                    </Tooltip>
-                                                    <Input
-                                                        id="email"
-                                                        type="email"
-                                                        value={formData.email}
-                                                        placeholder="exemplo@email.com"
-                                                        onChange={e => {
-                                                            setFormData({ ...formData, email: e.target.value });
-                                                            if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
-                                                        }}
-                                                        onBlur={() => handleBlur("email")}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.email ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                        aria-invalid={!!errors.email}
-                                                        aria-describedby="email-erro"
-                                                    />
-                                                    {errors.email && (
-                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="email-erro" role="alert">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                            {errors.email}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <label htmlFor="emailConfirm" className="block text-sm font-medium cursor-help dark:text-gray-100">Confirme seu Email</label>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Confirme seu email</TooltipContent>
-                                                    </Tooltip>
-                                                    <Input
-                                                        id="emailConfirm"
-                                                        type="email"
-                                                        value={emailConfirm}
-                                                        placeholder="Confirme seu e-mail"
-                                                        onChange={e => {
-                                                            setEmailConfirm(e.target.value);
-                                                            if (errors.emailConfirm) setErrors(prev => ({ ...prev, emailConfirm: "" }));
-                                                        }}
-                                                        onBlur={() => handleBlur("emailConfirm")}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.emailConfirm ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                        aria-invalid={!!errors.emailConfirm}
-                                                        aria-describedby="emailConfirm-erro"
-                                                    />
-                                                    {errors.emailConfirm && (
-                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="emailConfirm-erro" role="alert">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                            {errors.emailConfirm}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <label htmlFor="endereco" className="block text-sm font-medium cursor-help dark:text-gray-100">Endereço</label>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Digite seu endereço</TooltipContent>
-                                                    </Tooltip>
-                                                    <Input
-                                                        id="endereco"
-                                                        type="text"
-                                                        value={formData.endereco}
-                                                        onChange={e => setFormData({ ...formData, endereco: e.target.value })}
-                                                        className="border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <label htmlFor="telefone" className="block text-sm font-medium cursor-help dark:text-gray-100">Telefone/WhatsApp</label>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Digite seu telefone ou WhatsApp</TooltipContent>
-                                                    </Tooltip>
-                                                    <Input
-                                                        id="telefone"
-                                                        type="tel"
-                                                        value={formData.telefone}
-                                                        placeholder="(11) 91234-5678"
-                                                        onChange={e => {
-                                                            let value = e.target.value.replace(/\D/g, "");
-                                                            if (value.length > 11) value = value.slice(0, 11);
-                                                            value = value.replace(/(\d{2})(\d{5})(\d{4})/, "($1)$2-$3");
-                                                            if (value.length < 14) value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1)$2-$3");
-                                                            setFormData({ ...formData, telefone: value });
-                                                            if (errors.telefone) setErrors(prev => ({ ...prev, telefone: "" }));
-                                                        }}
-                                                        onBlur={() => handleBlur("telefone")}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.telefone ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                        aria-invalid={!!errors.telefone}
-                                                        aria-describedby="telefone-erro"
-                                                    />
-                                                    {errors.telefone && (
-                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="telefone-erro" role="alert">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                            {errors.telefone}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <label htmlFor="cpf" className="block text-sm font-medium cursor-help dark:text-gray-100">CPF</label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Digite seu CPF no formato 000.000.000-00</TooltipContent>
-                                                        </Tooltip>
-                                                        <Input
-                                                            id="cpf"
-                                                            type="text"
-                                                            value={formData.cpf}
-                                                            placeholder="000.000.000-00"
-                                                            onChange={e => {
-                                                                let v = e.target.value.replace(/\D/g, "");
-                                                                if (v.length > 11) v = v.slice(0, 11);
-                                                                v = v.replace(/(\d{3})(\d)/, "$1.$2");
-                                                                v = v.replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
-                                                                v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
-                                                                setFormData({ ...formData, cpf: v });
-                                                                if (errors.cpf) setErrors(prev => ({ ...prev, cpf: "" }));
-                                                            }}
-                                                            onBlur={() => handleBlur("cpf")}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cpf ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                            aria-invalid={!!errors.cpf}
-                                                            aria-describedby="cpf-erro"
-                                                            maxLength={14}
-                                                        />
-                                                        {errors.cpf && (
-                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="cpf-erro" role="alert">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                                {errors.cpf}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <label htmlFor="cep" className="block text-sm font-medium cursor-help dark:text-gray-100">CEP</label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Digite seu CEP no formato 00000-000</TooltipContent>
-                                                        </Tooltip>
-                                                        <Input
-                                                            id="cep"
-                                                            type="text"
-                                                            value={formData.cep}
-                                                            placeholder="00000-000"
-                                                            onChange={e => {
-                                                                let v = e.target.value.replace(/\D/g, "");
-                                                                if (v.length > 8) v = v.slice(0, 8);
-                                                                v = v.replace(/(\d{5})(\d{1,3})/, "$1-$2");
-                                                                setFormData({ ...formData, cep: v });
-                                                                if (errors.cep) setErrors(prev => ({ ...prev, cep: "" }));
-                                                            }}
-                                                            onBlur={() => handleBlur("cep")}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.cep ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                            aria-invalid={!!errors.cep}
-                                                            aria-describedby="cep-erro"
-                                                            maxLength={9}
-                                                        />
-                                                        {errors.cep && (
-                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="cep-erro" role="alert">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                                {errors.cep}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <label htmlFor="nascimento" className="block text-sm font-medium cursor-help dark:text-gray-100">Data de Nascimento</label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Digite sua data de nascimento no formato dd/mm/aaaa</TooltipContent>
-                                                        </Tooltip>
-                                                        <Input
-                                                            id="nascimento"
-                                                            type="text"
-                                                            value={formData.nascimento}
-                                                            placeholder="dd/mm/aaaa"
-                                                            onChange={e => {
-                                                                let v = e.target.value.replace(/\D/g, "");
-                                                                if (v.length > 8) v = v.slice(0, 8);
-                                                                v = v.replace(/(\d{2})(\d)/, "$1/$2");
-                                                                v = v.replace(/(\d{2})\/(\d{2})(\d)/, "$1/$2/$3");
-                                                                setFormData({ ...formData, nascimento: v });
-                                                                if (errors.nascimento) setErrors(prev => ({ ...prev, nascimento: "" }));
-                                                            }}
-                                                            onBlur={() => handleBlur("nascimento")}
-                                                            className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.nascimento ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                            aria-invalid={!!errors.nascimento}
-                                                            aria-describedby="nascimento-erro"
-                                                            maxLength={10}
-                                                        />
-                                                        {errors.nascimento && (
-                                                            <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="nascimento-erro" role="alert">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                                {errors.nascimento}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <SuggestionInput
-                                                        id="cidade"
-                                                        label="Cidade"
-                                                        value={formData.cidade}
-                                                        onChange={handleCidadeInput}
-                                                        suggestions={citySuggestions}
-                                                        onSuggestionClick={c => { setFormData({ ...formData, cidade: c }); setCitySuggestions([]); }}
-                                                        onBlur={() => setTimeout(() => setCitySuggestions([]), 100)}
-                                                    />
-                                                    <SuggestionInput
-                                                        id="uf"
-                                                        label="UF"
-                                                        value={formData.uf}
-                                                        onChange={handleUfInput}
-                                                        suggestions={ufSuggestions}
-                                                        onSuggestionClick={u => { setFormData({ ...formData, uf: u }); setUfSuggestions([]); }}
-                                                        onBlur={() => setTimeout(() => setUfSuggestions([]), 100)}
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <label htmlFor="atividade" className="block text-sm font-medium dark:text-gray-100">Atividade a se cedida como voluntariado:</label>
-                                                    <Textarea
-                                                        value={formData.atividade}
-                                                        onChange={(e) => setFormData({ ...formData, atividade: e.target.value })}
-                                                        className="border border-[#ADADAD] border-solid border-2 rounded-[20px] min-h-[100px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <label htmlFor="bio" className="block text-sm font-medium dark:text-gray-100">Mini bio</label>
-                                                    <Textarea
-                                                        id="bio"
-                                                        value={bio}
-                                                        placeholder="Conte um pouco sobre você..."
-                                                        onChange={e => {
-                                                            setBio(e.target.value);
-                                                            if (errors.bio) setErrors(prev => ({ ...prev, bio: "" }));
-                                                        }}
-                                                        onBlur={() => handleBlur("bio")}
-                                                        className={`border border-[#ADADAD] border-solid border-2 rounded-[20px] min-h-[80px] bg-[#EDF2FB] dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none ${errors.bio ? 'border-red-500 ring-2 ring-red-400' : ''}`}
-                                                        aria-label="Mini bio"
-                                                        aria-invalid={!!errors.bio}
-                                                        aria-describedby="bio-erro"
-                                                    />
-                                                    {errors.bio && (
-                                                        <div className="flex items-center gap-1 mt-1 text-red-500 text-xs" id="bio-erro" role="alert">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
-                                                            {errors.bio}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex gap-4 mt-6">
-                                                    <Button
-                                                        variant="outline"
-                                                        type="button"
-                                                        onClick={() => setShowCancelDialog(true)}
-                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none flex items-center gap-2 transition-transform duration-200 hover:scale-105"
-                                                        aria-label="Cancelar edição do perfil"
-                                                    >
-                                                        Cancelar
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        type="button"
-                                                        onClick={handleClear}
-                                                        className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none flex items-center gap-2 transition-transform duration-200 hover:scale-105"
-                                                        aria-label="Limpar tudo"
-                                                    >
-                                                        Limpar tudo
-                                                    </Button>
-                                                    <Button
-                                                        type="submit"
-                                                        className="relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md disabled:opacity-70 disabled:cursor-not-allowed gap-2"
-                                                        disabled={!hasChanged || isSaving || Object.keys(errors).some(k => errors[k])}
-                                                        aria-disabled={!hasChanged || isSaving || Object.keys(errors).some(k => errors[k])}
-                                                        aria-label="Salvar perfil"
-                                                    >
-                                                        {isSaving ? (
-                                                            <span className="absolute left-4 flex items-center justify-center">
-                                                                <span className="loader-circle w-6 h-6 block" aria-label="Salvando..." role="status" />
-                                                            </span>
-                                                        ) : (
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                                        )}
-                                                        <span className={isSaving ? 'opacity-60' : ''}>Salvar</span>
-                                                        <style>{`
-                                                            .loader-circle {
-                                                                border: 3px solid #EDF2FB;
-                                                                border-top: 3px solid #ED4231;
-                                                                border-radius: 50%;
-                                                                width: 1.5rem;
-                                                                height: 1.5rem;
-                                                                animation: spin 0.7s linear infinite;
-                                                            }
-                                                            @keyframes spin {
-                                                                0% { transform: rotate(0deg); }
-                                                                100% { transform: rotate(360deg); }
-                                                            }
-                                                        `}</style>
-                                                    </Button>
-                                                    <Button
-                                                        variant="secondary"
-                                                        type="button"
-                                                        onClick={() => setShowProfileView(true)}
-                                                        className="relative bg-[#1A1466] hover:bg-[#1a237e]/90 flex items-center justify-center focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-transform duration-200 hover:scale-105 active:scale-95 px-6 py-2 rounded-full font-semibold text-white shadow-md gap-2"
-                                                        aria-label="Visualizar perfil"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s3.75-7.5 10.5-7.5S22.5 12 22.5 12s-3.75 7.5-10.5 7.5S1.5 12 1.5 12z" /><circle cx="12" cy="12" r="3" /></svg>
-                                                        <span>Visualizar Perfil</span>
-                                                    </Button>
-                                                </div>
-                                                <div className="mt-4 text-xs text-gray-500 dark:text-gray-300">Última atualização: {lastUpdated || 'Nunca'}</div>
-                                                <div className={`mt-2 text-sm font-semibold ${profileStatus === 'completo' ? 'text-green-600' : 'text-yellow-600'}`}>Perfil {profileStatus}</div>
-                                                {hasChanged && (
-                                                    <Badge className={`ml-2 ${STATUS_COLORS.warning} animate-fade-in badge-animate`} aria-label={t('unsaved_changes')}>{t('unsaved_changes')}</Badge>
-                                                )}
-                                            </div>
-
-                                            <div className="relative flex flex-col items-center">
-                                                <div className="relative">
-                                                    {imageLoading && <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-black/70 z-10"><span className="inline-block w-4 h-4 border-2 border-t-2 border-t-[#1A1466] border-[#EDF2FB] rounded-full animate-spin" aria-label="Carregando imagem..." /></div>}
-                                                    <img
-                                                        src={formData.profileImage || "/image/perfilProfile.svg"}
-                                                        alt="Profile preview"
-                                                        className="rounded-full w-72 h-72 object-cover mb-2"
-                                                    />
-                                                    {formData.profileImage && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleRemovePhoto}
-                                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-[#ED4231]"
-                                                            aria-label="Remover foto de perfil"
-                                                        >
-                                                            <UserX className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <label
-                                                    htmlFor="upload-photo"
-                                                    className="mt-4 bg-[#1A1466] text-white px-4 py-2 rounded-full cursor-pointer hover:bg-[#1a237e]/90 focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                                                    aria-label="Editar foto de perfil"
-                                                >
-                                                    Editar Foto
-                                                </label>
-                                                <input
-                                                    type="file"
-                                                    id="upload-photo"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    onChange={handleImageChange}
-                                                />
-                                                {/* Exibe o card de perfil não encontrado logo abaixo do editar foto, somente se não houver dados */}
-                                                {!formData.nome && (
-                                                    <div className="mt-8 w-full flex flex-col items-center animate-fade-in">
-                                                        <div className="bg-white dark:bg-[#23272F] rounded-2xl shadow-lg border border-[#EDF2FB] dark:border-[#23272F] px-8 py-10 flex flex-col items-center max-w-md w-full">
-                                                            <UserX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-                                                            <div className="text-gray-700 dark:text-gray-200 text-2xl font-bold mb-2 text-center">
-                                                                Perfil não encontrado
-                                                            </div>
-                                                            <div className="text-gray-500 dark:text-gray-400 text-lg text-center mb-2">Preencha seus dados para começar a usar a plataforma.</div>
-                                                            <div className="text-gray-400 dark:text-gray-500 text-base text-center">Eles aparecerão aqui!</div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </form>
-                                    </motion.div>
-                                </AnimatePresence>
-                            )}
-
-                            <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                                <DialogContent className="transition-all duration-300 ease-in-out scale-95 data-[state=open]:scale-100 data-[state=closed]:scale-95 opacity-0 data-[state=open]:opacity-100 data-[state=closed]:opacity-0">
-                                    <DialogHeader>
-                                        <DialogTitle>Cancelar alterações?</DialogTitle>
-                                    </DialogHeader>
-                                    <p className="mb-4">Tem certeza de que deseja descartar as alterações feitas no perfil?</p>
-                                    <DialogFooter className="flex gap-2">
-                                        <Button variant="outline" onClick={() => setShowCancelDialog(false)} className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none">Não</Button>
-                                        <Button className="bg-[#ED4231] text-white focus:ring-2 focus:ring-[#ED4231] focus:outline-none" onClick={handleCancel}>Sim</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-
-                            <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-                                <DialogContent className="transition-all duration-300 ease-in-out scale-95 data-[state=open]:scale-100 data-[state=closed]:scale-95 opacity-0 data-[state=open]:opacity-100 data-[state=closed]:opacity-0">
-                                    <DialogHeader>
-                                        <DialogTitle>Deseja sair?</DialogTitle>
-                                    </DialogHeader>
-                                    <p className="mb-4">Tem certeza que deseja sair da sua conta?</p>
-                                    <DialogFooter className="flex gap-2">
-                                        <Button variant="outline" onClick={() => setShowLogoutDialog(false)} className="focus:ring-2 focus:ring-[#ED4231] focus:outline-none">Cancelar</Button>
-                                        <Button className="bg-[#ED4231] text-white focus:ring-2 focus:ring-[#ED4231] focus:outline-none" onClick={() => { setShowLogoutDialog(false); /* Adicione lógica de logout aqui */ }}>Sair</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-
-                            <Dialog open={showProfileView} onOpenChange={setShowProfileView}>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Visualização do Perfil</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="flex flex-col items-center gap-4">
-                                        <img src={formData.profileImage || "/image/perfilProfile.svg"} alt="Profile preview" className="rounded-full w-32 h-32 object-cover" />
-                                        <div className="font-bold text-lg">{formData.nome} {formData.sobrenome}</div>
-                                        <div className="text-sm text-gray-600 dark:text-gray-300">{formData.email}</div>
-                                        <div className="text-sm text-gray-600 dark:text-gray-300">{formData.cidade} - {formData.uf}</div>
-                                        <div className="text-sm text-gray-600 dark:text-gray-300">{formData.atividade}</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">{bio}</div>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-
-                            <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Alterações não salvas</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="mb-4">Você tem alterações não salvas. Tem certeza que deseja sair?</div>
-                                    <DialogFooter className="flex gap-2">
-                                        <Button variant="outline" onClick={() => setShowUnsavedDialog(false)} autoFocus>Cancelar</Button>
-                                        <Button className="bg-[#ED4231] text-white" onClick={() => { setShowUnsavedDialog(false); setHasChanged(false);  }}>Sair sem salvar</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-
-                            {hasChanged && (
-                                <button
-                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                    className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
-                                    aria-label="Voltar ao topo"
-                                >
-                                    ↑
-                                </button>
-                            )}
-                        </div>
-                    </main>
-                </div>
+                <TooltipContent className="z-50">Sair da conta</TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          
+          <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
+            <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
+            <div className="flex gap-2">
+              <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
+              <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
             </div>
-            <style>{`
-                body.dark {
-                    background: linear-gradient(135deg, #181A20 0%, #23272F 60%, #181A20 100%) !important;
-                    color: #f3f4f6;
-                }
-                ::selection {
-                    background: #ED4231;
-                    color: #fff;
-                }
-                body.dark ::selection {
-                    background: #ED4231;
-                    color: #fff;
-                }
-                .dark .shadow-md, .dark .shadow-lg {
-                    box-shadow: none !important;
-                }
-                .animate-fade-in {
-                    animation: fadeIn 0.5s ease-in;
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(16px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .badge-animate {
-                    animation: popBadge 0.4s cubic-bezier(.4,0,.2,1);
-                }
-                @keyframes popBadge {
-                    0% { transform: scale(0.7); opacity: 0; }
-                    60% { transform: scale(1.1); opacity: 1; }
-                    100% { transform: scale(1); }
-                }
-                :focus-visible {
-                    outline: 3px solid #ED4231 !important;
-                    outline-offset: 2px;
-                    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #ED4231;
-                    transition: outline 0.2s, box-shadow 0.2s;
-                }
-                .card-animate {
-                    animation: fadeInCard 0.6s cubic-bezier(.4,0,.2,1);
-                }
-                @keyframes fadeInCard {
-                    0% { opacity: 0; transform: scale(0.97) translateY(16px); }
-                    100% { opacity: 1; transform: scale(1) translateY(0); }
-                }
-            `}</style>
-        </SidebarProvider>
-    );
+          </div>
+        </div>
+
+        <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
+              {/* Use formData to show the current edited values */}
+              <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
+            </div>
+            
+            <div className="flex items-center gap-3">              <Button
+                onClick={toggleTheme}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+              </Button>
+            </div>
+          </header>
+
+          <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
+            {/* Breadcrumb navigation */}
+            {getProfessionalNavigationPath(location.pathname)}
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-4 mb-6">
+                <Button 
+                  onClick={() => navigate("/home")} 
+                  variant="ghost" 
+                  className="p-2 rounded-full"
+                  aria-label="Voltar"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">Editar Perfil</h1>
+                  <p className="text-base text-gray-500 dark:text-gray-400">
+                    Atualize suas informações profissionais
+                  </p>
+                </div>
+              </div>
+              
+              <Tabs defaultValue="pessoal" className="w-full">
+                <TabsList className="mb-6 flex flex-wrap md:flex-nowrap w-full gap-2 md:gap-0">
+                  <TabsTrigger value="pessoal" className="flex-1">Dados Pessoais</TabsTrigger>
+                  <TabsTrigger value="profissional" className="flex-1">Dados Profissionais</TabsTrigger>
+                  <TabsTrigger value="endereco" className="flex-1">Endereço</TabsTrigger>
+                  <TabsTrigger value="disponibilidade" className="flex-1">Disponibilidade</TabsTrigger>
+                  <TabsTrigger value="foto" className="flex-1">Foto de Perfil</TabsTrigger>
+                </TabsList>
+                
+                {/* Aba de Dados Pessoais */}
+                <TabsContent value="pessoal">
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                    <CardHeader>
+                      <CardTitle>Dados Pessoais</CardTitle>
+                      <CardDescription>Atualize suas informações pessoais</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="nome">Nome</Label>
+                          <Input 
+                            id="nome" 
+                            name="nome" 
+                            value={formData.nome} 
+                            onChange={handleInputChange} 
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sobrenome">Sobrenome</Label>
+                          <Input 
+                            id="sobrenome" 
+                            name="sobrenome" 
+                            value={formData.sobrenome} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800" 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input 
+                          id="email" 
+                          name="email" 
+                          type="email" 
+                          value={formData.email} 
+                          onChange={handleInputChange}
+                          className="bg-white dark:bg-gray-800" 
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="telefone">Telefone</Label>
+                          <Input 
+                            id="telefone" 
+                            name="telefone" 
+                            value={formData.telefone} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                          <Input 
+                            id="dataNascimento" 
+                            name="dataNascimento" 
+                            type="date" 
+                            value={formData.dataNascimento} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800" 
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                        {loading ? (
+                          <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Salvando...
+                          </div>
+                        ) : "Salvar Alterações"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+                
+                {/* Aba de Dados Profissionais */}
+                <TabsContent value="profissional">
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                    <CardHeader>
+                      <CardTitle>Dados Profissionais</CardTitle>
+                      <CardDescription>Atualize suas informações profissionais</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="especialidade">Especialidade</Label>
+                          <Input 
+                            id="especialidade" 
+                            name="especialidade" 
+                            value={formData.especialidade} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="crm">CRM/CRP/Registro Profissional</Label>
+                          <Input 
+                            id="crm" 
+                            name="crm" 
+                            value={formData.crm} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800" 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="bio">Biografia Profissional</Label>
+                        <textarea 
+                          id="bio" 
+                          name="bio" 
+                          value={formData.bio || ''} 
+                          onChange={(e) => {
+                            setFormChanged(true);
+                            setFormData({
+                              ...formData, 
+                              bio: e.target.value
+                            } as typeof formData);
+                          }}
+                          className="w-full min-h-[150px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]" 
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                        {loading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+                
+                {/* Aba de Endereço */}
+                <TabsContent value="endereco">
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                    <CardHeader>
+                      <CardTitle>Endereço Profissional</CardTitle>
+                      <CardDescription>Atualize seu endereço de atendimento</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-2 space-y-2">
+                          <Label htmlFor="rua">Rua</Label>
+                          <Input 
+                            id="rua" 
+                            name="endereco.rua" 
+                            value={formData.endereco.rua} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="numero">Número</Label>
+                          <Input 
+                            id="numero" 
+                            name="endereco.numero" 
+                            value={formData.endereco.numero} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="complemento">Complemento</Label>
+                        <Input 
+                          id="complemento" 
+                          name="endereco.complemento" 
+                          value={formData.endereco.complemento} 
+                          onChange={handleInputChange}
+                          className="bg-white dark:bg-gray-800"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="bairro">Bairro</Label>
+                        <Input 
+                          id="bairro" 
+                          name="endereco.bairro" 
+                          value={formData.endereco.bairro} 
+                          onChange={handleInputChange}
+                          className="bg-white dark:bg-gray-800"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-1 space-y-2">
+                          <Label htmlFor="cidade">Cidade</Label>
+                          <Input 
+                            id="cidade" 
+                            name="endereco.cidade" 
+                            value={formData.endereco.cidade} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="estado">Estado</Label>
+                          <Input 
+                            id="estado" 
+                            name="endereco.estado" 
+                            value={formData.endereco.estado} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cep">CEP</Label>
+                          <div className="relative">
+                            <Input 
+                              id="cep" 
+                              name="endereco.cep" 
+                              value={formData.endereco.cep} 
+                              onChange={handleInputChange}
+                              onBlur={handleCepBlur}
+                              placeholder="00000-000"
+                              maxLength={9}
+                              className="bg-white dark:bg-gray-800"
+                            />
+                            {loadingCep && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                        {loading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+                
+                {/* Aba de Disponibilidade */}
+                <TabsContent value="disponibilidade">
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                    <CardHeader>
+                      <CardTitle>Disponibilidade de Atendimento</CardTitle>
+                      <CardDescription>Configure sua disponibilidade semanal</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="py-2 px-4 text-left"></th>
+                              <th className="py-2 px-4 text-center">Manhã<br/><span className="text-xs text-gray-500">(08:00 - 12:00)</span></th>
+                              <th className="py-2 px-4 text-center">Tarde<br/><span className="text-xs text-gray-500">(13:00 - 17:00)</span></th>
+                              <th className="py-2 px-4 text-center">Noite<br/><span className="text-xs text-gray-500">(18:00 - 22:00)</span></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(disponibilidade).map(([dia, periodos]) => {
+                              const diaNome = {
+                                segunda: "Segunda-feira", 
+                                terca: "Terça-feira", 
+                                quarta: "Quarta-feira", 
+                                quinta: "Quinta-feira", 
+                                sexta: "Sexta-feira", 
+                                sabado: "Sábado", 
+                                domingo: "Domingo"
+                              }[dia];
+                              
+                              return (
+                                <tr key={dia} className="border-t border-gray-200 dark:border-gray-700">
+                                  <td className="py-3 px-4 font-medium">{diaNome}</td>
+                                  {Object.entries(periodos).map(([periodo, checked]) => (
+                                    <td key={periodo} className="py-3 px-4 text-center">
+                                      <label className="inline-flex items-center cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => handleDisponibilidadeChange(dia, periodo)}
+                                          className="form-checkbox h-5 w-5 text-[#ED4231] rounded border-gray-300 focus:ring-[#ED4231]"
+                                        />
+                                      </label>
+                                    </td>
+                                  ))}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <h4 className="font-medium mb-2">Observações sobre sua disponibilidade:</h4>
+                        <textarea 
+                          value={formData.observacoesDisponibilidade || ''} 
+                          onChange={(e) => {
+                            setFormChanged(true);
+                            setFormData(prev => ({ ...prev, observacoesDisponibilidade: e.target.value }));
+                          }}
+                          className="w-full min-h-[100px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-sm"
+                          placeholder="Adicione observações sobre sua disponibilidade, como férias previstas, restrições de horário, etc."
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancel} 
+                        disabled={loading || (!formChanged && !selectedImage)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                        {loading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+                
+                {/* Aba de Foto de Perfil */}
+                <TabsContent value="foto">
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                    <CardHeader>
+                      <CardTitle>Foto de Perfil</CardTitle>
+                      <CardDescription>Atualize sua foto de perfil profissional</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col items-center gap-6">
+                        <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
+                          <img 
+                            src={imagePreview || profileImage} 
+                            alt="Foto de perfil" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-4">
+                          <Label 
+                            htmlFor="photo-upload"
+                            className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                          >
+                            Escolher Foto
+                          </Label>
+                          <Input 
+                            id="photo-upload" 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                            Formatos suportados: JPG, PNG, GIF<br/>
+                            Tamanho máximo: 5MB
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                        {loading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 };
 
 export default ProfileForm;

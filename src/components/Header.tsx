@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Sun, Moon, Menu, User } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useProfileImage } from "@/components/useProfileImage";
 import { Link, useLocation } from "react-router-dom";
+import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 
 const navLinks = [
   { to: "/agenda", label: "Agenda" },
@@ -11,7 +11,7 @@ const navLinks = [
 ];
 
 const Header = ({ nome = "Usuário", sobrenome = "", onLogout }: { nome?: string; sobrenome?: string; onLogout?: () => void }) => {
-  const { theme = "light", setTheme = () => {} } = useTheme();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { profileImage } = useProfileImage();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -72,9 +72,8 @@ const Header = ({ nome = "Usuário", sobrenome = "", onLogout }: { nome?: string
           ))}
         </ul>
         {/* Ações rápidas e menu do usuário */}
-        <div className="flex items-center gap-2 md:gap-3 ml-auto relative">
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        <div className="flex items-center gap-2 md:gap-3 ml-auto relative">          <button
+            onClick={toggleTheme}
             className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
             aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
             tabIndex={0}

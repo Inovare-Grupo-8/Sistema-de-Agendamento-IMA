@@ -29,7 +29,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Remove barras de rolagem */
+  /* overflow: hidden; Remove barras de rolagem */
 }
 
 /* Garante que o container principal ocupe 100% da tela */
