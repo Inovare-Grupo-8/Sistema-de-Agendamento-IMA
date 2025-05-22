@@ -3,12 +3,12 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: '/Sistema-de-Agendamento-IMA/', // ✅ ESSENCIAL PARA GITHUB PAGES
   server: {
     host: "::",
-    port: 3333,
-    historyApiFallback: true, // Redireciona todas as requisições para index.html
+    port: 3030,
+    historyApiFallback: true,
   },
   plugins: [
     react(),
