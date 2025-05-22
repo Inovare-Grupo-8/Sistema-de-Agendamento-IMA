@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
-  base: '/Sistema-de-Agendamento-IMA/', // ✅ ESSENCIAL PARA GITHUB PAGES
   server: {
     host: "::",
     port: 3030,
