@@ -397,19 +397,22 @@ width: 80px;
 .modal-conteudo {
     display: flex;
   background-color: var(--Branco-Gelo);
-  margin: 15% auto;
+  margin: 20%;
   padding: 20px;
   border-radius: 5px;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   font-size: larger;
-  width: 40%;
-  height: 20%;
   position: relative;
   transform: scale(1);
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
   opacity: 1;
+   min-width: 220px; /* opcional: largura mínima */
+  max-width: 90vw;  /* opcional: largura máxima responsiva */
+  box-sizing: border-box;
+  margin-left: 35%;
+  margin-right: 35%;
 }
 
 .modal-conteudo p{

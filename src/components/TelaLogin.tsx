@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../TelaLogin.css';
 import ModalErro from './ui/ModalErro';
+import { Locate } from 'lucide-react';
 
 const TelaLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -241,7 +242,7 @@ const TelaLogin: React.FC = () => {
               ></i>
             </div>
             <input type="button" value="Entrar" className="btn solid" onClick={handleLogin} />
-            <button className="btn-google" onClick={handleLogin}>
+            <button className="btn-google" onClick={() => window.location.href = 'localhost:8080/login/authorization/google'}>
               <img src="./image/google-icon-logo.svg" alt="" />
             </button>
           </form>
@@ -306,7 +307,7 @@ const TelaLogin: React.FC = () => {
               />
             </div>
             <input type="button" className="btn" value="Cadastrar" onClick={handleCadastro} />
-            <button className="btn-google" onClick={handleLogin}>
+            <button className="btn-google" onClick={() => window.location.href = 'localhost:8080/login/authorization/google'}>
               <img src="./image/google-icon-logo.svg" alt="" />
             </button>
           </form>
