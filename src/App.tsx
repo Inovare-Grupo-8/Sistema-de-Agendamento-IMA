@@ -57,6 +57,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <ProfileImageProvider>
+
             <Router>
               <UserNavigationProvider>
                 <Routes>
@@ -82,6 +83,7 @@ const App = () => {
                 </Routes>
               </UserNavigationProvider>
             </Router>
+
           </ProfileImageProvider>
           {/* Botão de acessibilidade VLibras */}
           <button
