@@ -12,8 +12,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
-// Import the useUserData hook
-import { useUserData, UserData } from "@/hooks/useUserData"; // Import UserData type
+import { useUser } from "@/hooks/useUser";
+import { useProfessional } from "@/hooks/useProfessional";
+import { UserData } from "@/types/user";
+import { ProfessionalData } from "@/types/professional";
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -75,47 +77,50 @@ const ProfileForm = () => {
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
-  // Get user data and setter from the hook
-  const { userData, setUserData } = useUserData();
+  // Get user data and setter from the context
+  const { userData, setUserData } = useUser();
+  const { professionalData, setProfessionalData } = useProfessional();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
 
-  // Define a type that extends UserData with required professional fields
-  interface ProfessionalUserData extends UserData {
-    crm: string;
-    especialidade: string;
-    observacoesDisponibilidade: string;
-    bio: string;
-  }
-
   // Estado para o formulário with properly typed defaults for professional fields
-  const [formData, setFormData] = useState<ProfessionalUserData>({
-    ...userData,
-    crm: userData.crm || '',
-    especialidade: userData.especialidade || '',
-    observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
-    bio: userData.bio || '',
-  });
+  const [formData, setFormData] = useState<ProfessionalData>(() => ({
+    ...professionalData,
+    endereco: {
+      rua: professionalData.endereco?.rua || '',
+      numero: professionalData.endereco?.numero || '',
+      complemento: professionalData.endereco?.complemento || '',
+      bairro: professionalData.endereco?.bairro || '',
+      cidade: professionalData.endereco?.cidade || '',
+      estado: professionalData.endereco?.estado || '',
+      cep: professionalData.endereco?.cep || ''
+    }
+  }));
 
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  // Update form data when userData changes (sync across tabs)
+  // Update form data when professionalData changes (sync across tabs)
   useEffect(() => {
     if (!formChanged) {
       setFormData({
-        ...userData,
-        crm: userData.crm || '',
-        especialidade: userData.especialidade || '',
-        observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
-        bio: userData.bio || '',
+        ...professionalData,
+        endereco: {
+          rua: professionalData.endereco?.rua || '',
+          numero: professionalData.endereco?.numero || '',
+          complemento: professionalData.endereco?.complemento || '',
+          bairro: professionalData.endereco?.bairro || '',
+          cidade: professionalData.endereco?.cidade || '',
+          estado: professionalData.endereco?.estado || '',
+          cep: professionalData.endereco?.cep || ''
+        }
       });
     }
-  }, [userData, formChanged]);
+  }, [professionalData, formChanged]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,7 +195,7 @@ const ProfileForm = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Update to use setUserData from the hook
+  // Update to use setProfessionalData from the context
   const handleSave = () => {
     if (!formChanged && !selectedImage) {
       toast({
@@ -214,8 +219,8 @@ const ProfileForm = () => {
     
     setTimeout(() => {
       try {
-        // Use the setUserData function from the hook
-        setUserData(formData);
+        // Use the setProfessionalData function from the context
+        setProfessionalData(formData);
         
         if (selectedImage && imagePreview) {
           setProfileImage(imagePreview);
@@ -275,24 +280,26 @@ const ProfileForm = () => {
       ...prev,
       [dia]: {
         ...prev[dia as keyof typeof prev],
-        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev[keyof typeof prev]]
+        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev]
       }
     }));
   };
   
   // Fix the duplicate and incorrectly formatted handleCancel function
   const handleCancel = () => {
-    // Recarregando dados originais do localStorage
-    const savedData = localStorage.getItem("userData");
-    if (savedData) {
-      setFormData({
-        ...JSON.parse(savedData),
-        crm: JSON.parse(savedData).crm || '',
-        especialidade: JSON.parse(savedData).especialidade || '',
-        observacoesDisponibilidade: JSON.parse(savedData).observacoesDisponibilidade || '',
-        bio: JSON.parse(savedData).bio || ''
-      });
-    }
+    // Recarregando dados originais do contexto
+    setFormData({
+      ...professionalData,
+      endereco: {
+        rua: professionalData.endereco?.rua || '',
+        numero: professionalData.endereco?.numero || '',
+        complemento: professionalData.endereco?.complemento || '',
+        bairro: professionalData.endereco?.bairro || '',
+        cidade: professionalData.endereco?.cidade || '',
+        estado: professionalData.endereco?.estado || '',
+        cep: professionalData.endereco?.cep || ''
+      }
+    });
     
     // Resetando estados
     setSelectedImage(null);

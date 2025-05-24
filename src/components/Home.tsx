@@ -17,6 +17,8 @@ import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
+import { useUser } from "@/hooks/useUser";
+import { useProfessional } from "@/hooks/useProfessional";
 
 interface ConsultaSummary {
   total: number;
@@ -44,14 +46,8 @@ const Home = () => {
   const [error, setError] = useState("");  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("profileData");
-    return savedData ? JSON.parse(savedData) : {
-      nome: "Ricardo",
-      sobrenome: "Santos",
-      especialidade: "Psicologia"
-    };
-  });
+  const { userData } = useUser();
+  const { professionalData } = useProfessional();
   
   // Estado para o calendário
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
@@ -224,7 +220,7 @@ const Home = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -239,9 +235,9 @@ const Home = () => {
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {formData?.nome} {formData?.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {formData?.especialidade}
+              {professionalData.especialidade}
             </Badge>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -347,7 +343,7 @@ const Home = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {formData?.nome} {formData?.sobrenome}</span>
+              <span className="font-bold text-indigo-900 dark:text-gray-100">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">              <Button
                 onClick={toggleTheme}
@@ -363,7 +359,7 @@ const Home = () => {
             <div className="flex flex-col">
               <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Dashboard</h1>
               <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-                Bem-vindo, Dr. {formData?.nome}! Aqui está o resumo das suas atividades.
+                Bem-vindo, Dr. {professionalData.nome}! Aqui está o resumo das suas atividades.
               </p>
             
               {error && <ErrorMessage message={error} />}
