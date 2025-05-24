@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { ProfessionalData, ProfessionalContextType, defaultProfessionalData } from '@/types/professional';
 
-export const ProfessionalContext = createContext<ProfessionalContextType | undefined>(undefined);
 
 export const ProfessionalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [professionalData, setProfessionalDataState] = useState<ProfessionalData>(() => {
@@ -29,3 +28,5 @@ export const ProfessionalProvider: React.FC<{ children: ReactNode }> = ({ childr
     </ProfessionalContext.Provider>
   );
 };
+
+export const ProfessionalContext = createContext<ProfessionalContextType | undefined>(undefined);

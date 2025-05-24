@@ -2,6 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -31,13 +35,46 @@ interface AtendimentoSummary {
   ultimaAvaliacao: number | null;
 }
 
+// Adicionar interface para Consulta
+interface Consulta {
+  id: number;
+  profissional: string;
+  especialidade: string;
+  data: Date;
+  tipo: string;
+  status: string;
+  avaliacao?: number;
+}
+
+// Adicionar interface para dados de cancelamento
+interface ConsultaCancelamento {
+  id: number;
+  profissional: string;
+  data: Date;
+  tipo: string;
+  especialidade?: string;
+}
+
 const HomeUser = () => {
   const { t } = useTranslation();
-  const location = useLocation();  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
+  
+  // Estado para o modal de cancelamento
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [consultaParaCancelar, setConsultaParaCancelar] = useState<ConsultaCancelamento | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [motivoSelecionado, setMotivoSelecionado] = useState("");
+  const [cancelandoConsulta, setCancellandoConsulta] = useState(false);
+
+  // Estado para o modal de detalhes
+  const [detalhesModalOpen, setDetalhesModalOpen] = useState(false);
+  const [consultaDetalhes, setConsultaDetalhes] = useState<Consulta | null>(null);
+
   const [userData, setUserData] = useState(() => {
     const savedData = localStorage.getItem("userData");
     return savedData ? JSON.parse(savedData) : {
@@ -82,54 +119,58 @@ const HomeUser = () => {
   });
 
   // Dados de exemplo para as próximas consultas
-  const [proximasConsultas, setProximasConsultas] = useState([
-    {
-      id: 1,
-      profissional: "Dr. Ricardo Santos",
-      especialidade: "Psicologia",
-      data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
-      tipo: "Consulta Online",
-      status: "agendada"
-    },
-    {
-      id: 2,
-      profissional: "Dra. Ana Costa",
-      especialidade: "Nutrição",
-      data: new Date(2025, 4, 20, 14, 30), // 20 de maio de 2025, 14:30
-      tipo: "Consulta Presencial",
-      status: "agendada"
-    }
-  ]);
+  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>(
+    [
+      {
+        id: 1,
+        profissional: "Dr. Ricardo Santos",
+        especialidade: "Psicologia",
+        data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
+        tipo: "Consulta Online",
+        status: "agendada"
+      },
+      {
+        id: 2,
+        profissional: "Dra. Ana Costa",
+        especialidade: "Nutrição",
+        data: new Date(2025, 4, 20, 14, 30), // 20 de maio de 2025, 14:30
+        tipo: "Consulta Presencial",
+        status: "agendada"
+      }
+    ]
+  );
 
   // Dados de exemplo para o histórico recente
-  const [historicoRecente, setHistoricoRecente] = useState([
-    {
-      id: 1,
-      profissional: "Dr. Carlos Pereira",
-      especialidade: "Psicologia",
-      data: new Date(2025, 4, 10, 11, 0), // 10 de maio de 2025, 11:00
-      tipo: "Consulta Online",
-      status: "realizada",
-      avaliacao: 5
-    },
-    {
-      id: 2,
-      profissional: "Dra. Lucia Ferreira",
-      especialidade: "Nutrição",
-      data: new Date(2025, 4, 12, 15, 0), // 12 de maio de 2025, 15:00
-      tipo: "Consulta Presencial",
-      status: "realizada",
-      avaliacao: 4
-    },
-    {
-      id: 3,
-      profissional: "Dr. Ricardo Santos",
-      especialidade: "Psicologia",
-      data: new Date(2025, 4, 8, 17, 30), // 8 de maio de 2025, 17:30
-      tipo: "Consulta Online",
-      status: "cancelada"
-    }
-  ]);
+  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>(
+    [
+      {
+        id: 1,
+        profissional: "Dr. Carlos Pereira",
+        especialidade: "Psicologia",
+        data: new Date(2025, 4, 10, 11, 0), // 10 de maio de 2025, 11:00
+        tipo: "Consulta Online",
+        status: "realizada",
+        avaliacao: 5
+      },
+      {
+        id: 2,
+        profissional: "Dra. Lucia Ferreira",
+        especialidade: "Nutrição",
+        data: new Date(2025, 4, 12, 15, 0), // 12 de maio de 2025, 15:00
+        tipo: "Consulta Presencial",
+        status: "realizada",
+        avaliacao: 4
+      },
+      {
+        id: 3,
+        profissional: "Dr. Ricardo Santos",
+        especialidade: "Psicologia",
+        data: new Date(2025, 4, 8, 17, 30), // 8 de maio de 2025, 17:30
+        tipo: "Consulta Online",
+        status: "cancelada"
+      }
+    ]
+  );
 
   // Simular o carregamento de dados
   useEffect(() => {
@@ -248,6 +289,141 @@ const HomeUser = () => {
       default:
         return null;
     }
+  };
+
+  // Função para abrir modal de cancelamento
+  const abrirModalCancelamento = (consulta: Consulta | ConsultaCancelamento) => {
+    setConsultaParaCancelar({
+      id: consulta.id,
+      profissional: consulta.profissional,
+      data: consulta.data,
+      tipo: consulta.tipo,
+      especialidade: 'especialidade' in consulta ? consulta.especialidade : undefined
+    });
+    setShowCancelModal(true);
+    setMotivoCancelamento("");
+    setMotivoSelecionado("");
+  };
+
+  // Função para abrir modal de detalhes
+  const abrirModalDetalhes = (consulta: Consulta) => {
+    setConsultaDetalhes({
+      id: consulta.id,
+      profissional: consulta.profissional,
+      especialidade: consulta.especialidade,
+      data: consulta.data,
+      tipo: consulta.tipo,
+      status: consulta.status,
+      avaliacao: consulta.avaliacao
+    });
+    setDetalhesModalOpen(true);
+  };
+
+  // Função para confirmar cancelamento
+  const confirmarCancelamento = async () => {
+    if (!motivoSelecionado) {
+      toast({
+        title: "Motivo obrigatório",
+        description: "Por favor, selecione um motivo para o cancelamento.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (motivoSelecionado === "outro" && !motivoCancelamento.trim()) {
+      toast({
+        title: "Descrição obrigatória",
+        description: "Por favor, descreva o motivo do cancelamento.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setCancellandoConsulta(true);
+
+    // Simular delay de processamento
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    if (consultaParaCancelar) {
+      // Atualizar o status da consulta para cancelada
+      setProximasConsultas(prev => 
+        prev.map(consulta => 
+          consulta.id === consultaParaCancelar.id 
+            ? { ...consulta, status: 'cancelada' }
+            : consulta
+        )
+      );
+      
+      // Atualizar contadores
+      setConsultasSummary(prev => ({
+        ...prev,
+        canceladas: prev.canceladas + 1
+      }));
+      
+      setAtendimentosSummary(prev => ({
+        ...prev,
+        proximos: prev.proximos - 1
+      }));
+      
+      toast({
+        title: "Consulta cancelada com sucesso",
+        description: `A consulta com ${consultaParaCancelar.profissional} foi cancelada. Você receberá um e-mail de confirmação.`,
+        variant: "default",
+        duration: 5000,
+      });
+    }
+    
+    setCancellandoConsulta(false);
+    setShowCancelModal(false);
+    setConsultaParaCancelar(null);
+    setMotivoCancelamento("");
+    setMotivoSelecionado("");
+  };
+
+  // Função para fechar modal
+  const fecharModal = () => {
+    if (cancelandoConsulta) return;
+    setShowCancelModal(false);
+    setConsultaParaCancelar(null);
+    setMotivoCancelamento("");
+    setMotivoSelecionado("");
+  };
+
+  // Calcular tempo até a consulta
+  const calcularTempoAteConsulta = (dataConsulta: Date) => {
+    const agora = new Date();
+    const diferenca = dataConsulta.getTime() - agora.getTime();
+    const horas = Math.floor(diferenca / (1000 * 60 * 60));
+    
+    if (horas < 24) {
+      return `${horas}h`;
+    } else {
+      const dias = Math.floor(horas / 24);
+      return `${dias} dia${dias > 1 ? 's' : ''}`;
+    }
+  };
+
+  // Opções de motivo para cancelamento
+  const motivosCancelamento = [
+    { value: "agenda", label: "Conflito de agenda" },
+    { value: "emergencia", label: "Emergência pessoal" },
+    { value: "doenca", label: "Problemas de saúde" },
+    { value: "trabalho", label: "Compromisso de trabalho" },
+    { value: "financeiro", label: "Motivos financeiros" },
+    { value: "tecnico", label: "Problemas técnicos" },
+    { value: "outro", label: "Outro motivo" }
+  ];
+
+  // Função para gerar link de videochamada simulado
+  const gerarLinkVideochamada = (): string => {
+    const links = [
+      'https://meet.google.com/abc-defg-hij',
+      'https://zoom.us/j/123456789',
+      'https://teams.microsoft.com/l/meetup-join/...'
+    ];
+    return links[Math.floor(Math.random() * links.length)];
   };
 
   return (
@@ -434,11 +610,13 @@ const HomeUser = () => {
                                     size="sm" 
                                     variant="outline" 
                                     className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
-                                    onClick={() => toast({
-                                      title: "Ação em desenvolvimento",
-                                      description: "A funcionalidade de cancelamento estará disponível em breve",
-                                      variant: "destructive",
-                                      duration: 3000,
+                                    onClick={() => abrirModalCancelamento({
+                                      id: proximasConsultas.find(c => 
+                                        c.data.toDateString() === consultasSummary.proxima?.toDateString()
+                                      )?.id || 1,
+                                      profissional: proximaConsultaData.profissional,
+                                      data: consultasSummary.proxima,
+                                      tipo: proximaConsultaData.tipo
                                     })}
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" /><path d="m10 11 4 4m0-4-4 4" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
@@ -448,10 +626,15 @@ const HomeUser = () => {
                                     size="sm" 
                                     variant="outline" 
                                     className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
-                                    onClick={() => toast({
-                                      title: "Ação em desenvolvimento",
-                                      description: "Os detalhes completos estarão disponíveis em breve",
-                                      duration: 3000,
+                                    onClick={() => abrirModalDetalhes({
+                                      id: proximasConsultas.find(c => 
+                                        c.data.toDateString() === consultasSummary.proxima?.toDateString()
+                                      )?.id || 1,
+                                      profissional: proximaConsultaData.profissional,
+                                      especialidade: proximaConsultaData.especialidade,
+                                      data: consultasSummary.proxima,
+                                      tipo: proximaConsultaData.tipo,
+                                      status: proximaConsultaData.status
                                     })}
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 11h2v5" /><circle cx="12" cy="7" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
@@ -765,10 +948,7 @@ const HomeUser = () => {
                                     variant="ghost" 
                                     size="sm" 
                                     className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                    onClick={() => toast({
-                                      title: "Funcionalidade em desenvolvimento",
-                                      description: "Os detalhes da consulta estarão disponíveis em breve."
-                                    })}
+                                    onClick={() => abrirModalDetalhes(consulta)}
                                   >
                                     Detalhes
                                   </Button>
@@ -776,10 +956,7 @@ const HomeUser = () => {
                                     variant="ghost" 
                                     size="sm" 
                                     className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                    onClick={() => toast({
-                                      title: "Funcionalidade em desenvolvimento",
-                                      description: "O cancelamento de consultas estará disponível em breve."
-                                    })}
+                                    onClick={() => abrirModalCancelamento(consulta)}
                                   >
                                     Cancelar
                                   </Button>
@@ -891,10 +1068,7 @@ const HomeUser = () => {
                                     variant="ghost" 
                                     size="sm" 
                                     className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                    onClick={() => toast({
-                                      title: "Funcionalidade em desenvolvimento",
-                                      description: "Detalhes da consulta realizada estarão disponíveis em breve."
-                                    })}
+                                    onClick={() => abrirModalDetalhes(consulta)}
                                   >
                                     Ver detalhes
                                   </Button>
@@ -951,6 +1125,497 @@ const HomeUser = () => {
             </div>
           </div>
         </main>
+
+        {/* Modal de Confirmação de Cancelamento */}
+        <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+          <DialogContent className="sm:max-w-lg bg-white dark:bg-[#23272F] border border-[#EDF2FB] dark:border-[#444857] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <path d="M12 9v4" />
+                    <path d="m12 17 .01 0" />
+                  </svg>
+                </div>
+                Cancelar Consulta
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 dark:text-gray-400 text-base leading-relaxed">
+                Você está prestes a cancelar uma consulta agendada. Esta ação é irreversível e pode estar sujeita às políticas de cancelamento.
+              </DialogDescription>
+            </DialogHeader>
+
+            {consultaParaCancelar && (
+              <div className="space-y-6">
+                {/* Detalhes da Consulta */}
+                <div className="p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800/50">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-full">
+                      <Clock className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Detalhes da Consulta</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Consulta que será cancelada</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full">
+                        {calcularTempoAteConsulta(consultaParaCancelar.data)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-600 dark:text-gray-400">Profissional:</span>
+                      </div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{consultaParaCancelar.profissional}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+                          <path d="M2 3h20" /><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3" /><path d="m7 16 5 5 5-5" />
+                        </svg>
+                        <span className="text-gray-600 dark:text-gray-400">Especialidade:</span>
+                      </div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{consultaParaCancelar.especialidade || "Não informado"}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-500" />
+                        <span className="text-gray-600 dark:text-gray-400">Data e Hora:</span>
+                      </div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{formatarData(consultaParaCancelar.data)}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><path d="m9 9 5 5v-5h-5" />
+                        </svg>
+                        <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
+                      </div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{consultaParaCancelar.tipo}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seleção de Motivo */}
+                <div className="space-y-3">
+                  <Label htmlFor="motivo" className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    Motivo do cancelamento *
+                  </Label>
+                  <Select value={motivoSelecionado} onValueChange={setMotivoSelecionado}>
+                    <SelectTrigger className="w-full border-gray-300 dark:border-gray-600">
+                      <SelectValue placeholder="Selecione o motivo do cancelamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {motivosCancelamento.map((motivo) => (
+                        <SelectItem key={motivo.value} value={motivo.value}>
+                          {motivo.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Campo de descrição - aparece quando "Outro" é selecionado */}
+                {motivoSelecionado === "outro" && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-3"
+                  >
+                    <Label htmlFor="descricao" className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                      Descreva o motivo *
+                    </Label>
+                    <Textarea
+                      id="descricao"
+                      placeholder="Descreva brevemente o motivo do cancelamento..."
+                      value={motivoCancelamento}
+                      onChange={(e) => setMotivoCancelamento(e.target.value)}
+                      className="min-h-[80px] border-gray-300 dark:border-gray-600 focus:border-[#ED4231] dark:focus:border-[#ED4231]"
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {motivoCancelamento.length}/500 caracteres
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Política de Cancelamento */}
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="m12 8 .01 0" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-amber-800 dark:text-amber-300 font-semibold mb-2">Política de Cancelamento</p>
+                      <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
+                        <li>• Cancelamentos com mais de 24h: sem cobrança</li>
+                        <li>• Cancelamentos entre 12-24h: cobrança de 50%</li>
+                        <li>• Cancelamentos com menos de 12h: cobrança integral</li>
+                        <li>• Emergências médicas são isentas de cobrança</li>
+                      </ul>
+                      <div className="mt-3 p-2 bg-amber-100 dark:bg-amber-900/40 rounded border-l-4 border-amber-400">
+                        <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                          Tempo restante: <span className="font-bold">{calcularTempoAteConsulta(consultaParaCancelar.data)}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sugestões */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <path d="m12 17 .01 0" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-blue-800 dark:text-blue-300 font-semibold mb-2">Considere outras opções</p>
+                      <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                        <li>• Reagendar para outra data</li>
+                        <li>• Alterar para consulta online</li>
+                        <li>• Transferir para outro profissional</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <Button 
+                variant="outline" 
+                onClick={fecharModal}
+                disabled={cancelandoConsulta}
+                className="w-full sm:w-auto border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="m18 6-12 12" />
+                  <path d="m6 6 12 12" />
+                </svg>
+                Manter Consulta
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmarCancelamento}
+                disabled={cancelandoConsulta || !motivoSelecionado}
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancelandoConsulta ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Cancelando...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                      <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
+                      <path d="m10 11 4 4m0-4-4 4" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                    </svg>
+                    Confirmar Cancelamento
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Detalhes da Consulta */}
+        <Dialog open={detalhesModalOpen} onOpenChange={setDetalhesModalOpen}>
+          <DialogContent className="w-[95vw] max-w-[600px] max-h-[90vh] overflow-y-auto bg-white dark:bg-[#23272F] border border-[#EDF2FB] dark:border-[#444857] mx-4 sm:mx-auto">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-lg sm:text-xl font-semibold text-indigo-900 dark:text-gray-100 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 11h2v5" /><circle cx="12" cy="7" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                Detalhes da Consulta
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
+                Informações completas sobre sua consulta agendada.
+              </DialogDescription>
+            </DialogHeader>
+
+            {consultaDetalhes && (
+              <div className="space-y-4 sm:space-y-6 px-1">
+                {/* Informações principais */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Card do Profissional */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                      Profissional
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Nome:</strong> {consultaDetalhes.profissional}</p>
+                      <p><strong>Especialidade:</strong> {consultaDetalhes.especialidade}</p>
+                      <p><strong>CRM:</strong> 12345-SP</p>
+                      <p><strong>Telefone:</strong> (11) 98888-8888</p>
+                      <p><strong>Experiência:</strong> 15 anos</p>
+                    </div>
+                  </div>
+
+                  {/* Card da Consulta */}
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
+                      Consulta
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Tipo:</strong> {consultaDetalhes.tipo}</p>
+                      <p><strong>Data:</strong> {format(consultaDetalhes.data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                      <p><strong>Horário:</strong> {format(consultaDetalhes.data, 'HH:mm')}</p>
+                      <p><strong>Duração:</strong> 50 minutos</p>
+                      <div className="flex items-center gap-2">
+                        <strong>Status:</strong>
+                        <Badge className={`${statusColors[consultaDetalhes.status]} text-xs`}>
+                          {consultaDetalhes.status === 'agendada' ? 'Confirmada' : 
+                           consultaDetalhes.status === 'realizada' ? 'Realizada' : 
+                           consultaDetalhes.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informações específicas por tipo de consulta */}
+                {consultaDetalhes.tipo === "Consulta Online" ? (
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></svg>
+                      Consulta Online
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <strong className="text-sm">Link da videochamada:</strong>
+                        <div className="flex items-center gap-2">
+                          <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs break-all">
+                            {gerarLinkVideochamada()}
+                          </code>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-xs h-7"
+                            onClick={() => {
+                              navigator.clipboard.writeText(gerarLinkVideochamada());
+                              toast({
+                                title: "Link copiado!",
+                                description: "O link da videochamada foi copiado para a área de transferência.",
+                                duration: 3000,
+                              });
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">
+                        <p><strong>Preparação para a consulta:</strong></p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Teste sua conexão 5 minutos antes</li>
+                          <li>Tenha seus documentos e exames em mãos</li>
+                          <li>Escolha um local silencioso e bem iluminado</li>
+                          <li>Certifique-se de que a câmera e microfone funcionem</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                      Consulta Presencial
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Endereço:</strong> Rua das Flores, 123</p>
+                      <p><strong>Bairro:</strong> Vila Madalena</p>
+                      <p><strong>Cidade:</strong> São Paulo - SP</p>
+                      <p><strong>CEP:</strong> 05435-000</p>
+                      <p><strong>Complemento:</strong> Sala 205</p>
+                      <div className="mt-3 text-orange-700 dark:text-orange-300">
+                        <p><strong>Instruções importantes:</strong></p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Chegue 15 minutos antes do horário</li>
+                          <li>Traga um documento com foto</li>
+                          <li>Traga seus exames e receitas anteriores</li>
+                          <li>Use máscara se necessário</li>
+                          <li>Há estacionamento no local</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Informações financeiras e procedimentos */}
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
+                    Informações Financeiras
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Valor da consulta:</strong> R$ 180,00</p>
+                    <p><strong>Formas de pagamento:</strong> PIX, dinheiro, cartão de débito/crédito</p>
+                    <p><strong>Convênios aceitos:</strong> Particular</p>
+                    <div className="mt-3 text-yellow-700 dark:text-yellow-300">
+                      <p><strong>Política de cancelamento:</strong></p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Cancelamento com mais de 24h: sem cobrança</li>
+                        <li>Cancelamento entre 12-24h: cobrança de 50%</li>
+                        <li>Cancelamento com menos de 12h: cobrança integral</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preparação para a consulta */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><polyline points="10,9 9,9 8,9" /></svg>
+                    Preparação para a Consulta
+                  </h4>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <p><strong>O que levar:</strong></p>
+                    <ul className="list-disc list-inside mt-1 space-y-1 mb-3">
+                      <li>Documento de identidade com foto</li>
+                      <li>Carteirinha do convênio (se aplicável)</li>
+                      <li>Exames anteriores relacionados ao problema</li>
+                      <li>Lista de medicamentos em uso</li>
+                      <li>Histórico médico familiar</li>
+                    </ul>
+                    <p><strong>Preparação necessária:</strong></p>
+                    <p className="mt-1">Para esta consulta de {consultaDetalhes.especialidade}, não é necessária preparação especial. Venha com suas dúvidas anotadas para aproveitar melhor o tempo.</p>
+                  </div>
+                </div>
+
+                {/* Histórico com o profissional (se houver) */}
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                  <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5" /><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" /><path d="M12 7v5l4 2" /></svg>
+                    Seu Histórico
+                  </h4>
+                  <div className="text-sm space-y-2">
+                    <p><strong>Consultas com este profissional:</strong> {consultaDetalhes.status === 'realizada' ? '2 (incluindo esta)' : '1ª consulta'}</p>
+                    {consultaDetalhes.status === 'realizada' && (
+                      <p><strong>Última consulta:</strong> {format(new Date(2025, 3, 10), "dd/MM/yyyy")}</p>
+                    )}
+                    <p><strong>Total de consultas na plataforma:</strong> 8</p>
+                    {consultaDetalhes.status === 'realizada' && consultaDetalhes.avaliacao && (
+                      <div className="flex items-center gap-2">
+                        <strong>Sua avaliação:</strong>
+                        <div className="flex">
+                          {renderEstrelas(consultaDetalhes.avaliacao)}
+                        </div>
+                        <span>({consultaDetalhes.avaliacao}/5)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Lembrete para consulta agendada */}
+                {consultaDetalhes.status === 'agendada' && (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                      Lembrete
+                    </h4>
+                    <div className="text-sm text-green-700 dark:text-green-300">
+                      <p>Você receberá um lembrete por email e SMS:</p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>24 horas antes da consulta</li>
+                        <li>2 horas antes da consulta</li>
+                        <li>Link da videochamada (se online) 15 minutos antes</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setDetalhesModalOpen(false)}
+                className="w-full sm:w-auto order-3 sm:order-1"
+              >
+                Fechar
+              </Button>
+              
+              {consultaDetalhes?.status === 'agendada' && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDetalhesModalOpen(false);
+                      abrirModalCancelamento(consultaDetalhes);
+                    }}
+                    className="w-full sm:w-auto order-2 border-red-500 text-red-500 hover:bg-red-500/10"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
+                    <path d="m10 11 4 4m0-4-4 4" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                    </svg>
+                    Cancelar Consulta
+                  </Button>
+                  
+                  <Button
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white order-1 sm:order-3"
+                    onClick={() => {
+                      if (consultaDetalhes.tipo === "Consulta Online") {
+                        window.open(gerarLinkVideochamada(), '_blank');
+                      }
+                      toast({
+                        title: consultaDetalhes.tipo === "Consulta Online" ? "Entrando na videochamada" : "Consulta confirmada",
+                        description: consultaDetalhes.tipo === "Consulta Online" ? 
+                          "A videochamada foi aberta em uma nova aba. Aguarde o profissional." : 
+                          "Sua presença foi confirmada. Dirija-se ao local da consulta.",
+                        duration: 5000,
+                      });
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                      {consultaDetalhes?.tipo === "Consulta Online" ? 
+                        <><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></> :
+                        <><path d="M20 6L9 17l-5-5" /></>
+                      }
+                    </svg>
+                    {consultaDetalhes?.tipo === "Consulta Online" ? "Entrar na Videochamada" : "Confirmar Presença"}
+                  </Button>
+                </>
+              )}
+
+              {consultaDetalhes?.status === 'realizada' && !consultaDetalhes.avaliacao && (
+                <Button
+                  className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white order-1 sm:order-3"
+                  onClick={() => {
+                    toast({
+                      title: "Avaliação em desenvolvimento",
+                      description: "A funcionalidade de avaliação estará disponível em breve.",
+                      duration: 3000,
+                    });
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Avaliar Consulta
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );

@@ -261,22 +261,22 @@ const DisponibilizarHorario = () => {
         
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-white dark:bg-gray-900 shadow-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto`}
-        >
-          {/* Botão de menu dentro da sidebar quando aberta (mobile/desktop) */}
+          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
+        }>
           <div className="w-full flex justify-start mb-6">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
-            </button>
+            </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-background shadow" />
-            <span className="font-extrabold text-xl text-foreground tracking-wide">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {professionalData.especialidade}
             </Badge>
           </div>
+          
           <SidebarMenu className="gap-4 text-sm md:text-base">
             <SidebarMenuItem>
               <Tooltip>
@@ -369,24 +369,8 @@ const DisponibilizarHorario = () => {
               </Tooltip>
             </SidebarMenuItem>
           </SidebarMenu>
-          {/* Loader de exemplo para feedback visual */}
-          {loading ? (
-            <div className="space-y-4" aria-busy="true" aria-live="polite">
-              {[...Array(2)].map((_, i) => <DisponibilizarHorarioSkeleton key={i} />)}
-            </div>
-          ) : (
-            <>
-              {!formData.nome && (
-                <div className="p-4">
-                  <Skeleton className="h-8 w-1/2 mb-2" />
-                  <Skeleton className="h-6 w-1/3" />
-                  <Skeleton className="h-10 w-full mt-4" />
-                </div>
-              )}
-            </>
-          )}
-          {/* Footer com links úteis */}
-          <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB]">
+          
+          <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
             <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
             <div className="flex gap-2">
               <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
@@ -394,6 +378,7 @@ const DisponibilizarHorario = () => {
             </div>
           </div>
         </div>
+
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
