@@ -778,7 +778,7 @@ const Home = () => {
                       </div>
                     ) : (
                       <div className="w-full text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        <p className="text-xs text-gray-500 mb-2">
                           Selecione uma data para disponibilizar horários
                         </p>
                         <Link to="/agenda">
@@ -1224,8 +1224,7 @@ const Home = () => {
                       </div>
                     </div>
                     <div className="text-sm text-purple-700 dark:text-purple-300">
-                      <p><strong>Instruções:</strong></p>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
+                      <p><strong>Instruções:</strong></p>                      <ul className="list-disc list-inside mt-1 space-y-1">
                         <li>Teste sua conexão 5 minutos antes</li>
                         <li>Tenha seus documentos em mãos</li>
                         <li>Escolha um local silencioso e bem iluminado</li>
@@ -1281,7 +1280,7 @@ const Home = () => {
                     <p><strong>Consultas anteriores:</strong> 3</p>
                     <p><strong>Última consulta:</strong> {format(new Date(2025, 3, 10), "dd/MM/yyyy")}</p>
                     {consultaDetalhes.avaliacao && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <strong>Avaliação recebida:</strong>
                         <div className="flex">
                           {renderEstrelas(consultaDetalhes.avaliacao)}

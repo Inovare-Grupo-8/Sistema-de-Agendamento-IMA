@@ -6,6 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Search, Star, Filter, FileText, Sun, Moon, Home as HomeIcon } from "lucide-react";
+import { Download, Eye, MessageSquare, TrendingUp, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
@@ -20,6 +23,7 @@ import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
 
 interface HistoricoAtendimento {
+  id?: string;
   date: Date;
   time: string;
   patientName: string;
@@ -29,34 +33,56 @@ interface HistoricoAtendimento {
   feedback?: {
     rating: number;
     comment?: string;
+    date?: Date; // When the feedback was given
   };
   observation?: string;
+  duration?: number; // Duration in minutes
+  patientAge?: number; // Patient age for context
+  sessionNotes?: string; // Professional's session notes
 }
 
 const Historico = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [selectedAtendimento, setSelectedAtendimento] = useState<HistoricoAtendimento | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [historicoAtendimentos, setHistoricoAtendimentos] = useState<HistoricoAtendimento[]>([
     { 
+      id: "1",
       date: new Date(2025, 1, 10), 
       time: "09:00", 
       patientName: "João Silva", 
       type: "Psicologia", 
       serviceType: "Atendimento Online", 
       status: "realizada", 
-      feedback: { rating: 5, comment: "Excelente atendimento, muito atencioso." } 
+      feedback: { 
+        rating: 5, 
+        comment: "Excelente atendimento, muito atencioso. Dr. Ricardo me ajudou muito a entender meus problemas de ansiedade e me deu técnicas muito úteis.",
+        date: new Date(2025, 1, 10, 10, 30)
+      },
+      duration: 50,
+      patientAge: 28,
+      observation: "Paciente apresentou melhora significativa nos sintomas de ansiedade."
     },
     { 
+      id: "2",
       date: new Date(2025, 1, 15), 
       time: "10:30", 
       patientName: "Maria Oliveira", 
       type: "Psicologia", 
       serviceType: "Consulta Presencial", 
       status: "realizada",
-      feedback: { rating: 4 } 
+      feedback: { 
+        rating: 4,
+        comment: "Bom atendimento, mas gostaria de mais tempo para conversar.",
+        date: new Date(2025, 1, 15, 11, 45)
+      },
+      duration: 50,
+      patientAge: 35
     },
     { 
+      id: "3",
       date: new Date(2025, 2, 5), 
       time: "14:00", 
       patientName: "Pedro Santos", 
@@ -65,6 +91,7 @@ const Historico = () => {
       status: "cancelada" 
     },
     { 
+      id: "4",
       date: new Date(2025, 2, 12), 
       time: "11:00", 
       patientName: "Ana Costa", 
@@ -73,6 +100,7 @@ const Historico = () => {
       status: "remarcada" 
     },
     { 
+      id: "5",
       date: new Date(2025, 2, 20), 
       time: "15:30", 
       patientName: "Carlos Pereira", 
@@ -82,6 +110,7 @@ const Historico = () => {
       observation: "Paciente relatou melhora dos sintomas de ansiedade."
     },
     { 
+      id: "6",
       date: new Date(2025, 3, 8), 
       time: "16:00", 
       patientName: "Lucia Ferreira", 
@@ -127,6 +156,11 @@ const Historico = () => {
       description: "Sua observação foi registrada com sucesso.",
       variant: "default"
     });
+  };
+
+  const openFeedbackModal = (atendimento: HistoricoAtendimento) => {
+    setSelectedAtendimento(atendimento);
+    setShowFeedbackModal(true);
   };
 
   const filteredHistorico = historicoAtendimentos
@@ -397,23 +431,47 @@ const Historico = () => {
                           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                             {atendimento.feedback && (
                               <div className="mb-4">
-                                <div className="flex items-center gap-1 mb-2">
-                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Avaliação do paciente:</span>
-                                  <div className="flex gap-1 ml-2">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star 
-                                        key={star} 
-                                        size={16} 
-                                        fill={star <= (atendimento.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
-                                        stroke={star <= (atendimento.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
-                                      />
-                                    ))}
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Avaliação do paciente:</span>
+                                    <div className="flex gap-1 ml-2">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star 
+                                          key={star} 
+                                          size={16} 
+                                          fill={star <= (atendimento.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
+                                          stroke={star <= (atendimento.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="text-sm text-gray-500 ml-2">({atendimento.feedback.rating}/5)</span>
                                   </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openFeedbackModal(atendimento)}
+                                    className="text-xs flex items-center gap-1"
+                                  >
+                                    <Eye size={14} />
+                                    Ver detalhes
+                                  </Button>
                                 </div>
                                 {atendimento.feedback.comment && (
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 bg-gray-50 dark:bg-gray-800/50 p-2 rounded italic">
-                                    "{atendimento.feedback.comment}"
-                                  </p>
+                                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border-l-4 border-[#ED4231]">
+                                    <div className="flex items-start gap-3">
+                                      <MessageSquare className="w-5 h-5 text-[#ED4231] mt-0.5 flex-shrink-0" />
+                                      <div className="flex-1">
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed">
+                                          "{atendimento.feedback.comment}"
+                                        </p>
+                                        {atendimento.feedback.date && (
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                            Avaliado em {format(atendimento.feedback.date, "dd/MM/yyyy 'às' HH:mm")}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -520,6 +578,162 @@ const Historico = () => {
           </div>
         </main>
       </div>
+
+      {/* Modal de Visualização de Feedback */}
+      <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <MessageSquare className="w-6 h-6 text-[#ED4231]" />
+              Feedback Detalhado do Paciente
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Avaliação completa do atendimento realizado
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAtendimento && (
+            <div className="space-y-6">
+              {/* Patient and Session Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Informações do Atendimento
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <span className="font-medium">Paciente:</span> {selectedAtendimento.patientName}
+                    </div>
+                    {selectedAtendimento.patientAge && (
+                      <div>
+                        <span className="font-medium">Idade:</span> {selectedAtendimento.patientAge} anos
+                      </div>
+                    )}
+                    <div>
+                      <span className="font-medium">Data:</span> {format(selectedAtendimento.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </div>
+                    <div>
+                      <span className="font-medium">Horário:</span> {selectedAtendimento.time}
+                    </div>
+                    <div>
+                      <span className="font-medium">Duração:</span> {selectedAtendimento.duration || 50} minutos
+                    </div>
+                    <div>
+                      <span className="font-medium">Tipo:</span> {selectedAtendimento.serviceType}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Avaliação do Paciente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <div className="flex justify-center gap-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            size={24} 
+                            fill={star <= (selectedAtendimento.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
+                            stroke={star <= (selectedAtendimento.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
+                          />
+                        ))}
+                      </div>
+                      <p className="text-2xl font-bold text-[#ED4231]">
+                        {selectedAtendimento.feedback?.rating}/5
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {selectedAtendimento.feedback?.rating === 5 && "🤩 Muito satisfeito"}
+                        {selectedAtendimento.feedback?.rating === 4 && "😃 Satisfeito"}
+                        {selectedAtendimento.feedback?.rating === 3 && "😊 Neutro"}
+                        {selectedAtendimento.feedback?.rating === 2 && "😐 Insatisfeito"}
+                        {selectedAtendimento.feedback?.rating === 1 && "😞 Muito insatisfeito"}
+                      </p>
+                    </div>
+                    {selectedAtendimento.feedback?.date && (
+                      <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Avaliado em {format(selectedAtendimento.feedback.date, "dd/MM/yyyy 'às' HH:mm")}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Patient Comment */}
+              {selectedAtendimento.feedback?.comment && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      Comentário do Paciente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border-l-4 border-[#ED4231]">
+                      <p className="text-gray-700 dark:text-gray-300 italic leading-relaxed">
+                        "{selectedAtendimento.feedback.comment}"
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Professional Observations */}
+              {selectedAtendimento.observation && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Suas Observações Clínicas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 dark:text-gray-300">{selectedAtendimento.observation}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Feedback Statistics Context */}
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-green-800 dark:text-green-300 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Contexto da Avaliação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span>Atendimento concluído</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span>Feedback positivo</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-blue-600" />
+                      <span>Comentário detalhado</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFeedbackModal(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
