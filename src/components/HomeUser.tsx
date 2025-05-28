@@ -496,13 +496,14 @@ const HomeUser = () => {
           </div>
         </div>
 
-        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
+        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">              <Button
+            <div className="flex items-center gap-3">
+              <Button
                 onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
                 aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
@@ -512,164 +513,213 @@ const HomeUser = () => {
             </div>
           </header>
 
-          <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
-            <div className="flex flex-col">
-              <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Dashboard</h1>
-              <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-                Bem-vindo(a), {userData?.nome}! Aqui está o resumo das suas consultas.
-              </p>
-            
-              {error && <ErrorMessage message={error} />}
+          {/* Content area with proper spacing */}
+          <div className="pt-20 md:pt-24 min-h-screen">
+            <div className="max-w-6xl mx-auto p-4 md:p-8">
+              <div className="flex flex-col">
+                <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Dashboard</h1>
+                <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
+                  Bem-vindo(a), {userData?.nome}! Aqui está o resumo das suas consultas.
+                </p>
               
-              {/* Cards do dashboard */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {/* Card de Consultas */}
-                <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none transition-transform duration-300 hover:scale-[1.02] hover:shadow-md">                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg text-indigo-900 dark:text-gray-100 flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-[#ED4231]" />
-                      Minhas Consultas
-                    </CardTitle>
-                    <CardDescription>Visão geral das suas consultas</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="space-y-3">
-                        <Skeleton className="h-6 w-24" />
-                        <Skeleton className="h-6 w-32" />
-                        <Skeleton className="h-6 w-28" />
-                        <Skeleton className="h-12 w-full" />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                          <motion.div 
-                            whileHover={{ scale: 1.05 }}
-                            className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md"
-                          >
-                            <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Total</span>
-                          </motion.div>
-                          <motion.div 
-                            whileHover={{ scale: 1.05 }}
-                            className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-md"
-                          >
-                            <span className="text-lg font-bold text-green-700 dark:text-green-300">{atendimentosSummary.proximos}</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Próximas</span>
-                          </motion.div>
-                          <motion.div 
-                            whileHover={{ scale: 1.05 }}
-                            className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-md"
-                          >
-                            <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.canceladas}</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Canceladas</span>
-                          </motion.div>
+                {error && <ErrorMessage message={error} />}
+                
+                {/* Cards do dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  {/* Card de Consultas */}
+                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none transition-transform duration-300 hover:scale-[1.02] hover:shadow-md">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg text-indigo-900 dark:text-gray-100 flex items-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Clock className="w-5 h-5 text-[#ED4231] cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Resumo de todas as suas consultas agendadas</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        Minhas Consultas
+                      </CardTitle>
+                      <CardDescription>Visão geral das suas consultas</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loading ? (
+                        <div className="space-y-3">
+                          <Skeleton className="h-6 w-24" />
+                          <Skeleton className="h-6 w-32" />
+                          <Skeleton className="h-6 w-28" />
+                          <Skeleton className="h-12 w-full" />
                         </div>
-                        
-                        {consultasSummary.proxima ? (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4 }}
-                            className="mt-3 border border-gray-100 dark:border-gray-800 rounded-lg p-3 hover:border-[#ED4231]/30 dark:hover:border-[#ED4231]/30 transition-colors"
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Próxima consulta:</h3>
-                              {proximaConsultaData && (
-                                <div className="flex items-center gap-1">
-                                  {renderStatusIcon(proximaConsultaData.status)}
-                                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                                    Status: {proximaConsultaData.status === 'agendada' ? 'Confirmada' : 
-                                           proximaConsultaData.status === 'realizada' ? 'Realizada' : 
-                                           proximaConsultaData.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
-                                  </span>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div 
+                                  whileHover={{ scale: 1.05 }}
+                                  className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-help"
+                                >
+                                  <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Total</span>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Total de consultas que você já agendou na plataforma</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div 
+                                  whileHover={{ scale: 1.05 }}
+                                  className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-md cursor-help"
+                                >
+                                  <span className="text-lg font-bold text-green-700 dark:text-green-300">{atendimentosSummary.proximos}</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Próximas</span>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Consultas agendadas para os próximos dias</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div 
+                                  whileHover={{ scale: 1.05 }}
+                                  className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-md cursor-help"
+                                >
+                                  <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.canceladas}</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Canceladas</span>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Consultas que foram canceladas por você ou pelo profissional</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          
+                          {consultasSummary.proxima ? (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="mt-3 border border-gray-100 dark:border-gray-800 rounded-lg p-3 hover:border-[#ED4231]/30 dark:hover:border-[#ED4231]/30 transition-colors"
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Próxima consulta:</h3>
+                                {proximaConsultaData && (
+                                  <div className="flex items-center gap-1">
+                                    {renderStatusIcon(proximaConsultaData.status)}
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                                      Status: {proximaConsultaData.status === 'agendada' ? 'Confirmada' : 
+                                             proximaConsultaData.status === 'realizada' ? 'Realizada' : 
+                                             proximaConsultaData.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              {proximaConsultaData ? (
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
+                                    <Badge className={statusColors[proximaConsultaData.status]}>
+                                      {proximaConsultaData.especialidade}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{proximaConsultaData.tipo}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                      <Clock className="w-3 h-3 inline mr-1" />
+                                      {consultasSummary.proxima.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                    </span>
+                                  </div>                                <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
+                                    <Clock className="w-4 h-4 text-[#ED4231]" />
+                                    <span className="text-sm font-medium text-[#ED4231]">
+                                      {formatarData(consultasSummary.proxima)}
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-2 mt-2">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline" 
+                                          className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
+                                          onClick={() => abrirModalCancelamento({
+                                            id: proximasConsultas.find(c => 
+                                              c.data.toDateString() === consultasSummary.proxima?.toDateString()
+                                            )?.id || 1,
+                                            profissional: proximaConsultaData.profissional,
+                                            data: consultasSummary.proxima,
+                                            tipo: proximaConsultaData.tipo
+                                          })}
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" /><path d="m10 11 4 4m0-4-4 4" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                                          </svg>
+                                          Cancelar
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Cancelar esta consulta (sujeito à política de cancelamento)</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline" 
+                                          className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
+                                          onClick={() => abrirModalDetalhes({
+                                            id: proximasConsultas.find(c => 
+                                              c.data.toDateString() === consultasSummary.proxima?.toDateString()
+                                            )?.id || 1,
+                                            profissional: proximaConsultaData.profissional,
+                                            especialidade: proximaConsultaData.especialidade,
+                                            data: consultasSummary.proxima,
+                                            tipo: proximaConsultaData.tipo,
+                                            status: proximaConsultaData.status
+                                          })}
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 11h2v5" /><circle cx="12" cy="7" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                          Detalhes
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Ver informações completas sobre esta consulta</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                            {proximaConsultaData ? (
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
-                                  <Badge className={statusColors[proximaConsultaData.status]}>
-                                    {proximaConsultaData.especialidade}
-                                  </Badge>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600 dark:text-gray-400">{proximaConsultaData.tipo}</span>
-                                  <span className="text-gray-600 dark:text-gray-400">
-                                    <Clock className="w-3 h-3 inline mr-1" />
-                                    {consultasSummary.proxima.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-                                  </span>
-                                </div>                                <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
-                                  <Clock className="w-4 h-4 text-[#ED4231]" />
-                                  <span className="text-sm font-medium text-[#ED4231]">
+                              ) : (
+                                <div className="text-center py-2">
+                                  <span className="text-sm text-indigo-900 dark:text-indigo-300">
                                     {formatarData(consultasSummary.proxima)}
                                   </span>
                                 </div>
-                                <div className="flex gap-2 mt-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
-                                    onClick={() => abrirModalCancelamento({
-                                      id: proximasConsultas.find(c => 
-                                        c.data.toDateString() === consultasSummary.proxima?.toDateString()
-                                      )?.id || 1,
-                                      profissional: proximaConsultaData.profissional,
-                                      data: consultasSummary.proxima,
-                                      tipo: proximaConsultaData.tipo
-                                    })}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" /><path d="m10 11 4 4m0-4-4 4" /><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
-                                    Cancelar
+                              )}
+                            </motion.div>
+                          ) : (
+                            <motion.div 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.4 }}
+                              className="mt-2 text-center py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg"
+                            >
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                Você não tem consultas agendadas
+                              </span>
+                              <div className="mt-2">
+                                <Link to="/agendar-horario-user">
+                                  <Button size="sm" variant="outline" className="text-xs border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10">
+                                    Agendar Consulta
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
-                                    onClick={() => abrirModalDetalhes({
-                                      id: proximasConsultas.find(c => 
-                                        c.data.toDateString() === consultasSummary.proxima?.toDateString()
-                                      )?.id || 1,
-                                      profissional: proximaConsultaData.profissional,
-                                      especialidade: proximaConsultaData.especialidade,
-                                      data: consultasSummary.proxima,
-                                      tipo: proximaConsultaData.tipo,
-                                      status: proximaConsultaData.status
-                                    })}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 11h2v5" /><circle cx="12" cy="7" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                    Detalhes
-                                  </Button>
-                                </div>
+                                </Link>
                               </div>
-                            ) : (
-                              <div className="text-center py-2">
-                                <span className="text-sm text-indigo-900 dark:text-indigo-300">
-                                  {formatarData(consultasSummary.proxima)}
-                                </span>
-                              </div>
-                            )}
-                          </motion.div>
-                        ) : (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.4 }}
-                            className="mt-2 text-center py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg"
-                          >
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              Você não tem consultas agendadas
-                            </span>
-                            <div className="mt-2">
-                              <Link to="/agendar-horario-user">
-                                <Button size="sm" variant="outline" className="text-xs border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10">
-                                  Agendar Consulta
-                                </Button>
-                              </Link>
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
+                            </motion.div>
+                          )}
+                        </div>
                     )}
                   </CardContent>
                   <CardFooter className="flex justify-between items-center">
@@ -678,19 +728,26 @@ const HomeUser = () => {
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                     {!loading && consultasSummary.proxima && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex items-center gap-1 text-xs p-0 h-auto text-gray-500 hover:text-[#ED4231]"
-                        onClick={() => toast({
-                          title: "Lembrete configurado",
-                          description: "Você receberá um lembrete antes da consulta",
-                          duration: 3000,
-                        })}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-                        Lembrar-me
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="flex items-center gap-1 text-xs p-0 h-auto text-gray-500 hover:text-[#ED4231]"
+                            onClick={() => toast({
+                              title: "Lembrete configurado",
+                              description: "Você receberá um lembrete antes da consulta",
+                              duration: 3000,
+                            })}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                            Lembrar-me
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Receber notificações antes da consulta por email e SMS</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </CardFooter>
                 </Card>
@@ -699,7 +756,14 @@ const HomeUser = () => {
                 <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none transition-transform duration-300 hover:scale-[1.02] hover:shadow-md">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg text-indigo-900 dark:text-gray-100 flex items-center gap-2">
-                      <User className="w-5 h-5 text-[#ED4231]" />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <User className="w-5 h-5 text-[#ED4231] cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Histórico das suas consultas realizadas e avaliações</p>
+                        </TooltipContent>
+                      </Tooltip>
                       Meu Histórico
                     </CardTitle>
                     <CardDescription>Histórico de consultas realizadas</CardDescription>
@@ -723,28 +787,36 @@ const HomeUser = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Última avaliação:</span>
-                          <span className="font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1">
-                            {atendimentosSummary.ultimaAvaliacao !== null ? (
-                              <div className="flex">
-                                {renderEstrelas(atendimentosSummary.ultimaAvaliacao)}
-                              </div>
-                            ) : "N/A"}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1 cursor-help">
+                                {atendimentosSummary.ultimaAvaliacao !== null ? (
+                                  <div className="flex">
+                                    {renderEstrelas(atendimentosSummary.ultimaAvaliacao)}
+                                  </div>
+                                ) : "N/A"}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Sua última avaliação dada para um profissional (1-5 estrelas)</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter>
-                    <Link to="/historico-user" className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
-                      Ver histórico completo
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  </CardFooter>
                 </Card>                {/* Card de Calendário (substituindo Ações Rápidas) */}
                 <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none transition-transform duration-300 hover:scale-[1.02] hover:shadow-md">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg text-indigo-900 dark:text-gray-100 flex items-center gap-2">
-                      <CalendarIcon className="w-5 h-5 text-[#ED4231]" />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CalendarIcon className="w-5 h-5 text-[#ED4231] cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Selecione uma data no calendário para agendar uma nova consulta</p>
+                        </TooltipContent>
+                      </Tooltip>
                       Calendário
                     </CardTitle>
                     <CardDescription>Selecione uma data para agendar</CardDescription>
@@ -820,39 +892,54 @@ const HomeUser = () => {
                   </CardContent>                  <CardFooter>
                     {selectedDate ? (
                       <div className="w-full space-y-2">
-                        <Button 
-                          className="w-full bg-[#ED4231] hover:bg-[#d53a2a] dark:bg-[#ED4231] dark:hover:bg-[#d53a2a] text-white"
-                          onClick={() => {
-                            // Armazena a data selecionada para usar na tela de agendar
-                            localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
-                            // Navega para a tela de agendamento
-                            window.location.href = "/agendar-horario-user";
-                          }}
-                        >
-                          <Clock className="w-4 h-4 mr-2" />
-                          Agendar para esta data
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              className="w-full bg-[#ED4231] hover:bg-[#d53a2a] dark:bg-[#ED4231] dark:hover:bg-[#d53a2a] text-white"
+                              onClick={() => {
+                                // Armazena a data selecionada para usar na tela de agendar
+                                localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
+                                // Navega para a tela de agendamento
+                                window.location.href = "/agendar-horario-user";
+                              }}
+                            >
+                              <Clock className="w-4 h-4 mr-2" />
+                              Agendar para esta data
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ir para a tela de agendamento com esta data pré-selecionada</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        
                         <div className="flex justify-between items-center text-xs">
                           <Link to="/agenda-user" className="text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
-                            Ver agenda completa
+                            Ver minha agenda
                             <ChevronRight className="w-3 h-3" />
                           </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-gray-500 h-auto p-0"
-                            onClick={() => {
-                              setSelectedDate(undefined);
-                              localStorage.removeItem("selectedDateForBooking");
-                              toast({
-                                title: "Seleção removida",
-                                description: "A data selecionada foi removida.",
-                                duration: 3000,
-                              });
-                            }}
-                          >
-                            Limpar seleção
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-gray-500 h-auto p-0"
+                                onClick={() => {
+                                  setSelectedDate(undefined);
+                                  localStorage.removeItem("selectedDateForBooking");
+                                  toast({
+                                    title: "Seleção removida",
+                                    description: "A data selecionada foi removida.",
+                                    duration: 3000,
+                                  });
+                                }}
+                              >
+                                Limpar seleção
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Remover a data selecionada do calendário</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     ) : (
@@ -878,14 +965,28 @@ const HomeUser = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-lg text-indigo-900 dark:text-gray-100 flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-[#ED4231]" />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Clock className="w-5 h-5 text-[#ED4231] cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Lista das suas próximas consultas agendadas</p>
+                            </TooltipContent>
+                          </Tooltip>
                           Próximas Consultas
                         </CardTitle>
                         <CardDescription>Consultas agendadas para os próximos dias</CardDescription>
                       </div>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                        {atendimentosSummary.proximos} agendadas
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800 cursor-help">
+                            {atendimentosSummary.proximos} agendadas
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Número total de consultas agendadas para os próximos dias</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -916,7 +1017,18 @@ const HomeUser = () => {
                             <div className="flex flex-col gap-1">
                               <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
-                                  {renderStatusIcon(consulta.status)}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="cursor-help">
+                                        {renderStatusIcon(consulta.status)}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Status: {consulta.status === 'agendada' ? 'Consulta confirmada e agendada' : 
+                                               consulta.status === 'realizada' ? 'Consulta já foi realizada' : 
+                                               consulta.status === 'cancelada' ? 'Consulta foi cancelada' : 'Consulta foi remarcada'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                   <span className="font-medium text-gray-800 dark:text-gray-200">{consulta.profissional}</span>
                                 </div>
                                 <Badge className={statusColors[consulta.status]}>
@@ -940,26 +1052,50 @@ const HomeUser = () => {
                               </div>
                               <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center text-[#ED4231]">
-                                  <Clock className="w-3.5 h-3.5 mr-1" />
-                                  <span className="text-sm font-medium">{formatarData(consulta.data)}</span>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center cursor-help">
+                                        <Clock className="w-3.5 h-3.5 mr-1" />
+                                        <span className="text-sm font-medium">{formatarData(consulta.data)}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Data e horário da consulta: {format(consulta.data, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 </div>
                                 <div className="flex gap-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                    onClick={() => abrirModalDetalhes(consulta)}
-                                  >
-                                    Detalhes
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                    onClick={() => abrirModalCancelamento(consulta)}
-                                  >
-                                    Cancelar
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        onClick={() => abrirModalDetalhes(consulta)}
+                                      >
+                                        Detalhes
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ver informações detalhadas da consulta</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        onClick={() => abrirModalCancelamento(consulta)}
+                                      >
+                                        Cancelar
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Cancelar esta consulta (pode haver taxas)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 </div>
                               </div>
                             </div>
@@ -987,14 +1123,28 @@ const HomeUser = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-lg text-indigo-900 dark:text-gray-100 flex items-center gap-2">
-                          <History className="w-5 h-5 text-[#ED4231]" />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <History className="w-5 h-5 text-[#ED4231] cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Histórico das suas consultas mais recentes</p>
+                            </TooltipContent>
+                          </Tooltip>
                           Histórico Recente
                         </CardTitle>
                         <CardDescription>Últimas consultas realizadas</CardDescription>
                       </div>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800">
-                        {atendimentosSummary.realizados} realizadas
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800 cursor-help">
+                            {atendimentosSummary.realizados} realizadas
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Total de consultas já realizadas por você</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1056,9 +1206,16 @@ const HomeUser = () => {
                                 {consulta.status === 'realizada' && consulta.avaliacao && (
                                   <div className="flex items-center gap-1">
                                     <span className="text-xs text-gray-500 dark:text-gray-400">Avaliação:</span>
-                                    <div className="flex">
-                                      {renderEstrelas(consulta.avaliacao)}
-                                    </div>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="flex cursor-help">
+                                          {renderEstrelas(consulta.avaliacao)}
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Sua avaliação: {consulta.avaliacao} de 5 estrelas</p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
                                 )}
                               </div>
@@ -1105,25 +1262,33 @@ const HomeUser = () => {
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                     {!loading && historicoRecente.some(consulta => consulta.status === 'realizada' && !consulta.avaliacao) && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-xs border-amber-500 text-amber-500 hover:bg-amber-500/10"
-                        onClick={() => toast({
-                          title: "Avaliação em desenvolvimento",
-                          description: "A funcionalidade de avaliação estará disponível em breve.",
-                          duration: 3000,
-                        })}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        Avaliar Consultas
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-xs border-amber-500 text-amber-500 hover:bg-amber-500/10"
+                            onClick={() => toast({
+                              title: "Avaliação em desenvolvimento",
+                              description: "A funcionalidade de avaliação estará disponível em breve.",
+                              duration: 3000,
+                            })}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            Avaliar Consultas
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Avaliar consultas realizadas que ainda não foram avaliadas</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </CardFooter>
                 </Card>
-              </div>              {/* Removido o calendário duplicado, pois foi movido para substituir o card de Ações Rápidas */}
+              </div>
             </div>
           </div>
+        </div>
         </main>
 
         {/* Modal de Confirmação de Cancelamento */}
@@ -1252,7 +1417,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />
@@ -1617,6 +1782,71 @@ const HomeUser = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Add responsive styles */}
+      <style>{`
+        /* Mobile-first responsive adjustments */
+        @media (max-width: 768px) {
+          .max-w-6xl {
+            max-width: 100% !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+          }
+          
+          .grid-cols-1.md\\:grid-cols-3 {
+            gap: 1rem !important;
+          }
+          
+          .grid-cols-1.lg\\:grid-cols-2 {
+            gap: 1rem !important;
+          }
+          
+          /* Ensure proper spacing on mobile */
+          .pt-20 {
+            padding-top: 5.5rem !important; /* Increase mobile top padding */
+          }
+        }
+        
+        @media (min-width: 769px) {
+          .pt-20.md\\:pt-24 {
+            padding-top: 6.5rem !important; /* Increase desktop top padding */
+          }
+        }
+        
+        /* Ensure header doesn't overlap content */
+        header[role="banner"] {
+          height: 4.5rem; /* Fixed header height */
+        }
+        
+        /* Fix sidebar overlap on mobile */
+        @media (max-width: 768px) {
+          .fixed.z-40 {
+            top: 0 !important;
+            height: 100vh !important;
+          }
+        }
+        
+        /* Improve card responsiveness */
+        .grid > .bg-white {
+          min-height: auto !important;
+        }
+        
+        /* Better mobile card layouts */
+        @media (max-width: 640px) {
+          .space-y-4 > * {
+            margin-bottom: 1rem !important;
+          }
+          
+          .flex.flex-col.sm\\:flex-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          
+          .w-full.sm\\:w-auto {
+            width: 100% !important;
+          }
+        }
+      `}</style>
     </SidebarProvider>
   );
 };

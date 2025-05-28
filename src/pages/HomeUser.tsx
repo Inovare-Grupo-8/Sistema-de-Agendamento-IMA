@@ -275,7 +275,7 @@ const HomeUser = () => {
                   <p><strong>Médico:</strong> {selectedConsultation.doctor}</p>
                   <p><strong>Especialidade:</strong> {selectedConsultation.specialty}</p>
                   <p><strong>Data/Hora:</strong> {new Date(selectedConsultation.date).toLocaleDateString()} às {selectedConsultation.time}</p>
-                </div>
+                </div>  
               )}
 
               <DialogFooter>
