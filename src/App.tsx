@@ -20,6 +20,7 @@ import { ThemeProvider } from "next-themes";
 import { useEffect, useState } from "react";
 import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
 import AgendarHorarioUser from "@/components/AgendarHorarioUser";
+import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,9 @@ const App = () => {
                   <Route path="/" element={<HomeUser />} />
                   {/* Rota padrão para página não encontrada */}
                   <Route path="*" element={<NotFound />} />
+
+                  {/* Rota para o formulário de inscrição */}
+                  <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />
                 </Routes>
               </UserNavigationProvider>
             </Router>
