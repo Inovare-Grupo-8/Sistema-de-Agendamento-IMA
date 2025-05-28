@@ -12,8 +12,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
-// Import the useUserData hook
-import { useUserData, UserData } from "@/hooks/useUserData"; // Import UserData type
+import { useUser } from "@/hooks/useUser";
+import { useProfessional } from "@/hooks/useProfessional";
+import { UserData } from "@/types/user";
+import { ProfessionalData } from "@/types/professional";
+import { Badge } from "@/components/ui/badge";
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -75,47 +78,50 @@ const ProfileForm = () => {
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
-  // Get user data and setter from the hook
-  const { userData, setUserData } = useUserData();
+  // Get user data and setter from the context
+  const { userData, setUserData } = useUser();
+  const { professionalData, setProfessionalData } = useProfessional();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
 
-  // Define a type that extends UserData with required professional fields
-  interface ProfessionalUserData extends UserData {
-    crm: string;
-    especialidade: string;
-    observacoesDisponibilidade: string;
-    bio: string;
-  }
-
   // Estado para o formulário with properly typed defaults for professional fields
-  const [formData, setFormData] = useState<ProfessionalUserData>({
-    ...userData,
-    crm: userData.crm || '',
-    especialidade: userData.especialidade || '',
-    observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
-    bio: userData.bio || '',
-  });
+  const [formData, setFormData] = useState<ProfessionalData>(() => ({
+    ...professionalData,
+    endereco: {
+      rua: professionalData.endereco?.rua || '',
+      numero: professionalData.endereco?.numero || '',
+      complemento: professionalData.endereco?.complemento || '',
+      bairro: professionalData.endereco?.bairro || '',
+      cidade: professionalData.endereco?.cidade || '',
+      estado: professionalData.endereco?.estado || '',
+      cep: professionalData.endereco?.cep || ''
+    }
+  }));
 
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  // Update form data when userData changes (sync across tabs)
+  // Update form data when professionalData changes (sync across tabs)
   useEffect(() => {
     if (!formChanged) {
       setFormData({
-        ...userData,
-        crm: userData.crm || '',
-        especialidade: userData.especialidade || '',
-        observacoesDisponibilidade: userData.observacoesDisponibilidade || '',
-        bio: userData.bio || '',
+        ...professionalData,
+        endereco: {
+          rua: professionalData.endereco?.rua || '',
+          numero: professionalData.endereco?.numero || '',
+          complemento: professionalData.endereco?.complemento || '',
+          bairro: professionalData.endereco?.bairro || '',
+          cidade: professionalData.endereco?.cidade || '',
+          estado: professionalData.endereco?.estado || '',
+          cep: professionalData.endereco?.cep || ''
+        }
       });
     }
-  }, [userData, formChanged]);
+  }, [professionalData, formChanged]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,7 +196,7 @@ const ProfileForm = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Update to use setUserData from the hook
+  // Update to use setProfessionalData from the context
   const handleSave = () => {
     if (!formChanged && !selectedImage) {
       toast({
@@ -214,8 +220,8 @@ const ProfileForm = () => {
     
     setTimeout(() => {
       try {
-        // Use the setUserData function from the hook
-        setUserData(formData);
+        // Use the setProfessionalData function from the context
+        setProfessionalData(formData);
         
         if (selectedImage && imagePreview) {
           setProfileImage(imagePreview);
@@ -275,24 +281,26 @@ const ProfileForm = () => {
       ...prev,
       [dia]: {
         ...prev[dia as keyof typeof prev],
-        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev[keyof typeof prev]]
+        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev]
       }
     }));
   };
   
   // Fix the duplicate and incorrectly formatted handleCancel function
   const handleCancel = () => {
-    // Recarregando dados originais do localStorage
-    const savedData = localStorage.getItem("userData");
-    if (savedData) {
-      setFormData({
-        ...JSON.parse(savedData),
-        crm: JSON.parse(savedData).crm || '',
-        especialidade: JSON.parse(savedData).especialidade || '',
-        observacoesDisponibilidade: JSON.parse(savedData).observacoesDisponibilidade || '',
-        bio: JSON.parse(savedData).bio || ''
-      });
-    }
+    // Recarregando dados originais do contexto
+    setFormData({
+      ...professionalData,
+      endereco: {
+        rua: professionalData.endereco?.rua || '',
+        numero: professionalData.endereco?.numero || '',
+        complemento: professionalData.endereco?.complemento || '',
+        bairro: professionalData.endereco?.bairro || '',
+        cidade: professionalData.endereco?.cidade || '',
+        estado: professionalData.endereco?.estado || '',
+        cep: professionalData.endereco?.cep || ''
+      }
+    });
     
     // Resetando estados
     setSelectedImage(null);
@@ -349,18 +357,20 @@ const ProfileForm = () => {
         
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-white dark:bg-gray-900 shadow-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto`}
-        >
+          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
+        }>
           <div className="w-full flex justify-start mb-6">
-            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-primary text-white focus:outline-none shadow-md">
+            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-background shadow" />
-            {/* Use formData to show the current edited values */}
-            <span className="font-extrabold text-xl text-foreground tracking-wide">{formData.nome} {formData.sobrenome}</span>
+            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
+            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+              {formData.especialidade}
+            </Badge>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
