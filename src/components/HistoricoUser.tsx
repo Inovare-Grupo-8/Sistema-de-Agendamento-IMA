@@ -5,7 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Search, Star, Filter, FileText, Sun, Moon, Home as HomeIcon } from "lucide-react";
+import { Calendar as CalendarIcon, User, Clock, Menu, History, Search, Star, Filter, FileText, Sun, Moon, Home as HomeIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
@@ -18,8 +18,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getUserNavigationPath, userNavigationItems } from "@/utils/userNavigation";
 import { useUserData } from "@/hooks/useUserData"; // Import the useUserData hook
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Download, Eye, MessageSquare, TrendingUp, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 
 interface HistoricoConsulta {
+  id: string; // Adicionar ID único
   date: Date;
   time: string;
   name: string;
@@ -30,32 +38,55 @@ interface HistoricoConsulta {
     rating: number;
     comment?: string;
   };
+  duration?: number; // Duração em minutos
+  cost?: number; // Custo da consulta
+  prescription?: string; // Prescrição médica
+  nextAppointment?: Date; // Próxima consulta recomendada
 }
 
 const HistoricoUser = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
+  const [selectedConsulta, setSelectedConsulta] = useState<HistoricoConsulta | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [currentRating, setCurrentRating] = useState(0);
+  const [currentComment, setCurrentComment] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "rating" | "type">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isExporting, setIsExporting] = useState(false);
   const [historicoConsultas, setHistoricoConsultas] = useState<HistoricoConsulta[]>([
-    { 
-      date: new Date(2025, 1, 10), 
-      time: "09:00", 
-      name: "Dr. Ricardo Santos", 
-      type: "Psicologia", 
-      serviceType: "Atendimento Online", 
-      status: "realizada", 
-      feedback: { rating: 5, comment: "Excelente atendimento, muito atencioso." } 
-    },
-    { 
-      date: new Date(2025, 1, 15), 
-      time: "10:30", 
-      name: "Dra. Carolina Mendes", 
-      type: "Nutrição", 
-      serviceType: "Consulta Presencial", 
+    {
+      id: "1",
+      date: new Date(2025, 1, 10),
+      time: "09:00",
+      name: "Dr. Ricardo Santos",
+      type: "Psicologia",
+      serviceType: "Atendimento Online",
       status: "realizada",
-      feedback: { rating: 4 } 
+      duration: 50,
+      cost: 150,
+      feedback: { rating: 5, comment: "Excelente atendimento, muito atencioso." },
+      prescription: "Técnicas de respiração e relaxamento",
+      nextAppointment: new Date(2025, 2, 10)
+    },
+    {
+      id: "2",
+      date: new Date(2025, 1, 15),
+      time: "10:30",
+      name: "Dra. Carolina Mendes",
+      type: "Nutrição",
+      serviceType: "Consulta Presencial",
+      status: "realizada",
+      duration: 60,
+      cost: 120,
+      feedback: { rating: 4 },
+      prescription: "Dieta balanceada com foco em proteínas"
     },
     { 
+      id: "3",
       date: new Date(2025, 2, 5), 
       time: "14:00", 
       name: "Dr. Marcelo Pereira", 
@@ -64,6 +95,7 @@ const HistoricoUser = () => {
       status: "cancelada" 
     },
     { 
+      id: "4",
       date: new Date(2025, 3, 1), 
       time: "15:30", 
       name: "Dra. Juliana Costa", 
@@ -72,6 +104,7 @@ const HistoricoUser = () => {
       status: "remarcada" 
     },
     { 
+      id: "5",
       date: new Date(2025, 3, 20), 
       time: "19:00", 
       name: "Dr. Felipe Oliveira", 
@@ -81,6 +114,7 @@ const HistoricoUser = () => {
       feedback: { rating: 5, comment: "Muito bom, estou me sentindo melhor." } 
     },
     { 
+      id: "6",
       date: new Date(2025, 4, 10), 
       time: "20:30", 
       name: "Dra. Isabela Martins", 
@@ -126,8 +160,105 @@ const HistoricoUser = () => {
     });
   };
 
+  const openDetailsModal = (consulta: HistoricoConsulta) => {
+    setSelectedConsulta(consulta);
+    setShowDetailsModal(true);
+  };
+
+  const openFeedbackModal = (consulta: HistoricoConsulta) => {
+    setSelectedConsulta(consulta);
+    setCurrentRating(consulta.feedback?.rating || 0);
+    setCurrentComment(consulta.feedback?.comment || "");
+    setShowFeedbackModal(true);
+  };
+
+  const saveFeedback = () => {
+    if (!selectedConsulta || currentRating === 0) {
+      toast({
+        title: "Avaliação obrigatória",
+        description: "Por favor, selecione pelo menos uma estrela.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setHistoricoConsultas(prev => prev.map(c => 
+      c.id === selectedConsulta.id 
+        ? { ...c, feedback: { rating: currentRating, comment: currentComment || undefined } }
+        : c
+    ));
+
+    toast({
+      title: "Feedback salvo!",
+      description: "Obrigado pela sua avaliação.",
+      variant: "default"
+    });
+
+    setShowFeedbackModal(false);
+    setCurrentRating(0);
+    setCurrentComment("");
+  };
+
+  const exportHistory = async () => {
+    setIsExporting(true);
+    
+    // Simular exportação
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const csvContent = [
+      ["Data", "Horário", "Profissional", "Especialidade", "Tipo", "Status", "Avaliação", "Valor"],
+      ...filteredHistorico.map(consulta => [
+        format(consulta.date, "dd/MM/yyyy"),
+        consulta.time,
+        consulta.name,
+        consulta.type,
+        consulta.serviceType,
+        consulta.status,
+        consulta.feedback?.rating || "N/A",
+        consulta.cost ? `R$ ${consulta.cost}` : "N/A"
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `historico-consultas-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+
+    setIsExporting(false);
+    toast({
+      title: "Histórico exportado!",
+      description: "O arquivo foi baixado com sucesso.",
+      variant: "default"
+    });
+  };
+
   const filteredHistorico = historicoConsultas
     .filter(consulta => {
+      // Filtro por período
+      if (selectedPeriod !== "all") {
+        const now = new Date();
+        const consultaDate = new Date(consulta.date);
+        
+        let compareDate;
+        switch (selectedPeriod) {
+          case "month": {
+            compareDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            break;
+          }
+          case "3months": {
+            compareDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+            break;
+          }
+          case "year": {
+            compareDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            break;
+          }
+        }
+        
+        if (compareDate && consultaDate < compareDate) return false;
+      }
+
       // Filtro por status
       if (filterStatus && consulta.status !== filterStatus) return false;
       
@@ -144,12 +275,47 @@ const HistoricoUser = () => {
       
       return true;
     })
-    .sort((a, b) => b.date.getTime() - a.date.getTime()); // Ordenar por data mais recente primeiro
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case "date": {
+          comparison = a.date.getTime() - b.date.getTime();
+          break;
+        }
+        case "rating": {
+          const ratingA = a.feedback?.rating || 0;
+          const ratingB = b.feedback?.rating || 0;
+          comparison = ratingA - ratingB;
+          break;
+        }
+        case "type": {
+          comparison = a.type.localeCompare(b.type);
+          break;
+        }
+      }
+      
+      return sortOrder === "desc" ? -comparison : comparison;
+    });
 
-  const statusColors = {
+  // Estatísticas do histórico
+  const stats = {
+    total: historicoConsultas.length,
+    realizadas: historicoConsultas.filter(c => c.status === "realizada").length,
+    canceladas: historicoConsultas.filter(c => c.status === "cancelada").length,
+    avgRating: historicoConsultas
+      .filter(c => c.feedback?.rating)
+      .reduce((acc, c, _, arr) => acc + (c.feedback?.rating || 0) / arr.length, 0),
+    totalSpent: historicoConsultas
+      .filter(c => c.status === "realizada" && c.cost)
+      .reduce((acc, c) => acc + (c.cost || 0), 0)
+  };
+
+  // Add statusColors definition
+  const statusColors: Record<string, string> = {
     realizada: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
     cancelada: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    remarcada: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    remarcada: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
   };
 
   return (
@@ -419,45 +585,50 @@ const HistoricoUser = () => {
                               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                                 {consulta.feedback ? (
                                   <div>
-                                    <div className="flex items-center gap-1 mb-2">
-                                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sua avaliação:</span>
-                                      <div className="flex gap-1 ml-2">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <Star 
-                                            key={star} 
-                                            size={16} 
-                                            fill={star <= (consulta.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
-                                            stroke={star <= (consulta.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
-                                          />
-                                        ))}
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sua avaliação:</span>
+                                        <div className="flex gap-1 ml-2">
+                                          {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star 
+                                              key={star} 
+                                              size={16} 
+                                              fill={star <= (consulta.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
+                                              stroke={star <= (consulta.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
+                                            />
+                                          ))}
+                                        </div>
+                                        <span className="text-sm text-gray-500 ml-2">({consulta.feedback.rating}/5)</span>
                                       </div>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openFeedbackModal(consulta)}
+                                        className="text-xs"
+                                      >
+                                        Editar
+                                      </Button>
                                     </div>
                                     {consulta.feedback.comment && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 bg-gray-50 dark:bg-gray-800/50 p-2 rounded">
+                                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border-l-4 border-[#ED4231]">
+                                        <MessageSquare className="inline w-4 h-4 mr-2 text-[#ED4231]" />
                                         "{consulta.feedback.comment}"
                                       </p>
                                     )}
                                   </div>
                                 ) : (
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avalie esta consulta:</span>
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex gap-1">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <button
-                                            key={star}
-                                            onClick={() => handleAddFeedback(consulta, star)}
-                                            className="focus:outline-none"
-                                            title={`${star} estrelas`}
-                                          >
-                                            <Star 
-                                              size={20} 
-                                              className="text-gray-300 hover:text-[#ED4231] transition-colors" 
-                                            />
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                      Como foi sua experiência com esta consulta?
+                                    </span>
+                                    <Button
+                                      onClick={() => openFeedbackModal(consulta)}
+                                      variant="outline"
+                                      className="w-fit bg-gradient-to-r from-[#ED4231] to-[#c32d22] text-white border-none hover:from-[#c32d22] hover:to-[#a02419] transition-all duration-200"
+                                    >
+                                      <Star className="w-4 h-4 mr-2" />
+                                      Avaliar Consulta
+                                    </Button>
                                   </div>
                                 )}
                               </div>
@@ -488,6 +659,258 @@ const HistoricoUser = () => {
             )}
           </div>
         </main>
+
+        {/* Modal de Detalhes */}
+        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-[#ED4231]" />
+                Detalhes da Consulta
+              </DialogTitle>
+              <DialogDescription>
+                Informações completas sobre sua consulta
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedConsulta && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Informações Básicas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div>
+                        <span className="font-medium">Profissional:</span> {selectedConsulta.name}
+                      </div>
+                      <div>
+                        <span className="font-medium">Especialidade:</span> {selectedConsulta.type}
+                      </div>
+                      <div>
+                        <span className="font-medium">Data:</span> {format(selectedConsulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </div>
+                      <div>
+                        <span className="font-medium">Horário:</span> {selectedConsulta.time}
+                      </div>
+                      <div>
+                        <span className="font-medium">Duração:</span> {selectedConsulta.duration || 50} minutos
+                      </div>
+                      <div>
+                        <span className="font-medium">Tipo:</span> {selectedConsulta.serviceType}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Informações Financeiras
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div>
+                        <span className="font-medium">Valor:</span> 
+                        <span className="text-green-600 dark:text-green-400 ml-2">
+                          R$ {selectedConsulta.cost || "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Status:</span>
+                        <Badge className={`${statusColors[selectedConsulta.status]} ml-2`}>
+                          {selectedConsulta.status === "realizada" ? "Realizada" : 
+                           selectedConsulta.status === "cancelada" ? "Cancelada" : "Remarcada"}
+                        </Badge>
+                      </div>
+                      {selectedConsulta.feedback && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Sua avaliação:</span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star 
+                                key={star} 
+                                size={16} 
+                                fill={star <= (selectedConsulta.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
+                                stroke={star <= (selectedConsulta.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {selectedConsulta.prescription && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Prescrição/Orientações
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-700 dark:text-gray-300">{selectedConsulta.prescription}</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedConsulta.feedback?.comment && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Seu Comentário
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-700 dark:text-gray-300 italic">
+                        "{selectedConsulta.feedback.comment}"
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Feedback */}
+        <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-lg">
+                <Star className="w-6 h-6 text-[#ED4231]" />
+                {selectedConsulta?.feedback ? "Editar Avaliação" : "Avaliar Consulta"}
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                {selectedConsulta?.feedback 
+                  ? `Atualize sua avaliação da consulta com ${selectedConsulta?.name}`
+                  : `Como foi sua experiência com ${selectedConsulta?.name}?`
+                }
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Consulta Info */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-[#ED4231] rounded-full flex items-center justify-center">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{selectedConsulta?.name}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedConsulta?.type}</p>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {selectedConsulta && format(selectedConsulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} às {selectedConsulta?.time}
+                </div>
+              </div>
+
+              {/* Rating Section */}
+              <div className="text-center">
+                <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-4">
+                  Qual sua avaliação geral?
+                </p>
+                <div className="flex justify-center gap-3 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setCurrentRating(star)}
+                      className="focus:outline-none transition-all duration-200 hover:scale-110 focus:scale-110"
+                      title={`${star} estrela${star > 1 ? 's' : ''}`}
+                    >
+                      <Star 
+                        size={40} 
+                        fill={star <= currentRating ? "#ED4231" : "transparent"} 
+                        stroke={star <= currentRating ? "#ED4231" : "#94A3B8"}
+                        className="cursor-pointer transition-colors duration-200"
+                      />
+                    </button>
+                  ))}
+                </div>
+                {currentRating > 0 && (
+                  <div className="bg-[#ED4231]/10 dark:bg-[#ED4231]/20 p-3 rounded-lg">
+                    <p className="text-base font-medium text-[#ED4231]">
+                      {currentRating === 1 && "😞 Muito insatisfeito"}
+                      {currentRating === 2 && "😐 Insatisfeito"}
+                      {currentRating === 3 && "😊 Neutro"}
+                      {currentRating === 4 && "😃 Satisfeito"}
+                      {currentRating === 5 && "🤩 Muito satisfeito"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Comment Section */}
+              <div>
+                <Label htmlFor="comment" className="text-base font-medium">
+                  Compartilhe sua experiência (opcional)
+                </Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Seu feedback nos ajuda a melhorar o atendimento
+                </p>
+                <Textarea
+                  id="comment"
+                  placeholder="Conte-nos como foi a consulta, o que você achou do profissional, se suas expectativas foram atendidas..."
+                  value={currentComment}
+                  onChange={(e) => setCurrentComment(e.target.value)}
+                  className="min-h-[120px] resize-none"
+                  maxLength={500}
+                />
+                <div className="flex justify-between mt-2">
+                  <span className="text-xs text-gray-500">
+                    {currentComment.length}/500 caracteres
+                  </span>
+                </div>
+              </div>
+
+              {/* Rating Guidelines */}
+              {currentRating === 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h5 className="font-medium text-blue-900 dark:text-blue-300 mb-2">
+                    O que considerar na sua avaliação:
+                  </h5>
+                  <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                    <li>• Pontualidade do profissional</li>
+                    <li>• Qualidade do atendimento</li>
+                    <li>• Clareza nas orientações</li>
+                    <li>• Resolução do seu problema</li>
+                    <li>• Experiência geral</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowFeedbackModal(false);
+                  setCurrentRating(selectedConsulta?.feedback?.rating || 0);
+                  setCurrentComment(selectedConsulta?.feedback?.comment || "");
+                }}
+                className="px-6"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={saveFeedback}
+                disabled={currentRating === 0}
+                className="bg-[#ED4231] hover:bg-[#d53a2a] px-6 min-w-[120px]"
+              >
+                {selectedConsulta?.feedback ? "Atualizar" : "Enviar"} Avaliação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       <style>{`
         body.dark {

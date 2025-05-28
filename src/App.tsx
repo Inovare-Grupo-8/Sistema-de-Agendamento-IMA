@@ -17,16 +17,15 @@ import ProfileFormUser from "@/components/ProfileFormUser";
 import TelaLogin from "@/components/TelaLogin";
 import { ProfileImageProvider } from "@/components/ProfileImageContext";
 import { ThemeProvider } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
 import AgendarHorarioUser from "@/components/AgendarHorarioUser";
 import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
-
+import { UserProvider } from "@/contexts/UserContext";
+import { ProfessionalProvider } from "@/contexts/ProfessionalContext";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [vlibrasActive, setVlibrasActive] = useState(true);
-
   // Carrega o script VLibras apenas uma vez
   useEffect(() => {
     if (document.getElementById("vlibras-plugin-script")) return;
@@ -43,14 +42,6 @@ const App = () => {
     }, 500); // Pequeno delay para garantir que o DOM está pronto
   }, []);
 
-  // Mostra/oculta o avatar VLibras via CSS
-  useEffect(() => {
-    const vlibrasEl = document.querySelector(".vw-access-button");
-    if (vlibrasEl) {
-      (vlibrasEl as HTMLElement).style.display = vlibrasActive ? "block" : "none";
-    }
-  }, [vlibrasActive]);
-
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
@@ -58,6 +49,17 @@ const App = () => {
           <Toaster />
           <Sonner />
           <ProfileImageProvider>
+            <UserProvider>
+              <ProfessionalProvider>
+                <Router>
+                  <UserNavigationProvider>
+                    <Routes>
+                      {/* Rotas do usuário */}
+                      <Route path="/home-user" element={<HomeUser />} />
+                      <Route path="/agenda-user" element={<AgendaUser />} />
+                      <Route path="/historico-user" element={<HistoricoUser />} />
+                      <Route path="/agendar-horario-user" element={<AgendarHorarioUser />} />
+                      <Route path="/profile-form-user" element={<ProfileFormUser />} />
 
             <Router>
               <UserNavigationProvider>
@@ -88,16 +90,16 @@ const App = () => {
               </UserNavigationProvider>
             </Router>
 
+                      {/* Redirecionamento para a home do usuário como fallback */}
+                      <Route path="/" element={<HomeUser />} />
+                      {/* Rota padrão para página não encontrada */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </UserNavigationProvider>
+                </Router>
+              </ProfessionalProvider>
+            </UserProvider>
           </ProfileImageProvider>
-          {/* Botão de acessibilidade VLibras */}
-          <button
-            onClick={() => setVlibrasActive((prev) => !prev)}
-            className="fixed bottom-6 left-6 z-50 p-3 rounded-full bg-[#1A1466] text-white shadow-lg hover:bg-[#23272F] focus:outline-none focus:ring-2 focus:ring-[#ED4231]"
-            aria-label={vlibrasActive ? "Desativar VLibras" : "Ativar VLibras"}
-            title={vlibrasActive ? "Desativar VLibras" : "Ativar VLibras"}
-          >
-            {vlibrasActive ? "VLibras: ON" : "VLibras: OFF"}
-          </button>
         </TooltipProvider>
         {/* Foco visual customizado global */}
         <style>{`
