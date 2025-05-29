@@ -23,6 +23,7 @@ import AgendarHorarioUser from "@/components/AgendarHorarioUser";
 import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProfessionalProvider } from "@/contexts/ProfessionalContext";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -61,34 +62,16 @@ const App = () => {
                       <Route path="/agendar-horario-user" element={<AgendarHorarioUser />} />
                       <Route path="/profile-form-user" element={<ProfileFormUser />} />
 
-            <Router>
-              <UserNavigationProvider>
-                <Routes>
-                  {/* Rotas do usuário */}
-                  <Route path="/home-user" element={<HomeUser />} />
-                  <Route path="/agenda-user" element={<AgendaUser />} />
-                  <Route path="/historico-user" element={<HistoricoUser />} />
-                  <Route path="/agendar-horario-user" element={<AgendarHorarioUser />} />
-                  <Route path="/profile-form-user" element={<ProfileFormUser />} />
+                      {/* Rotas do profissional */}
+                      <Route path="/home" element={<Home />} />
+                      <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
+                      <Route path="/agenda" element={<Agenda />} />
+                      <Route path="/historico" element={<Historico />} />
+                      <Route path="/profile-form" element={<ProfileForm />} />
+                      <Route path="/login" element={<TelaLogin />} />
 
-                  {/* Rotas do profissional */}
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
-                  <Route path="/agenda" element={<Agenda />} />
-                  <Route path="/historico" element={<Historico />} />
-                  <Route path="/profile-form" element={<ProfileForm />} />
-                  <Route path="/login" element={<TelaLogin />} />
-
-                  {/* Redirecionamento para a home do usuário como fallback */}
-                  <Route path="/" element={<HomeUser />} />
-                  {/* Rota padrão para página não encontrada */}
-                  <Route path="*" element={<NotFound />} />
-
-                  {/* Rota para o formulário de inscrição */}
-                  <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />
-                </Routes>
-              </UserNavigationProvider>
-            </Router>
+                      {/* Rota para o formulário de inscrição */}
+                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />
 
                       {/* Redirecionamento para a home do usuário como fallback */}
                       <Route path="/" element={<HomeUser />} />
