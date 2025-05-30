@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, UserCheck, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
@@ -62,6 +64,7 @@ interface FormularioInscricao {
   dataSubmissao: Date;
   status: "pendente" | "aprovado" | "reprovado";
   observacoesAssistente?: string;
+  tipoCandidato?: "multidisciplinar" | "valor_social";
 }
 
 // Dados mockados do assistente social
@@ -189,14 +192,14 @@ const AssistenteSocial = () => {
   // Estados para controle da interface
   const [atendimentosHoje, setAtendimentosHoje] = useState<AtendimentoSocial[]>([]);
   const [proximosAtendimentos, setProximosAtendimentos] = useState<AtendimentoSocial[]>([]);
-  
-  // Estados para formulários
+    // Estados para formulários
   const [formularios, setFormularios] = useState<FormularioInscricao[]>(formulariosPendentes);
   const [formularioSelecionado, setFormularioSelecionado] = useState<FormularioInscricao | null>(null);
   const [showFormularioModal, setShowFormularioModal] = useState(false);
   const [showAprovacaoModal, setShowAprovacaoModal] = useState(false);
   const [showReprovacaoModal, setShowReprovacaoModal] = useState(false);
   const [observacoes, setObservacoes] = useState("");
+  const [tipoCandidato, setTipoCandidato] = useState<"multidisciplinar" | "valor_social" | "">("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -272,10 +275,10 @@ const AssistenteSocial = () => {
     setFormularioSelecionado(formulario);
     setShowFormularioModal(true);
   };
-
   const iniciarAprovacao = (formulario: FormularioInscricao) => {
     setFormularioSelecionado(formulario);
     setObservacoes("");
+    setTipoCandidato("");
     setShowAprovacaoModal(true);
   };
 
@@ -284,9 +287,8 @@ const AssistenteSocial = () => {
     setObservacoes("");
     setShowReprovacaoModal(true);
   };
-
   const confirmarAprovacao = async () => {
-    if (!formularioSelecionado) return;
+    if (!formularioSelecionado || !tipoCandidato) return;
     
     setIsProcessing(true);
     
@@ -298,7 +300,7 @@ const AssistenteSocial = () => {
       setFormularios(prev => 
         prev.map(form => 
           form.id === formularioSelecionado.id 
-            ? { ...form, status: "aprovado", observacoesAssistente: observacoes }
+            ? { ...form, status: "aprovado", observacoesAssistente: observacoes, tipoCandidato: tipoCandidato }
             : form
         )
       );
@@ -306,10 +308,13 @@ const AssistenteSocial = () => {
       setShowAprovacaoModal(false);
       setFormularioSelecionado(null);
       setObservacoes("");
+      setTipoCandidato("");
+      
+      const tipoTexto = tipoCandidato === "multidisciplinar" ? "Candidato Multidisciplinar" : "Candidato que Paga o Valor Social";
       
       toast({
         title: "Formulário aprovado!",
-        description: `O formulário de ${formularioSelecionado.nomeCompleto} foi aprovado com sucesso.`,
+        description: `O formulário de ${formularioSelecionado.nomeCompleto} foi aprovado como ${tipoTexto}.`,
         variant: "default",
       });
     } catch (error) {
@@ -360,13 +365,13 @@ const AssistenteSocial = () => {
       setIsProcessing(false);
     }
   };
-
   const fecharModais = () => {
     setShowFormularioModal(false);
     setShowAprovacaoModal(false);
     setShowReprovacaoModal(false);
     setFormularioSelecionado(null);
     setObservacoes("");
+    setTipoCandidato("");
   };
 
   // Função para obter cor do status do formulário
@@ -433,8 +438,7 @@ const AssistenteSocial = () => {
               <Menu className="w-7 h-7" />
             </Button>
           </div>
-          
-          <div className="flex flex-col items-center gap-2 mb-8">
+            <div className="flex flex-col items-center gap-2 mb-8">
             <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
               {assistenteSocialData.nome} {assistenteSocialData.sobrenome}
@@ -442,7 +446,6 @@ const AssistenteSocial = () => {
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {assistenteSocialData.especialidade}
             </Badge>
-            <span className="text-sm text-gray-600 dark:text-gray-400">{assistenteSocialData.crp}</span>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -788,13 +791,28 @@ const AssistenteSocial = () => {
                 }
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4">
+              <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label htmlFor="tipoCandidato" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Tipo de Candidato *
+                </Label>
+                <Select value={tipoCandidato} onValueChange={(value: "multidisciplinar" | "valor_social") => setTipoCandidato(value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecione o tipo de candidato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="multidisciplinar">Candidato Multidisciplinar</SelectItem>
+                    <SelectItem value="valor_social">Candidato que Paga o Valor Social</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="observacoes" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Observações (opcional)
-                </label>
+                </Label>
                 <Textarea
+                  id="observacoes"
                   placeholder="Adicione observações sobre a aprovação..."
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
@@ -806,11 +824,10 @@ const AssistenteSocial = () => {
             <DialogFooter>
               <Button variant="outline" onClick={fecharModais} disabled={isProcessing}>
                 Cancelar
-              </Button>
-              <Button 
+              </Button>              <Button 
                 onClick={confirmarAprovacao} 
-                disabled={isProcessing}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={isProcessing || !tipoCandidato}
+                className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (
                   <>
