@@ -59,11 +59,6 @@ const professionalNavItems = [
     icon: <History className="w-6 h-6" color="#ED4231" />
   },
   {
-    path: "/disponibilizar-horario",
-    label: "Disponibilizar Horário",
-    icon: <Clock className="w-6 h-6" color="#ED4231" />
-  },
-  {
     path: "/profile-form",
     label: "Editar Perfil", 
     icon: <User className="w-6 h-6" color="#ED4231" />

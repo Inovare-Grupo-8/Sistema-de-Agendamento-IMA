@@ -376,23 +376,7 @@ const Home = () => {
                 <TooltipContent className="z-50">
                   Veja seu histórico de atendimentos
                 </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/disponibilizar-horario" className="flex items-center gap-3">
-                      <Clock className="w-6 h-6" color="#ED4231" />
-                      <span>Disponibilizar Horário</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Disponibilize novos horários para atendimento
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
+              </Tooltip>            </SidebarMenuItem>
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
