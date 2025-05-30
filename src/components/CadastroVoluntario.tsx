@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, UserCheck, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, Shield, Lock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, UserCheck, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, Shield, Lock, Upload, Search, Filter, EyeOff, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -38,7 +39,13 @@ interface Voluntario {
   nome: string;
   sobrenome: string;
   email: string;
+  telefone?: string;
+  cpf?: string;
+  crp?: string;
   especialidade: string;
+  experiencia?: string;
+  bio?: string;
+  foto?: string;
   status: "ativo" | "inativo" | "pendente";
   dataCadastro: Date;
   ultimoAcesso?: Date;
@@ -113,46 +120,179 @@ const CadastroVoluntario = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-
   // Estados para formulário de cadastro
-  const [formData, setFormData] = useState({
+  const [currentStep, setCurrentStep] = useState(1);  const [formData, setFormData] = useState({
     nome: "",
     sobrenome: "",
     email: "",
+    telefone: "",
+    cpf: "",
     senha: "",
-    confirmarSenha: "",
-    especialidade: ""
+    confirmarSenha: ""
   });
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  
+  // Estados para validação em tempo real
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    feedback: ""
+  });
   // Estados para controle da interface
   const [voluntarios, setVoluntarios] = useState<Voluntario[]>(voluntariosData);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  // Especialidades disponíveis
-  const especialidades = [
-    "Psicologia",
-    "Serviço Social", 
-    "Orientação Profissional",
-    "Direito",
-    "Medicina",
-    "Enfermagem",
-    "Nutrição",
-    "Fisioterapia",
-    "Terapia Ocupacional",
-    "Pedagogia"
-  ];
-
-  useEffect(() => {
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);useEffect(() => {
     // Simular carregamento de dados
     const loadData = async () => {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 1000));
       setLoading(false);
-    };
-
-    loadData();
+    };    loadData();
   }, []);
+
+  // Função para validar CPF
+  const validarCPF = (cpf: string) => {
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    if (cpfLimpo.length !== 11) return false;
+    
+    // Verificar se todos os dígitos são iguais
+    if (/^(\d)\1{10}$/.test(cpfLimpo)) return false;
+    
+    // Validação dos dígitos verificadores
+    let soma = 0;
+    for (let i = 0; i < 9; i++) {
+      soma += parseInt(cpfLimpo.charAt(i)) * (10 - i);
+    }
+    let resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpfLimpo.charAt(9))) return false;
+    
+    soma = 0;
+    for (let i = 0; i < 10; i++) {
+      soma += parseInt(cpfLimpo.charAt(i)) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    return resto === parseInt(cpfLimpo.charAt(10));
+  };
+
+  // Função para calcular força da senha
+  const calcularForcaSenha = (senha: string) => {
+    let score = 0;
+    let feedback = "";
+
+    if (senha.length === 0) {
+      return { score: 0, feedback: "" };
+    }
+
+    if (senha.length < 6) {
+      return { score: 1, feedback: "Muito fraca - Mínimo 6 caracteres" };
+    }
+
+    // Critérios de força
+    if (senha.length >= 8) score++;
+    if (/[a-z]/.test(senha)) score++;
+    if (/[A-Z]/.test(senha)) score++;
+    if (/[0-9]/.test(senha)) score++;
+    if (/[^A-Za-z0-9]/.test(senha)) score++;
+
+    switch (score) {
+      case 1:
+      case 2:
+        feedback = "Fraca";
+        break;
+      case 3:
+        feedback = "Média";
+        break;
+      case 4:
+        feedback = "Forte";
+        break;
+      case 5:
+        feedback = "Muito forte";
+        break;
+      default:
+        feedback = "Muito fraca";
+    }
+
+    return { score: Math.min(score, 4), feedback };
+  };
+
+  // Função para validar campo em tempo real
+  const validarCampo = (campo: string, valor: string) => {
+    let erro = "";
+    
+    switch (campo) {
+      case "email":
+        if (valor && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) {
+          erro = "Email inválido";
+        }
+        break;
+      case "cpf":
+        if (valor && !validarCPF(valor)) {
+          erro = "CPF inválido";
+        }
+        break;
+      case "telefone":
+        if (valor && !/^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(valor)) {
+          erro = "Formato: (11) 99999-9999";
+        }
+        break;
+      case "confirmarSenha":
+        if (valor && valor !== formData.senha) {
+          erro = "As senhas não coincidem";
+        }
+        break;
+    }
+    
+    setFieldErrors(prev => ({
+      ...prev,
+      [campo]: erro
+    }));
+  };
+
+  // Função para formatar CPF
+  const formatarCPF = (valor: string) => {
+    const apenasNumeros = valor.replace(/\D/g, '');
+    return apenasNumeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .slice(0, 14);
+  };
+
+  // Função para formatar telefone
+  const formatarTelefone = (valor: string) => {
+    const apenasNumeros = valor.replace(/\D/g, '');
+    return apenasNumeros
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4,5})(\d{4})/, '$1-$2')
+      .slice(0, 15);
+  };
+
+  // Handler para mudanças nos campos
+  const handleFieldChange = (campo: string, valor: string) => {
+    let valorFormatado = valor;
+    
+    if (campo === "cpf") {
+      valorFormatado = formatarCPF(valor);
+    } else if (campo === "telefone") {
+      valorFormatado = formatarTelefone(valor);
+    } else if (campo === "senha") {
+      const strength = calcularForcaSenha(valor);
+      setPasswordStrength(strength);
+    }
+    
+    setFormData(prev => ({ ...prev, [campo]: valorFormatado }));
+    
+    // Validar campo após um pequeno delay
+    setTimeout(() => {
+      validarCampo(campo, valorFormatado);
+    }, 300);
+  };
 
   // Função para formatar data
   const formatarData = (data: Date) => {
@@ -164,76 +304,35 @@ const CadastroVoluntario = () => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
-
-  // Função para validar formulário
+  // Função para validar dados do formulário
   const validarFormulario = () => {
-    if (!formData.nome.trim()) {
-      toast({
-        title: "Erro de validação",
-        description: "Nome é obrigatório.",
-        variant: "destructive",
-      });
-      return false;
-    }
+    const erros: string[] = [];
 
-    if (!formData.sobrenome.trim()) {
-      toast({
-        title: "Erro de validação",
-        description: "Sobrenome é obrigatório.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
+    if (!formData.nome.trim()) erros.push("Nome é obrigatório");
+    if (!formData.sobrenome.trim()) erros.push("Sobrenome é obrigatório");
+    
     if (!formData.email.trim()) {
-      toast({
-        title: "Erro de validação",
-        description: "Email é obrigatório.",
-        variant: "destructive",
-      });
-      return false;
+      erros.push("Email é obrigatório");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      erros.push("Email inválido");
     }
 
-    if (!validarEmail(formData.email)) {
-      toast({
-        title: "Erro de validação",
-        description: "Email deve ter um formato válido.",
-        variant: "destructive",
-      });
-      return false;
+    if (formData.cpf && !validarCPF(formData.cpf)) {
+      erros.push("CPF inválido");
     }
 
     if (!formData.senha) {
-      toast({
-        title: "Erro de validação",
-        description: "Senha é obrigatória.",
-        variant: "destructive",
-      });
-      return false;
+      erros.push("Senha é obrigatória");
+    } else if (formData.senha.length < 6) {
+      erros.push("Senha deve ter pelo menos 6 caracteres");
+    }    if (formData.senha !== formData.confirmarSenha) {
+      erros.push("As senhas não coincidem");
     }
 
-    if (formData.senha.length < 6) {
+    if (erros.length > 0) {
       toast({
         title: "Erro de validação",
-        description: "Senha deve ter pelo menos 6 caracteres.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (formData.senha !== formData.confirmarSenha) {
-      toast({
-        title: "Erro de validação",
-        description: "As senhas não coincidem.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!formData.especialidade) {
-      toast({
-        title: "Erro de validação",
-        description: "Especialidade é obrigatória.",
+        description: erros[0],
         variant: "destructive",
       });
       return false;
@@ -252,6 +351,37 @@ const CadastroVoluntario = () => {
 
     return true;
   };
+  // Função para validar step atual
+  const validarStep = (step: number) => {
+    switch (step) {
+      case 1:
+        return formData.nome.trim() && formData.sobrenome.trim() && formData.email.trim() && 
+               /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+      case 2:
+        return formData.senha.length >= 6 && formData.senha === formData.confirmarSenha;
+      default:
+        return true;
+    }
+  };  // Navegação entre steps
+  const proximoStep = () => {
+    if (validarStep(currentStep)) {
+      if (currentStep === 3) {
+        // Se estamos no step 3 (revisão), mostrar modal de credenciais
+        setShowCredentialsModal(true);
+      } else {
+        setCurrentStep(prev => Math.min(prev + 1, 3));
+      }
+    }
+  };
+  const stepAnterior = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  // Função para confirmar envio das credenciais
+  const confirmarEnvioCredenciais = () => {
+    setShowCredentialsModal(false);
+    setShowConfirmModal(true);
+  };
 
   // Função para submeter formulário
   const handleSubmit = (e: React.FormEvent) => {
@@ -269,36 +399,34 @@ const CadastroVoluntario = () => {
     try {
       // Simular API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Criar novo voluntário
+        // Criar novo voluntário
       const novoVoluntario: Voluntario = {
         id: `vol${Date.now()}`,
         nome: formData.nome,
         sobrenome: formData.sobrenome,
         email: formData.email,
-        especialidade: formData.especialidade,
+        especialidade: "Não especificado",
         status: "ativo",
         dataCadastro: new Date()
       };
       
       // Adicionar à lista
-      setVoluntarios(prev => [novoVoluntario, ...prev]);
-      
-      // Limpar formulário
+      setVoluntarios(prev => [novoVoluntario, ...prev]);        // Limpar formulário
       setFormData({
         nome: "",
         sobrenome: "",
         email: "",
+        telefone: "",
+        cpf: "",
         senha: "",
-        confirmarSenha: "",
-        especialidade: ""
+        confirmarSenha: ""
       });
       
       setShowConfirmModal(false);
       
       toast({
         title: "Voluntário cadastrado!",
-        description: `${formData.nome} ${formData.sobrenome} foi cadastrado como voluntário na área de ${formData.especialidade}.`,
+        description: `${formData.nome} ${formData.sobrenome} foi cadastrado como voluntário.`,
         variant: "default",
       });
     } catch (error) {
@@ -439,9 +567,7 @@ const CadastroVoluntario = () => {
           <div className="max-w-6xl mx-auto p-2 sm:p-4 md:p-8 pt-24 sm:pt-28 md:pt-24">
             <div className="flex flex-col">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Cadastro de Voluntários</h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">Cadastre novos voluntários para atuar no sistema</p>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Cadastre novos voluntários para atuar no sistema</p>              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Formulário de cadastro */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -457,102 +583,293 @@ const CadastroVoluntario = () => {
                       <CardDescription>
                         Preencha os dados do voluntário para criar o acesso
                       </CardDescription>
+                        {/* Stepper */}
+                      <div className="flex items-center justify-between mt-4">
+                        {[1, 2, 3].map((step) => (
+                          <div key={step} className="flex items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
+                              step < currentStep ? 'bg-green-500 text-white' :
+                              step === currentStep ? 'bg-[#ED4231] text-white' :
+                              'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                            }`}>
+                              {step < currentStep ? <Check className="w-4 h-4" /> : step}
+                            </div>
+                            {step < 3 && (
+                              <div className={`w-full h-0.5 mx-2 transition-all duration-300 ${
+                                step < currentStep ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
+                              }`} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="text-sm text-gray-600 dark:text-gray-400 text-center mt-2">
+                        {currentStep === 1 && "Dados Pessoais"}
+                        {currentStep === 2 && "Credenciais de Acesso"}
+                        {currentStep === 3 && "Revisão e Confirmação"}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="nome">Nome *</Label>
-                            <Input
-                              id="nome"
-                              type="text"
-                              value={formData.nome}
-                              onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                              placeholder="Nome do voluntário"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
+                        {/* Step 1: Dados Pessoais */}
+                        {currentStep === 1 && (
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-4"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="nome">Nome *</Label>
+                                <Input
+                                  id="nome"
+                                  type="text"
+                                  value={formData.nome}
+                                  onChange={(e) => handleFieldChange('nome', e.target.value)}
+                                  placeholder="Nome do voluntário"
+                                  className={`mt-1 ${fieldErrors.nome ? 'border-red-500' : ''}`}
+                                  required
+                                />
+                                {fieldErrors.nome && (
+                                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {fieldErrors.nome}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              <div>
+                                <Label htmlFor="sobrenome">Sobrenome *</Label>
+                                <Input
+                                  id="sobrenome"
+                                  type="text"
+                                  value={formData.sobrenome}
+                                  onChange={(e) => handleFieldChange('sobrenome', e.target.value)}
+                                  placeholder="Sobrenome do voluntário"
+                                  className={`mt-1 ${fieldErrors.sobrenome ? 'border-red-500' : ''}`}
+                                  required
+                                />
+                                {fieldErrors.sobrenome && (
+                                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {fieldErrors.sobrenome}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor="email">Email Profissional *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => handleFieldChange('email', e.target.value)}
+                                placeholder="email@voluntario.com"
+                                className={`mt-1 ${fieldErrors.email ? 'border-red-500' : ''}`}
+                                required
+                              />
+                              {fieldErrors.email && (
+                                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {fieldErrors.email}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="telefone">Telefone</Label>
+                                <Input
+                                  id="telefone"
+                                  type="text"
+                                  value={formData.telefone}
+                                  onChange={(e) => handleFieldChange('telefone', e.target.value)}
+                                  placeholder="(11) 99999-9999"
+                                  className={`mt-1 ${fieldErrors.telefone ? 'border-red-500' : ''}`}
+                                />
+                                {fieldErrors.telefone && (
+                                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {fieldErrors.telefone}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              <div>
+                                <Label htmlFor="cpf">CPF</Label>
+                                <Input
+                                  id="cpf"
+                                  type="text"
+                                  value={formData.cpf}
+                                  onChange={(e) => handleFieldChange('cpf', e.target.value)}
+                                  placeholder="000.000.000-00"
+                                  className={`mt-1 ${fieldErrors.cpf ? 'border-red-500' : ''}`}
+                                />
+                                {fieldErrors.cpf && (
+                                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {fieldErrors.cpf}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Step 2: Credenciais */}
+                        {currentStep === 2 && (
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-4"
+                          >
+                            <div>
+                              <Label htmlFor="senha">Senha *</Label>
+                              <div className="relative">
+                                <Input
+                                  id="senha"
+                                  type={showPassword ? "text" : "password"}
+                                  value={formData.senha}
+                                  onChange={(e) => handleFieldChange('senha', e.target.value)}
+                                  placeholder="Mínimo 6 caracteres"
+                                  className={`mt-1 pr-10 ${fieldErrors.senha ? 'border-red-500' : ''}`}
+                                  required
+                                />                                <Button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 h-8 w-8 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                  {showPassword ? <EyeOff className="w-4 h-4 text-[#ED4231]" /> : <Eye className="w-4 h-4 text-[#ED4231]" />}
+                                </Button>
+                              </div>
+                              
+                              {/* Indicador de força da senha */}
+                              {formData.senha && (
+                                <div className="mt-2">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm text-gray-600 dark:text-gray-400">Força da senha:</span>
+                                    <span className={`text-sm font-medium ${
+                                      passwordStrength.score <= 1 ? 'text-red-500' :
+                                      passwordStrength.score === 2 ? 'text-yellow-500' :
+                                      passwordStrength.score === 3 ? 'text-blue-500' :
+                                      'text-green-500'
+                                    }`}>
+                                      {passwordStrength.feedback}
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div
+                                      className={`h-2 rounded-full transition-all duration-300 ${
+                                        passwordStrength.score <= 1 ? 'bg-red-500' :
+                                        passwordStrength.score === 2 ? 'bg-yellow-500' :
+                                        passwordStrength.score === 3 ? 'bg-blue-500' :
+                                        'bg-green-500'
+                                      }`}
+                                      style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {fieldErrors.senha && (
+                                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {fieldErrors.senha}
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
+                              <div className="relative">
+                                <Input
+                                  id="confirmarSenha"
+                                  type={showConfirmPassword ? "text" : "password"}
+                                  value={formData.confirmarSenha}
+                                  onChange={(e) => handleFieldChange('confirmarSenha', e.target.value)}
+                                  placeholder="Confirme a senha"
+                                  className={`mt-1 pr-10 ${fieldErrors.confirmarSenha ? 'border-red-500' : ''}`}
+                                  required
+                                />                                <Button
+                                  type="button"
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 h-8 w-8 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                  {showConfirmPassword ? <EyeOff className="w-4 h-4 text-[#ED4231]" /> : <Eye className="w-4 h-4 text-[#ED4231]" />}
+                                </Button>
+                              </div>
+                              {fieldErrors.confirmarSenha && (
+                                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {fieldErrors.confirmarSenha}
+                                </p>
+                              )}
+                            </div>
+                          </motion.div>                        )}
+
+                        {/* Step 3: Revisão */}
+                        {currentStep === 3 && (
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-4"
+                          >
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Revise os dados:</h4>                              <div className="space-y-2 text-sm">
+                                <div><strong>Nome:</strong> {formData.nome} {formData.sobrenome}</div>
+                                <div><strong>Email:</strong> {formData.email}</div>
+                                {formData.telefone && <div><strong>Telefone:</strong> {formData.telefone}</div>}
+                                {formData.cpf && <div><strong>CPF:</strong> {formData.cpf}</div>}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Navegação */}
+                        <div className="flex justify-between pt-4">
+                          {currentStep > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={stepAnterior}
+                              className="flex items-center gap-2"
+                            >
+                              <ChevronRight className="w-4 h-4 rotate-180" />
+                              Anterior
+                            </Button>
+                          )}
                           
-                          <div>
-                            <Label htmlFor="sobrenome">Sobrenome *</Label>
-                            <Input
-                              id="sobrenome"
-                              type="text"
-                              value={formData.sobrenome}
-                              onChange={(e) => setFormData(prev => ({ ...prev, sobrenome: e.target.value }))}
-                              placeholder="Sobrenome do voluntário"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
+                          <div className="flex-1" />
+                            {currentStep < 3 ? (
+                            <Button
+                              type="button"
+                              onClick={proximoStep}
+                              disabled={!validarStep(currentStep)}
+                              className="bg-[#ED4231] hover:bg-[#D63626] text-white flex items-center gap-2"
+                            >
+                              Próximo
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button 
+                              type="button"
+                              onClick={proximoStep}
+                              disabled={!validarStep(currentStep)}
+                              className="bg-[#ED4231] hover:bg-[#D63626] text-white flex items-center gap-2"
+                            >
+                              <UserPlus className="w-4 h-4 mr-2" />
+                              Cadastrar Voluntário
+                            </Button>
+                          )}
                         </div>
-
-                        <div>
-                          <Label htmlFor="email">Email Profissional *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                            placeholder="email@voluntario.com"
-                            className="mt-1"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="especialidade">Especialidade *</Label>
-                          <Select value={formData.especialidade} onValueChange={(value) => setFormData(prev => ({ ...prev, especialidade: value }))}>
-                            <SelectTrigger className="mt-1">
-                              <SelectValue placeholder="Selecione a especialidade" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {especialidades.map((esp) => (
-                                <SelectItem key={esp} value={esp}>{esp}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="senha">Senha *</Label>
-                            <Input
-                              id="senha"
-                              type="password"
-                              value={formData.senha}
-                              onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
-                              placeholder="Mínimo 6 caracteres"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
-                            <Input
-                              id="confirmarSenha"
-                              type="password"
-                              value={formData.confirmarSenha}
-                              onChange={(e) => setFormData(prev => ({ ...prev, confirmarSenha: e.target.value }))}
-                              placeholder="Confirme a senha"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <Button type="submit" className="w-full bg-[#ED4231] hover:bg-[#D63626] text-white">
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Cadastrar Voluntário
-                        </Button>
                       </form>
                     </CardContent>
                   </Card>
-                </motion.div>
-
-                {/* Lista de voluntários cadastrados */}
+                </motion.div>                {/* Lista de voluntários cadastrados */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -565,31 +882,119 @@ const CadastroVoluntario = () => {
                         Voluntários Cadastrados
                       </CardTitle>
                       <CardDescription>
-                        {voluntarios.length} voluntário{voluntarios.length !== 1 ? 's' : ''} no sistema
+                        {voluntarios.filter(vol => {
+                          const matchSearch = vol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            vol.sobrenome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            vol.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
+                          return matchSearch && matchStatus;
+                        }).length} voluntário{voluntarios.length !== 1 ? 's' : ''} encontrado{voluntarios.length !== 1 ? 's' : ''}
                       </CardDescription>
+                      
+                      {/* Filtros e busca */}
+                      <div className="space-y-3 mt-4">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input
+                            placeholder="Buscar voluntários..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Filter className="w-4 h-4 text-gray-500" />
+                          <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="todos">Todos</SelectItem>
+                              <SelectItem value="ativo">Ativos</SelectItem>
+                              <SelectItem value="inativo">Inativos</SelectItem>
+                              <SelectItem value="pendente">Pendentes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {voluntarios.map((voluntario) => (
-                          <div key={voluntario.id} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        {voluntarios
+                          .filter(vol => {
+                            const matchSearch = vol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                              vol.sobrenome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                              vol.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                              vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
+                            const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
+                            return matchSearch && matchStatus;
+                          })
+                          .map((voluntario) => (
+                          <motion.div 
+                            key={voluntario.id} 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:shadow-md"
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">
                                 {voluntario.nome} {voluntario.sobrenome}
                               </h4>
-                              <Badge className={getStatusColor(voluntario.status)}>
-                                {getStatusText(voluntario.status)}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge className={getStatusColor(voluntario.status)}>
+                                  {getStatusText(voluntario.status)}
+                                </Badge>
+                                {voluntario.status === "ativo" && (
+                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                )}
+                              </div>
                             </div>
                             <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                              <p>{voluntario.email}</p>
-                              <p>{voluntario.especialidade}</p>
-                              <p>Cadastrado em: {formatarData(voluntario.dataCadastro)}</p>
+                              <div className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                <p>{voluntario.email}</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                <p>{voluntario.especialidade}</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="w-3 h-3" />
+                                <p>Cadastrado em: {formatarData(voluntario.dataCadastro)}</p>
+                              </div>
                               {voluntario.ultimoAcesso && (
-                                <p>Último acesso: {formatarData(voluntario.ultimoAcesso)}</p>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  <p>Último acesso: {formatarData(voluntario.ultimoAcesso)}</p>
+                                </div>
                               )}
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
+                        
+                        {voluntarios.filter(vol => {
+                          const matchSearch = vol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            vol.sobrenome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            vol.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
+                          const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
+                          return matchSearch && matchStatus;
+                        }).length === 0 && (
+                          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p className="text-sm">Nenhum voluntário encontrado</p>
+                            {searchTerm && (                              <Button
+                                variant="outline"
+                                onClick={() => setSearchTerm("")}
+                                className="text-[#ED4231] text-xs mt-1"
+                              >
+                                Limpar busca
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -598,6 +1003,61 @@ const CadastroVoluntario = () => {
             </div>
           </div>
         </main>
+
+        {/* Modal de Credenciais */}
+        <Dialog open={showCredentialsModal} onOpenChange={setShowCredentialsModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-[#ED4231]" />
+                Envio de Credenciais
+              </DialogTitle>
+              <DialogDescription>
+                As credenciais de acesso serão enviadas por email para o voluntário.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-2">
+                  <Mail className="w-4 h-4" />
+                  <span className="text-sm font-medium">Email de Confirmação</span>
+                </div>
+                <p className="text-sm text-blue-600 dark:text-blue-300">
+                  Um email será enviado para <strong>{formData.email}</strong> contendo:
+                </p>
+                <ul className="text-sm text-blue-600 dark:text-blue-300 mt-2 ml-4 list-disc">
+                  <li>Link de acesso ao sistema</li>
+                  <li>Credenciais temporárias</li>
+                  <li>Instruções para primeiro acesso</li>
+                </ul>
+              </div>
+              
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="text-sm font-medium">Importante</span>
+                </div>
+                <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">
+                  Certifique-se de que o email está correto antes de prosseguir.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCredentialsModal(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={confirmarEnvioCredenciais}
+                className="bg-[#ED4231] hover:bg-[#D63626] text-white"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Enviar Credenciais
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Modal de Confirmação */}
         <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
@@ -614,11 +1074,9 @@ const CadastroVoluntario = () => {
             
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Dados do Voluntário:</h4>
-                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Dados do Voluntário:</h4>                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                   <p><strong>Nome:</strong> {formData.nome} {formData.sobrenome}</p>
                   <p><strong>Email:</strong> {formData.email}</p>
-                  <p><strong>Especialidade:</strong> {formData.especialidade}</p>
                 </div>
               </div>
               

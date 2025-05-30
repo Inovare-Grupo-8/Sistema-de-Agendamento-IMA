@@ -56,9 +56,7 @@ interface FormularioInscricao {
   complemento?: string;
   bairro: string;
   cidade: string;
-  estado: string;
-  areaOrientacao: string;
-  profissao: string;
+  estado: string;  areaOrientacao: string;
   comoSoube: string;
   sugestaoOutraArea?: string;
   dataSubmissao: Date;
@@ -128,9 +126,7 @@ const formulariosPendentes: FormularioInscricao[] = [
     complemento: "Apto 45",
     bairro: "Centro",
     cidade: "São Paulo",
-    estado: "SP",
-    areaOrientacao: "Orientação Familiar",
-    profissao: "Professora",
+    estado: "SP",    areaOrientacao: "Orientação Familiar",
     comoSoube: "Indicação de amigo",
     dataSubmissao: new Date(2025, 4, 29),
     status: "pendente"
@@ -146,9 +142,7 @@ const formulariosPendentes: FormularioInscricao[] = [
     numero: "567",
     bairro: "Vila Nova",
     cidade: "São Paulo",
-    estado: "SP",
-    areaOrientacao: "Orientação Profissional",
-    profissao: "Engenheiro",
+    estado: "SP",    areaOrientacao: "Orientação Profissional",
     comoSoube: "Site da instituição",
     dataSubmissao: new Date(2025, 4, 28),
     status: "pendente"
@@ -164,9 +158,7 @@ const formulariosPendentes: FormularioInscricao[] = [
     numero: "89",
     bairro: "Jardim das Rosas",
     cidade: "São Paulo",
-    estado: "SP",
-    areaOrientacao: "Orientação Psicossocial",
-    profissao: "Psicóloga",
+    estado: "SP",    areaOrientacao: "Orientação Psicossocial",
     comoSoube: "Redes sociais",
     dataSubmissao: new Date(2025, 4, 27),
     status: "pendente"
@@ -663,15 +655,9 @@ const AssistenteSocial = () => {
                         <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</label>
                         <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.email}</p>
                       </div>
-                      
-                      <div>
+                        <div>
                         <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Telefone</label>
                         <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.telefone}</p>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Profissão</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.profissao}</p>
                       </div>
                     </div>
                   </div>
