@@ -21,6 +21,7 @@ import { useEffect } from "react";
 import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
 import AgendarHorarioUser from "@/components/AgendarHorarioUser";
 import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
+import AssistenteSocial from "@/components/AssistenteSocial";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProfessionalProvider } from "@/contexts/ProfessionalContext";
 
@@ -68,10 +69,11 @@ const App = () => {
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/historico" element={<Historico />} />
                       <Route path="/profile-form" element={<ProfileForm />} />
-                      <Route path="/login" element={<TelaLogin />} />
-
-                      {/* Rota para o formulário de inscrição */}
+                      <Route path="/login" element={<TelaLogin />} />                      {/* Rota para o formulário de inscrição */}
                       <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />
+
+                      {/* Rotas da assistente social */}
+                      <Route path="/assistente-social" element={<AssistenteSocial />} />
 
                       {/* Redirecionamento para a home do usuário como fallback */}
                       <Route path="/" element={<HomeUser />} />
