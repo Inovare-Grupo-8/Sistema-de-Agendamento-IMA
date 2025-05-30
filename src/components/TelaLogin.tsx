@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../TelaLogin.css';
 import ModalErro from './ui/ModalErro';
+import { Locate } from 'lucide-react';
 
 const TelaLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,14 @@ const TelaLogin: React.FC = () => {
   useEffect(() => {
     document.title = isSignUpMode ? 'Cadastro' : 'Login';
   }, [isSignUpMode]);
+
+  // Fechar modal automaticamente após 5 segundos
+  useEffect(() => {
+    if (modalErro) {
+      const timer = setTimeout(() => setModalErro(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [modalErro]);
 
   // Alternar entre login e cadastro e atualizar a URL
   const toggleMode = () => {
@@ -59,8 +68,8 @@ const TelaLogin: React.FC = () => {
   const validarSenha = (senha: string): string | null => {
     if (senha.length < 6) {
       return 'A senha deve ter pelo menos 6 caracteres.';
-    } else if (/[!@#$%^&*]/.test(senha)) {
-      return 'A senha não pode conter caracteres especiais como @, #, $, %, &, *.';
+    } else if (!/[!@#$%^&*]/.test(senha)) {
+      return 'A senha deve conter pelo menos um caractere especial como @, #, $, %, &, *.';
     }
     return null;
   };
@@ -80,43 +89,35 @@ const TelaLogin: React.FC = () => {
   };
 
   const validarCadastro = (): boolean => {
-    // Verifica se todos os campos estão preenchidos
     if (!cadastroNome || !cadastroEmail || !cadastroSenha || !cadastroCPF || !cadastroDataNascimento) {
       setModalErro('Por favor, preencha todos os campos.');
       return false;
     }
-
-    // Validações individuais
     const erroNome = validarNome(cadastroNome);
     if (erroNome) {
       setModalErro(erroNome);
       return false;
     }
-
     const erroEmail = validarEmail(cadastroEmail);
     if (erroEmail) {
       setModalErro(erroEmail);
       return false;
     }
-
     const erroSenha = validarSenha(cadastroSenha);
     if (erroSenha) {
       setModalErro(erroSenha);
       return false;
     }
-
     const erroCPF = validarCPF(cadastroCPF);
     if (erroCPF) {
       setModalErro(erroCPF);
       return false;
     }
-
     const erroDataNascimento = validarDataNascimento(cadastroDataNascimento);
     if (erroDataNascimento) {
       setModalErro(erroDataNascimento);
       return false;
     }
-
     return true;
   };
 
@@ -161,7 +162,7 @@ const TelaLogin: React.FC = () => {
 
         if (usuario) {
           alert('Login bem-sucedido!');
-          window.location.href = '/agenda'; // Ajuste para rota relativa
+          window.location.href = '/agenda';
         } else {
           setModalErro('Email ou senha incorretos.');
         }
@@ -241,6 +242,9 @@ const TelaLogin: React.FC = () => {
               ></i>
             </div>
             <input type="button" value="Entrar" className="btn solid" onClick={handleLogin} />
+            <button className="btn-google" onClick={() => window.location.href = 'localhost:8080/login/authorization/google'}>
+              <img src="./image/google-icon-logo.svg" alt="" />
+            </button>
           </form>
 
           {/* Cadastro Form */}
@@ -289,6 +293,7 @@ const TelaLogin: React.FC = () => {
                 placeholder="CPF"
                 value={cadastroCPF}
                 onChange={handleCPFChange}
+                maxLength={14}
                 required
               />
             </div>
@@ -302,6 +307,9 @@ const TelaLogin: React.FC = () => {
               />
             </div>
             <input type="button" className="btn" value="Cadastrar" onClick={handleCadastro} />
+            <button className="btn-google" onClick={() => window.location.href = 'localhost:8080/login/authorization/google'}>
+              <img src="./image/google-icon-logo.svg" alt="" />
+            </button>
           </form>
         </div>
       </div>
@@ -316,17 +324,17 @@ const TelaLogin: React.FC = () => {
               Cadastre-se
             </button>
           </div>
-          <img src="../image/homem-computador.svg" id="homem" className="image" alt="Homem no computador" />
+          <img src="./image/homem-computador.svg" id="homem" className="image" alt="Homem no computador" />
         </div>
         <div className="panel right-panel">
           <div className="content">
-            <h3>JÁ TEM CONTA?</h3>
+            <h3>JÁ TEM CONTA?</h3>  
             <p>Já aproveita dos nossos serviços?</p>
             <button className="btn transparent" onClick={toggleMode}>
               Log-in
             </button>
           </div>
-          <img src="../image/senhorzinho.png" id="senhor" className="image" alt="Senhorzinho" />
+          <img src="./image/senhorzinho.png" id="senhor" className="image" alt="Senhorzinho" />
         </div>
       </div>
 
