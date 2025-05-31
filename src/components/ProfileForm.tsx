@@ -17,6 +17,14 @@ import { useProfessional } from "@/hooks/useProfessional";
 import { UserData } from "@/types/user";
 import { ProfessionalData } from "@/types/professional";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -57,11 +65,6 @@ const professionalNavItems = [
     path: "/historico",
     label: "Histórico",
     icon: <History className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/disponibilizar-horario",
-    label: "Disponibilizar Horário",
-    icon: <Clock className="w-6 h-6" color="#ED4231" />
   },
   {
     path: "/profile-form",
@@ -263,8 +266,7 @@ const ProfileForm = () => {
       });
     }, 2000);
   };
-  
-  // Adicione seção para disponibilidade de horários no perfil do profissional
+    // Adicione seção para disponibilidade de horários no perfil do profissional
   const [disponibilidade, setDisponibilidade] = useState({
     segunda: { manha: false, tarde: false, noite: false },
     terca: { manha: false, tarde: false, noite: false },
@@ -275,15 +277,49 @@ const ProfileForm = () => {
     domingo: { manha: false, tarde: false, noite: false },
   });
   
-  const handleDisponibilidadeChange = (dia: string, periodo: string) => {
+  // Estados para o modal de horários específicos
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({ dia: '', periodo: '' });
+  const [horariosEspecificos, setHorariosEspecificos] = useState('');
+    const handleDisponibilidadeChange = (dia: string, periodo: string) => {
+    // Se está marcando o checkbox (vai ficar true), abre o modal
+    const currentValue = disponibilidade[dia as keyof typeof disponibilidade][periodo as 'manha' | 'tarde' | 'noite'];
+    const isChecking = !currentValue;
+    
+    if (isChecking) {
+      setModalData({ dia, periodo });
+      setHorariosEspecificos('');
+      setIsModalOpen(true);
+    } else {
+      // Se está desmarcando, remove diretamente
+      setFormChanged(true);
+      setDisponibilidade(prev => ({
+        ...prev,
+        [dia]: {
+          ...prev[dia as keyof typeof prev],
+          [periodo]: false
+        }
+      }));
+    }
+  };
+  
+  const confirmarDisponibilidade = () => {
     setFormChanged(true);
     setDisponibilidade(prev => ({
       ...prev,
-      [dia]: {
-        ...prev[dia as keyof typeof prev],
-        [periodo]: !prev[dia as keyof typeof prev][periodo as keyof typeof prev]
+      [modalData.dia]: {
+        ...prev[modalData.dia as keyof typeof prev],
+        [modalData.periodo]: true
       }
     }));
+    setIsModalOpen(false);
+    
+    if (horariosEspecificos.trim()) {
+      toast({
+        title: "Disponibilidade configurada",
+        description: `Horários específicos salvos para ${modalData.periodo} de ${modalData.dia}-feira.`,
+      });
+    }
   };
   
   // Fix the duplicate and incorrectly formatted handleCancel function
@@ -837,9 +873,54 @@ const ProfileForm = () => {
                 </TabsContent>
               </Tabs>
             </div>
-          </div>
-        </main>
+          </div>        </main>
       </div>
+      
+      {/* Modal para configurar horários específicos */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar Horário Específico</DialogTitle>
+            <DialogDescription>
+              Você marcou como disponível no período da {modalData.periodo} de {modalData.dia}-feira. 
+              Há algum horário específico deste período que você NÃO atende?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="horarios-especificos">
+                Horários que você NÃO atende (opcional)
+              </Label>
+              <textarea
+                id="horarios-especificos"
+                value={horariosEspecificos}
+                onChange={(e) => setHorariosEspecificos(e.target.value)}
+                placeholder="Ex: 08:00-09:00, 11:30-12:00"
+                className="w-full min-h-[80px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Digite os horários que você não atende neste período, separados por vírgula.
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={confirmarDisponibilidade}
+                className="bg-[#ED4231] hover:bg-[#d53a2a]"
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
