@@ -69,9 +69,10 @@ const App = () => {
                       <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/historico" element={<Historico />} />
-                      <Route path="/profile-form" element={<ProfileForm />} />
-                      <Route path="/login" element={<TelaLogin />} />                      {/* Rota para o formulário de inscrição */}
-                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />                      {/* Rotas da assistente social */}
+                      <Route path="/profile-form" element={<ProfileForm />} />                      <Route path="/login" element={<TelaLogin />} />                      
+                      <Route path="/cadastro" element={<TelaLogin />} />
+                      {/* Rota para o formulário de inscrição */}
+                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />{/* Rotas da assistente social */}
                       <Route path="/assistente-social" element={<AssistenteSocial />} />
                       <Route path="/cadastro-voluntario" element={<CadastroVoluntario />} />
 

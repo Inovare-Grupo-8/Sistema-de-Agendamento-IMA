@@ -139,40 +139,83 @@ const TelaLogin: React.FC = () => {
       passwordInput.type = 'password';
     }
   };
-
   // Login
   const handleLogin = () => {
+    // Validação dos campos antes de enviar ao backend
+    if (!loginEmail || !loginSenha) {
+      setModalErro('Por favor, preencha todos os campos.');
+      return;
+    }
+
     const erroEmail = validarEmail(loginEmail);
     if (erroEmail) {
       setModalErro(erroEmail);
       return;
     }
 
-    fetch('http://localhost:8080/usuarios', { 
-      method: 'GET',
+    // Mostrar loading ou desabilitar botão de login aqui se desejar
+
+    const loginData = {
+      email: loginEmail,
+      senha: loginSenha
+    };
+
+    fetch('http://localhost:8080/usuarios/login', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(loginData)
     })
-      .then((response) => response.json())
-      .then((usuarios) => {
-        const usuario = usuarios.find(
-          (user: any) => user.email === loginEmail && user.senha === loginSenha
-        );
+      .then(async (response) => {
+        const data = await response.json();
+        
+        if (!response.ok) {
+          // Usa a mensagem específica do backend se disponível
+          throw new Error(data.message || 'Credenciais inválidas. Verifique seu email e senha.');
+        }
+        
+        return data;
+      })
+      .then((data) => {
+        if (!data) {
+          throw new Error('Erro ao obter dados do usuário');
+        }
 
-        if (usuario) {
-          alert('Login bem-sucedido!');
-          window.location.href = '/agenda';
+        // Salva os dados do usuário incluindo token se houver
+        localStorage.setItem('userData', JSON.stringify(data));
+
+        // Limpa os campos de login
+        setLoginEmail('');
+        setLoginSenha('');
+
+        // Verifica a fase do usuário e redireciona
+        if (data.fase === 1) {
+          // Só redireciona com id se existir
+          if (data.id) {
+            navigate(`/inscricao-anamnese?id=${data.id}`);
+          } else {
+            navigate('/inscricao-anamnese');
+          }
         } else {
-          setModalErro('Email ou senha incorretos.');
+          // Redireciona baseado no tipo do usuário
+          switch (data.tipo) {
+            case 'ADMIN':
+              navigate('/home');
+              break;
+            case 'ASSISTENTE_SOCIAL':
+              navigate('/assistente-social');
+              break;
+            default:
+              navigate('/home-user');
+          }
         }
       })
-      .catch(() => {
-        setModalErro('Erro ao tentar realizar o login.');
+      .catch((error) => {
+        setModalErro(error.message || 'Erro ao tentar realizar o login. Tente novamente mais tarde.');
       });
   };
-
-  // Cadastro
+  // Cadastro - Fase 1
   const handleCadastro = () => {
     if (!validarCadastro()) {
       return;
@@ -182,25 +225,39 @@ const TelaLogin: React.FC = () => {
       nome: cadastroNome,
       email: cadastroEmail,
       senha: cadastroSenha,
-      cpf: cadastroCPF,
-      dataNascimento: cadastroDataNascimento,
+      cpf: cadastroCPF.replace(/\D/g, ''), 
+      dataNascimento: cadastroDataNascimento
     };
 
-    fetch('http://localhost:8080/usuarios', {
+    // Log do que está sendo enviado para cadastro
+    console.log('[Cadastro] Enviando para backend:', novoUsuario);
+
+    fetch('http://localhost:8080/usuarios/fase1', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(novoUsuario),
     })
       .then((response) => {
-        if (response.ok) {
-          alert('Usuário cadastrado com sucesso!');
-          navigate('/login');
-        } else {
-          return response.json().then((data) => {
-            throw new Error(data.message || 'Erro ao tentar cadastrar usuário.');
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || 'Erro ao cadastrar usuário');
           });
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Armazena os dados do usuário incluindo o ID
+        localStorage.setItem('userData', JSON.stringify(data));
+
+        alert('Cadastro realizado com sucesso! Por favor, preencha o formulário de anamnese.');
+        // Redireciona para anamnese passando o ID do usuário se existir (id ou idUsuario)
+        const userId = data.idUsuario;
+        if (userId) {
+          navigate(`/inscricao-anamnese?id=${userId}`);
+        } else {
+          navigate('/inscricao-anamnese');
         }
       })
       .catch((error) => {
@@ -240,9 +297,12 @@ const TelaLogin: React.FC = () => {
                 onClick={() => togglePasswordVisibility('password_login')}
                 style={{ cursor: 'pointer' }}
               ></i>
-            </div>
+            </div>            
             <input type="button" value="Entrar" className="btn solid" onClick={handleLogin} />
-            <button className="btn-google" onClick={() => window.location.href = 'localhost:8080/login/authorization/google'}>
+            <button 
+              className="btn-google" 
+              onClick={() => window.location.href = '/home'}
+            >
               <img src="./image/google-icon-logo.svg" alt="" />
             </button>
           </form>
@@ -305,9 +365,11 @@ const TelaLogin: React.FC = () => {
                 onChange={(e) => setCadastroDataNascimento(e.target.value)}
                 required
               />
-            </div>
-            <input type="button" className="btn" value="Cadastrar" onClick={handleCadastro} />
-            <button className="btn-google" onClick={() => window.location.href = 'localhost:8080/login/authorization/google'}>
+            </div>            <input type="button" className="btn" value="Cadastrar" onClick={handleCadastro} />
+            <button 
+              className="btn-google" 
+              onClick={() => window.location.href = 'http://localhost:8080/login/authorization/google'}
+            >
               <img src="./image/google-icon-logo.svg" alt="" />
             </button>
           </form>
@@ -328,7 +390,7 @@ const TelaLogin: React.FC = () => {
         </div>
         <div className="panel right-panel">
           <div className="content">
-            <h3>JÁ TEM CONTA?</h3>  
+            <h3>JÁ TEM CONTA?</h3>
             <p>Já aproveita dos nossos serviços?</p>
             <button className="btn transparent" onClick={toggleMode}>
               Log-in
