@@ -140,18 +140,21 @@ const CadastroVoluntario = () => {
   const [passwordStrength, setPasswordStrength] = useState({
     score: 0,
     feedback: ""
-  });
-  // Estados para controle da interface
+  });  // Estados para controle da interface
   const [voluntarios, setVoluntarios] = useState<Voluntario[]>(voluntariosData);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showCredentialsModal, setShowCredentialsModal] = useState(false);useEffect(() => {
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+
+  useEffect(() => {
     // Simular carregamento de dados
     const loadData = async () => {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 1000));
       setLoading(false);
-    };    loadData();
+    };
+    
+    loadData();
   }, []);
 
   // Função para validar CPF

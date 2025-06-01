@@ -23,6 +23,7 @@ import AgendarHorarioUser from "@/components/AgendarHorarioUser";
 import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
 import AssistenteSocial from "@/components/AssistenteSocial";
 import CadastroVoluntario from "@/components/CadastroVoluntario";
+import PagamentoUser from "@/components/PagamentoUser";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProfessionalProvider } from "@/contexts/ProfessionalContext";
 
@@ -56,13 +57,13 @@ const App = () => {
               <ProfessionalProvider>
                 <Router>
                   <UserNavigationProvider>
-                    <Routes>
-                      {/* Rotas do usuário */}
+                    <Routes>                      {/* Rotas do usuário */}
                       <Route path="/home-user" element={<HomeUser />} />
                       <Route path="/agenda-user" element={<AgendaUser />} />
                       <Route path="/historico-user" element={<HistoricoUser />} />
                       <Route path="/agendar-horario-user" element={<AgendarHorarioUser />} />
                       <Route path="/profile-form-user" element={<ProfileFormUser />} />
+                      <Route path="/pagamento-user" element={<PagamentoUser />} />
 
                       {/* Rotas do profissional */}
                       <Route path="/home" element={<Home />} />
