@@ -90,17 +90,28 @@ const PagamentoUser = () => {
     installments: "1"
   });
 
-  // Estados da interface
+  // Estados da interface - com loading states mais específicos
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedServices, setSelectedServices] = useState<ServiceItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
+  const [loadingState, setLoadingState] = useState<{
+    type: 'initial' | 'services' | 'payment' | 'validation' | '';
+    message: string;
+  }>({ type: 'initial', message: 'Carregando dados...' });
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    // Simular carregamento
+    // Simular carregamento com estados mais específicos
     const loadData = async () => {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Etapa 1: Carregando configurações
+      setLoadingState({ type: 'initial', message: 'Inicializando sistema de pagamento...' });
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Etapa 2: Carregando serviços
+      setLoadingState({ type: 'services', message: 'Carregando seus serviços selecionados...' });
+      await new Promise(resolve => setTimeout(resolve, 600));
       
       // Carregar serviços selecionados da sessão/estado
       const savedServices = localStorage.getItem('selectedServices');
@@ -111,10 +122,25 @@ const PagamentoUser = () => {
         setSelectedServices([availableServices[0]]);
       }
       
+      // Etapa 3: Finalizando
+      setLoadingState({ type: 'validation', message: 'Validando informações...' });
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
       setLoading(false);
+      setLoadingState({ type: '', message: '' });
     };
     
+    // Detectar se é mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
     loadData();
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []); // Removemos a dependência para evitar o loop
 
   // Calcular total
@@ -222,7 +248,6 @@ const PagamentoUser = () => {
     
     return true;
   };
-
   // Processar pagamento
   const handlePayment = async () => {
     if (!validateForm()) return;
@@ -230,8 +255,31 @@ const PagamentoUser = () => {
     setIsProcessing(true);
     
     try {
-      // Simular processamento do pagamento
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Etapa 1: Validando dados do pagamento
+      setLoadingState({ type: 'validation', message: 'Validando dados do pagamento...' });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Etapa 2: Processando pagamento específico por método
+      let paymentMessage = '';
+      switch (paymentData.paymentMethod) {
+        case 'cartao':
+          paymentMessage = 'Processando pagamento no cartão...';
+          break;
+        case 'pix':
+          paymentMessage = 'Gerando código PIX...';
+          break;
+        case 'boleto':
+          paymentMessage = 'Gerando boleto bancário...';
+          break;
+        default:
+          paymentMessage = 'Processando pagamento...';
+      }
+      setLoadingState({ type: 'payment', message: paymentMessage });
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Etapa 3: Finalizando transação
+      setLoadingState({ type: 'validation', message: 'Finalizando transação...' });
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Salvar dados do pagamento
       const paymentRecord = {
@@ -262,6 +310,7 @@ const PagamentoUser = () => {
       });
     } finally {
       setIsProcessing(false);
+      setLoadingState({ type: '', message: '' });
     }
   };
 
@@ -274,21 +323,72 @@ const PagamentoUser = () => {
     ];
     return keys[Math.floor(Math.random() * keys.length)];
   };
-
   if (loading) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-[#EDF2FB] dark:bg-gray-900">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#ED4231]"></div>
-          <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Carregando...</p>
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#EDF2FB] dark:bg-gray-900 px-4">
+        <div className="flex flex-col items-center gap-6 max-w-md w-full">
+          {/* Loading spinner com ícone específico */}
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ED4231]"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              {loadingState.type === 'initial' && <CreditCard className="w-6 h-6 text-[#ED4231]" />}
+              {loadingState.type === 'services' && <Calendar className="w-6 h-6 text-[#ED4231]" />}
+              {loadingState.type === 'payment' && <Shield className="w-6 h-6 text-[#ED4231]" />}
+              {loadingState.type === 'validation' && <Check className="w-6 h-6 text-[#ED4231]" />}
+            </div>
+          </div>
+          
+          {/* Mensagem de loading específica */}
+          <div className="text-center">
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              {loadingState.message}
+            </p>
+            <div className="flex items-center justify-center gap-1">
+              <div className="w-2 h-2 bg-[#ED4231] rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-[#ED4231] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-[#ED4231] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
+          
+          {/* Etapas do processo */}
+          <div className="w-full space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className={`flex items-center gap-2 ${loadingState.type === 'initial' ? 'text-[#ED4231] font-medium' : 'text-gray-400'}`}>
+                <div className={`w-2 h-2 rounded-full ${loadingState.type === 'initial' ? 'bg-[#ED4231]' : 'bg-gray-300'}`}></div>
+                Inicializando
+              </span>
+              {loadingState.type !== 'initial' && <Check className="w-4 h-4 text-green-500" />}
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className={`flex items-center gap-2 ${loadingState.type === 'services' ? 'text-[#ED4231] font-medium' : 'text-gray-400'}`}>
+                <div className={`w-2 h-2 rounded-full ${loadingState.type === 'services' ? 'bg-[#ED4231]' : 'bg-gray-300'}`}></div>
+                Carregando serviços
+              </span>
+              {(loadingState.type === 'validation' || loadingState.type === '') && <Check className="w-4 h-4 text-green-500" />}
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className={`flex items-center gap-2 ${loadingState.type === 'validation' ? 'text-[#ED4231] font-medium' : 'text-gray-400'}`}>
+                <div className={`w-2 h-2 rounded-full ${loadingState.type === 'validation' ? 'bg-[#ED4231]' : 'bg-gray-300'}`}></div>
+                Validando
+              </span>
+              {loadingState.type === '' && <Check className="w-4 h-4 text-green-500" />}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <SidebarProvider>
+  return (    <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gray-900">
+        {/* Mobile backdrop overlay */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40" 
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
         {/* Sidebar comprimida para mobile */}
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
@@ -299,17 +399,22 @@ const PagamentoUser = () => {
             <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
           </div>
         )}
-        
-        {/* Sidebar */}
+          {/* Sidebar */}
         <div className={`transition-all duration-500 ease-in-out
-          ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>
-          <div className="w-full flex justify-start mb-6">
+          ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full w-0'}
+          ${isMobile 
+            ? 'fixed top-0 left-0 w-full h-full z-50 bg-white dark:bg-[#23272F]' 
+            : 'w-4/5 max-w-xs md:w-72 static bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] h-auto'
+          }
+          shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
+          border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
+        }>          <div className="w-full flex justify-start mb-6">
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
+            {isMobile && (
+              <span className="ml-3 font-semibold text-indigo-900 dark:text-gray-100 self-center">Menu</span>
+            )}
           </div>
           
           <div className="flex flex-col items-center gap-2 mb-8">
@@ -348,15 +453,20 @@ const PagamentoUser = () => {
               <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
             </div>
           </div>
-        </div>
-
-        {/* Conteúdo principal */}
+        </div>        {/* Conteúdo principal */}
         <main className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
           {/* Header */}
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]">
             <div className="flex items-center gap-3">
+              {isMobile && !sidebarOpen && (
+                <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              )}
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+              <span className={`font-bold text-indigo-900 dark:text-gray-100 ${isMobile ? 'text-sm' : ''}`}>
+                {isMobile ? userData?.nome : `${userData?.nome} ${userData?.sobrenome}`}
+              </span>
             </div>
             
             <div className="flex items-center gap-3">
@@ -368,54 +478,53 @@ const PagamentoUser = () => {
                 {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
               </Button>
             </div>
-          </header>
-
-          <div className="max-w-6xl mx-auto p-2 sm:p-4 md:p-8 pt-24 sm:pt-28 md:pt-24">
+          </header>          <div className={`max-w-6xl mx-auto p-2 sm:p-4 md:p-8 ${isMobile ? 'pt-20' : 'pt-24 sm:pt-28 md:pt-24'}`}>
             <div className="flex flex-col">
               {/* Breadcrumb navigation */}
-              {getUserNavigationPath(location.pathname)}
-              
-              <div className="flex items-center gap-4 mb-6">
+              {!isMobile && getUserNavigationPath(location.pathname)}
+                <div className="flex items-center gap-4 mb-6">
                 <Button 
                   onClick={() => navigate("/home-user")} 
                   variant="ghost" 
+                  size={isMobile ? "sm" : "default"}
                   className="p-2 rounded-full"
                   aria-label="Voltar para o início"
                 >
-                  <HomeIcon className="w-5 h-5" />
+                  <HomeIcon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
                 </Button>
                 <div>
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Pagamento de Serviços</h1>
-                  <p className="text-gray-600 dark:text-gray-400">Finalize o pagamento dos seus serviços selecionados</p>
+                  <h1 className={`${isMobile ? 'text-lg' : 'text-xl sm:text-2xl md:text-3xl'} font-bold text-indigo-900 dark:text-gray-100 mb-2`}>
+                    {isMobile ? 'Pagamento' : 'Pagamento de Serviços'}
+                  </h1>
+                  <p className={`text-gray-600 dark:text-gray-400 ${isMobile ? 'text-sm' : ''}`}>
+                    {isMobile ? 'Finalize seu pagamento' : 'Finalize o pagamento dos seus serviços selecionados'}
+                  </p>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              </div><div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'} gap-6`}>
                 {/* Resumo do pedido */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="lg:col-span-1 order-2 lg:order-1"
+                  className={`${isMobile ? 'order-1' : 'lg:col-span-1 order-2 lg:order-1'}`}
                 >
-                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] sticky top-6">
+                  <Card className={`bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] ${isMobile ? '' : 'sticky top-6'}`}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <CreditCard className="w-5 h-5 text-[#ED4231]" />
                         Resumo do Pedido
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Serviços selecionados */}
+                    <CardContent className="space-y-4">                      {/* Serviços selecionados */}
                       {selectedServices.map((service) => (
                         <div key={service.id} className="border-b border-gray-100 dark:border-gray-700 pb-3 last:border-b-0">
-                          <div className="flex justify-between items-start">
+                          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'justify-between items-start'}`}>
                             <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 dark:text-gray-100">{service.name}</h4>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">{service.professional}</p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500">{service.duration}</p>
+                              <h4 className={`font-medium text-gray-900 dark:text-gray-100 ${isMobile ? 'text-sm' : ''}`}>{service.name}</h4>
+                              <p className={`text-gray-500 dark:text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{service.professional}</p>
+                              <p className={`text-gray-400 dark:text-gray-500 ${isMobile ? 'text-xs' : 'text-xs'}`}>{service.duration}</p>
                             </div>
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            <span className={`font-semibold text-gray-900 dark:text-gray-100 ${isMobile ? 'text-sm self-end' : ''}`}>
                               R$ {service.price.toFixed(2)}
                             </span>
                           </div>
@@ -450,14 +559,12 @@ const PagamentoUser = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
-
-                {/* Formulário de pagamento */}
+                </motion.div>                {/* Formulário de pagamento */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="lg:col-span-2 order-1 lg:order-2"
+                  className={`${isMobile ? 'order-2' : 'lg:col-span-2 order-1 lg:order-2'}`}
                 >
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
@@ -469,9 +576,8 @@ const PagamentoUser = () => {
                         Escolha como deseja realizar o pagamento
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Seleção de método de pagamento */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CardContent className="space-y-6">                      {/* Seleção de método de pagamento */}
+                      <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
                         <motion.div
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
@@ -555,9 +661,8 @@ const PagamentoUser = () => {
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           className="space-y-4"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
+                        >                          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+                            <div className={`${isMobile ? 'col-span-1' : 'md:col-span-2'}`}>
                               <Label htmlFor="cardNumber">Número do Cartão *</Label>
                               <Input
                                 id="cardNumber"
@@ -574,9 +679,7 @@ const PagamentoUser = () => {
                                   {fieldErrors.cardNumber}
                                 </p>
                               )}
-                            </div>
-
-                            <div className="md:col-span-2">
+                            </div>                            <div className={`${isMobile ? 'col-span-1' : 'md:col-span-2'}`}>
                               <Label htmlFor="cardName">Nome no Cartão *</Label>
                               <Input
                                 id="cardName"
@@ -630,9 +733,7 @@ const PagamentoUser = () => {
                                   {fieldErrors.cardCVV}
                                 </p>
                               )}
-                            </div>
-
-                            <div className="md:col-span-2">
+                            </div>                            <div className={`${isMobile ? 'col-span-1' : 'md:col-span-2'}`}>
                               <Label htmlFor="installments">Parcelas</Label>
                               <Select value={paymentData.installments} onValueChange={(value) => handleFieldChange("installments", value)}>
                                 <SelectTrigger className="mt-1">
@@ -697,9 +798,7 @@ const PagamentoUser = () => {
                             </p>
                           </div>
                         </motion.div>
-                      )}
-
-                      {/* Botão de pagamento */}
+                      )}                      {/* Botão de pagamento */}
                       <div className="pt-4">
                         <Button
                           onClick={handlePayment}
@@ -707,9 +806,19 @@ const PagamentoUser = () => {
                           className="w-full bg-[#ED4231] hover:bg-[#D63626] text-white h-12 text-lg font-semibold"
                         >
                           {isProcessing ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                              Processando...
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="flex items-center gap-2">
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                <span className="hidden sm:inline">
+                                  {loadingState.message || 'Processando...'}
+                                </span>
+                                <span className="sm:hidden">Processando...</span>
+                              </div>
+                              {isMobile && loadingState.message && (
+                                <span className="text-xs opacity-80 truncate max-w-full">
+                                  {loadingState.message}
+                                </span>
+                              )}
                             </div>
                           ) : (
                             `Pagar R$ ${finalTotal.toFixed(2)}`
@@ -722,17 +831,15 @@ const PagamentoUser = () => {
               </div>
             </div>
           </div>
-        </main>
-
-        {/* Modal de Sucesso */}
+        </main>        {/* Modal de Sucesso */}
         <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-          <DialogContent>
+          <DialogContent className={`${isMobile ? 'w-[95vw] max-w-md' : ''}`}>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                 <Check className="w-6 h-6 text-green-500" />
                 Pagamento Aprovado!
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className={isMobile ? 'text-sm' : ''}>
                 Seu pagamento foi processado com sucesso.
               </DialogDescription>
             </DialogHeader>
@@ -760,9 +867,8 @@ const PagamentoUser = () => {
                 </ul>
               </div>
             </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => navigate("/consultas-user")}>
+              <DialogFooter className={`${isMobile ? 'flex-col gap-2' : ''}`}>
+              <Button variant="outline" onClick={() => navigate("/consultas-user")} className={isMobile ? 'w-full' : ''}>
                 Ver Consultas
               </Button>
               <Button 
@@ -770,7 +876,7 @@ const PagamentoUser = () => {
                   setShowSuccessModal(false);
                   navigate("/home-user");
                 }}
-                className="bg-[#ED4231] hover:bg-[#D63626] text-white"
+                className={`bg-[#ED4231] hover:bg-[#D63626] text-white ${isMobile ? 'w-full' : ''}`}
               >
                 Voltar ao Início
               </Button>
