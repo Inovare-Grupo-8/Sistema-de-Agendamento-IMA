@@ -435,26 +435,29 @@ export function InscricaoAnamnese() {
 
         return isValid;
     };
-
-    // Fetch user data for prefill (GET /usuarios/fase1/{idUsuario})
-    useEffect(() => {
-        if (!idUsuario) return;
-        setFetchingUser(true);
-        setFetchUserError(null);
-        fetch(`http://localhost:8080/usuarios/fase1/${idUsuario}`)
-            .then(async (res) => {
-                if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');
-                const data = await res.json();
-                // Preencher nomeCompleto, email e dataNascimento se existirem na resposta
-                setFormData((prev) => ({
-                    ...prev,
-                    nomeCompleto: data.nome || prev.nomeCompleto,
-                    email: data.email || prev.email,
-                    dataNascimento: data.dataNascimento || prev.dataNascimento,
-                }));
-            })
-            .finally(() => setFetchingUser(false));
-    }, [idUsuario]);
+useEffect(() => {
+    if (!idUsuario) {
+        console.log("idUsuario não encontrado na URL.");
+        return;
+    }
+    console.log("Buscando usuário com idUsuario:", idUsuario);
+    setFetchingUser(true);
+    setFetchUserError(null);
+    fetch(`http://localhost:8080/usuarios/fase1?idUsuario=${idUsuario}`)
+        .then(async (res) => {
+            console.log("Resposta da API:", res);
+            if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');
+            const data = await res.json();
+            console.log("Dados recebidos:", data);
+            setFormData((prev) => ({
+                ...prev,
+                nomeCompleto: data.nome || prev.nomeCompleto,
+                email: data.email || prev.email,
+                dataNascimento: data.dataNascimento || prev.dataNascimento,
+            }));
+        })
+        .finally(() => setFetchingUser(false));
+}, [idUsuario]);
 
     // Busca usuário por email se idUsuario não existir ou for 0
     useEffect(() => {
