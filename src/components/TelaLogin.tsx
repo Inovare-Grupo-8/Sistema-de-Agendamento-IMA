@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../TelaLogin.css';
 import ModalErro from './ui/ModalErro';
+import ModalConfirmacao from './ui/ModalConfirmacao';
 import { Locate } from 'lucide-react';
 
 const TelaLogin: React.FC = () => {
@@ -12,6 +13,8 @@ const TelaLogin: React.FC = () => {
   const isCadastro = location.pathname === '/cadastro';
   const [isSignUpMode, setIsSignUpMode] = useState(isCadastro);
   const [modalErro, setModalErro] = useState<string | null>(null);
+  const [modalConfirmacao, setModalConfirmacao] = useState<null | { mensagem: string, onConfirm: () => void }>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Sincroniza o modo com a URL
   useEffect(() => {
@@ -22,14 +25,6 @@ const TelaLogin: React.FC = () => {
   useEffect(() => {
     document.title = isSignUpMode ? 'Cadastro' : 'Login';
   }, [isSignUpMode]);
-
-  // Fechar modal automaticamente após 5 segundos
-  useEffect(() => {
-    if (modalErro) {
-      const timer = setTimeout(() => setModalErro(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [modalErro]);
 
   // Alternar entre login e cadastro e atualizar a URL
   const toggleMode = () => {
@@ -141,25 +136,20 @@ const TelaLogin: React.FC = () => {
   };
   // Login
   const handleLogin = () => {
-    // Validação dos campos antes de enviar ao backend
     if (!loginEmail || !loginSenha) {
       setModalErro('Por favor, preencha todos os campos.');
       return;
     }
-
     const erroEmail = validarEmail(loginEmail);
     if (erroEmail) {
       setModalErro(erroEmail);
       return;
     }
-
-    // Mostrar loading ou desabilitar botão de login aqui se desejar
-
+    setIsLoading(true);
     const loginData = {
       email: loginEmail,
       senha: loginSenha
     };
-
     fetch('http://localhost:8080/usuarios/login', {
       method: 'POST',
       headers: {
@@ -169,58 +159,64 @@ const TelaLogin: React.FC = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        
+        console.log('[LOGIN][RESPONSE DATA]', data); 
         if (!response.ok) {
-          // Usa a mensagem específica do backend se disponível
           throw new Error(data.message || 'Credenciais inválidas. Verifique seu email e senha.');
         }
-        
         return data;
       })
       .then((data) => {
         if (!data) {
           throw new Error('Erro ao obter dados do usuário');
         }
-
-        // Salva os dados do usuário incluindo token se houver
+        console.log('[LOGIN][DATA USADO NO FLUXO]', data); 
         localStorage.setItem('userData', JSON.stringify(data));
-
-        // Limpa os campos de login
         setLoginEmail('');
         setLoginSenha('');
-
-        // Verifica a fase do usuário e redireciona
         if (data.fase === 1) {
-          // Só redireciona com id se existir
           if (data.id) {
             navigate(`/inscricao-anamnese?id=${data.id}`);
           } else {
             navigate('/inscricao-anamnese');
           }
         } else {
-          // Redireciona baseado no tipo do usuário
-          switch (data.tipo) {
-            case 'ADMIN':
-              navigate('/home');
-              break;
-            case 'ASSISTENTE_SOCIAL':
-              navigate('/assistente-social');
-              break;
-            default:
-              navigate('/home-user');
+          if (data.tipo == null) {
+            setModalErro('Não é possível acessar o sistema sem preencher a ficha de inscrição ou sem ter passado pela assistente social.\nSe você já preencheu a inscrição, em breve a assistente social entrará em contato.');
+            return;
+          } else {
+            const tipo = (data.tipo || '').toString().toLowerCase();
+            console.log('[LOGIN][TIPO NORMALIZADO]', tipo); 
+            switch (tipo) {
+              case 'administrador':
+                navigate('/home');
+                break;
+              case 'asssistente social':
+                navigate('/assistente-social');
+                break;
+              case 'voluntario':
+                navigate('/home-user');
+                break;
+              case 'valor social':
+              case 'gratuidade':
+                navigate('/home-user');
+                break;
+              default:
+                navigate('/home-user');
+            }
           }
         }
       })
       .catch((error) => {
         setModalErro(error.message || 'Erro ao tentar realizar o login. Tente novamente mais tarde.');
-      });
+      })
+      .finally(() => setIsLoading(false));
   };
   // Cadastro - Fase 1
   const handleCadastro = () => {
     if (!validarCadastro()) {
       return;
     }
-
+    setIsLoading(true);
     const novoUsuario = {
       nome: cadastroNome,
       email: cadastroEmail,
@@ -228,10 +224,7 @@ const TelaLogin: React.FC = () => {
       cpf: cadastroCPF.replace(/\D/g, ''), 
       dataNascimento: cadastroDataNascimento
     };
-
-    // Log do que está sendo enviado para cadastro
     console.log('[Cadastro] Enviando para backend:', novoUsuario);
-
     fetch('http://localhost:8080/usuarios/fase1', {
       method: 'POST',
       headers: {
@@ -242,27 +235,50 @@ const TelaLogin: React.FC = () => {
       .then((response) => {
         if (!response.ok) {
           return response.json().then(data => {
+            // Trata erro de CPF já cadastrado
+            if (data.message && (data.message.includes('constraint') || data.message.includes('CONSTRAINT_INDEX_2') || data.message.includes('23505'))) {
+              throw new Error('Já existe um cadastro com este CPF ou Email. Caso já tenha conta, faça login. Se esqueceu a senha, utilize a opção de recuperação.');
+            }
+            // Trata erros de validação do Spring
+            if (data.errors || data.message?.includes('Validation failed')) {
+              let mensagens = [];
+              if (data.errors && Array.isArray(data.errors)) {
+                mensagens = data.errors.map((err: any) => err.defaultMessage || err.message || err);
+              } else if (data.message) {
+                // Extrai mensagens do message se não vier em errors
+                if (data.message.includes('senha')) {
+                  mensagens.push('A senha deve ter pelo menos 6 caracteres, incluindo letras, números e um caractere especial.');
+                }
+                if (data.message.includes('dataNascimento')) {
+                  mensagens.push('Data de nascimento inválida.');
+                }
+              }
+              throw new Error(mensagens.join(' '));
+            }
             throw new Error(data.message || 'Erro ao cadastrar usuário');
           });
         }
         return response.json();
       })
       .then((data) => {
-        // Armazena os dados do usuário incluindo o ID
         localStorage.setItem('userData', JSON.stringify(data));
-
-        alert('Cadastro realizado com sucesso! Por favor, preencha o formulário de anamnese.');
-        // Redireciona para anamnese passando o ID do usuário se existir (id ou idUsuario)
         const userId = data.idUsuario;
-        if (userId) {
-          navigate(`/inscricao-anamnese?id=${userId}`);
-        } else {
-          navigate('/inscricao-anamnese');
-        }
+        setModalConfirmacao({
+          mensagem: '<span class="font-bold text-lg">Cadastro realizado com sucesso!</span><br/><span>Deseja continuar para o formulário de anamnese?</span>',
+          onConfirm: () => {
+            setModalConfirmacao(null);
+            if (userId) {
+              navigate(`/inscricao-anamnese?id=${userId}`);
+            } else {
+              navigate('/inscricao-anamnese');
+            }
+          }
+        });
       })
       .catch((error) => {
         setModalErro(error.message);
-      });
+      })
+      .finally(() => setIsLoading(false));
   };
 
   return (
@@ -402,6 +418,24 @@ const TelaLogin: React.FC = () => {
 
       {/* Modal de Erro */}
       {modalErro && <ModalErro mensagem={modalErro} onClose={() => setModalErro(null)} />}
+      {/* Modal de Confirmação */}
+      {modalConfirmacao && (
+        <ModalConfirmacao
+          mensagem={<span dangerouslySetInnerHTML={{__html: modalConfirmacao.mensagem}} />}
+          onConfirm={modalConfirmacao.onConfirm}
+          onCancel={() => setModalConfirmacao(null)}
+        />
+      )}
+
+      {/* Loading Animation */}
+      {isLoading && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-80">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-[#F3F4F6] border-solid"></div>
+            <span className="mt-4 text-[#F3F4F6] font-semibold text-lg">Enviando a requisição...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
