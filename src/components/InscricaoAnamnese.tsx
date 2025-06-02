@@ -56,7 +56,7 @@ export function InscricaoAnamnese() {
         profissao: "",
         comoSoube: "",
         sugestaoOutraArea: "",
-        genero: "", 
+        genero: "",
         isVoluntario: false,
     });
 
@@ -435,17 +435,20 @@ export function InscricaoAnamnese() {
 
         return isValid;
     };
-
-    // Fetch user data for prefill (GET /usuarios/fase1/{idUsuario})
     useEffect(() => {
-        if (!idUsuario) return;
+        if (!idUsuario) {
+            console.log("idUsuario não encontrado na URL.");
+            return;
+        }
+        console.log("Buscando usuário com idUsuario:", idUsuario);
         setFetchingUser(true);
         setFetchUserError(null);
-        fetch(`http://localhost:8080/usuarios/fase1/${idUsuario}`)
+        fetch(`http://localhost:8080/usuarios/fase1?idUsuario=${idUsuario}`)
             .then(async (res) => {
+                console.log("Resposta da API:", res);
                 if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');
                 const data = await res.json();
-                // Preencher nomeCompleto, email e dataNascimento se existirem na resposta
+                console.log("Dados recebidos:", data);
                 setFormData((prev) => ({
                     ...prev,
                     nomeCompleto: data.nome || prev.nomeCompleto,
@@ -904,37 +907,37 @@ export function InscricaoAnamnese() {
 
                                             {/* Novo campo para selecionar o gênero */}
                                             <div className="mb-4 lg:w-1/2 min-w-[180px]">
-                                              <Label htmlFor="genero" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                Gênero <span className="text-red-500">*</span>
-                                              </Label>
-                                              <div className="relative">
-                                                <select
-                                                  id="genero"
-                                                  name="genero"
-                                                  className={cn(
-                                                    "w-full h-12 px-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-all duration-200 shadow-sm text-base pr-10 appearance-auto",
-                                                    fieldStates.genero === 'invalid' && "border-red-500 focus:ring-red-500",
-                                                    fieldStates.genero === 'valid' && "border-green-500 bg-green-50/50"
-                                                  )}
-                                                  value={formData.genero || ''}
-                                                  onChange={e => {
-                                                    handleFieldChange('genero', e.target.value);
-                                                  }}
-                                                  required
-                                                >
-                                                  <option value="">Selecione...</option>
-                                                  <option value="M">Masculino</option>
-                                                  <option value="F">Feminino</option>
-                                                  <option value="OUTRO">Outro</option>
-                                                </select>
-                                                {/* Setinha padrão do select mantida (appearance-auto) */}
-                                                {/* Ícone customizado pode ser adicionado aqui se quiser uma seta personalizada */}
-                                              </div>
-                                              {errors.genero && (
-                                                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
-                                                  <TriangleAlert className="w-4 h-4" /> {errors.genero}
-                                                </p>
-                                              )}
+                                                <Label htmlFor="genero" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Gênero <span className="text-red-500">*</span>
+                                                </Label>
+                                                <div className="relative">
+                                                    <select
+                                                        id="genero"
+                                                        name="genero"
+                                                        className={cn(
+                                                            "w-full h-12 px-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-all duration-200 shadow-sm text-base pr-10 appearance-auto",
+                                                            fieldStates.genero === 'invalid' && "border-red-500 focus:ring-red-500",
+                                                            fieldStates.genero === 'valid' && "border-green-500 bg-green-50/50"
+                                                        )}
+                                                        value={formData.genero || ''}
+                                                        onChange={e => {
+                                                            handleFieldChange('genero', e.target.value);
+                                                        }}
+                                                        required
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="M">Masculino</option>
+                                                        <option value="F">Feminino</option>
+                                                        <option value="OUTRO">Outro</option>
+                                                    </select>
+                                                    {/* Setinha padrão do select mantida (appearance-auto) */}
+                                                    {/* Ícone customizado pode ser adicionado aqui se quiser uma seta personalizada */}
+                                                </div>
+                                                {errors.genero && (
+                                                    <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                                                        <TriangleAlert className="w-4 h-4" /> {errors.genero}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
