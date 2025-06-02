@@ -19,9 +19,9 @@ const ModalErro: React.FC<ModalErroProps> = ({ mensagem, onClose }) => {
           ×
         </button>
         <h2 className="w-full text-left text-black text-lg font-bold mb-4">Erros:</h2>
-        <ul className="text-black text-base list-disc pl-5 mb-4 w-full">
+        <ul className="text-black text-base pl-2 mb-4 w-full">
           {mensagens.map((msg, idx) => (
-            <li key={idx} className="text-left w-full">{msg}</li>
+            <li key={idx} className="text-left w-full list-none">{msg}</li>
           ))}
         </ul>
         <button className="btn solid bg-[#ED4231] hover:bg-[#c22d1e] text-white font-semibold px-6 py-2 rounded-full self-center mt-2" onClick={onClose}>OK</button>

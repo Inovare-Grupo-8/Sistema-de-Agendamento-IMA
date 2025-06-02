@@ -26,14 +26,6 @@ const TelaLogin: React.FC = () => {
     document.title = isSignUpMode ? 'Cadastro' : 'Login';
   }, [isSignUpMode]);
 
-  // Fechar modal automaticamente após 5 segundos
-  useEffect(() => {
-    if (modalErro) {
-      const timer = setTimeout(() => setModalErro(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [modalErro]);
-
   // Alternar entre login e cadastro e atualizar a URL
   const toggleMode = () => {
     if (isSignUpMode) {
@@ -167,6 +159,7 @@ const TelaLogin: React.FC = () => {
     })
       .then(async (response) => {
         const data = await response.json();
+        console.log('[LOGIN][RESPONSE DATA]', data); 
         if (!response.ok) {
           throw new Error(data.message || 'Credenciais inválidas. Verifique seu email e senha.');
         }
@@ -176,6 +169,7 @@ const TelaLogin: React.FC = () => {
         if (!data) {
           throw new Error('Erro ao obter dados do usuário');
         }
+        console.log('[LOGIN][DATA USADO NO FLUXO]', data); 
         localStorage.setItem('userData', JSON.stringify(data));
         setLoginEmail('');
         setLoginSenha('');
@@ -186,15 +180,29 @@ const TelaLogin: React.FC = () => {
             navigate('/inscricao-anamnese');
           }
         } else {
-          switch (data.tipo) {
-            case 'ADMIN':
-              navigate('/home');
-              break;
-            case 'ASSISTENTE_SOCIAL':
-              navigate('/assistente-social');
-              break;
-            default:
-              navigate('/home-user');
+          if (data.tipo == null) {
+            setModalErro('Não é possível acessar o sistema sem preencher a ficha de inscrição ou sem ter passado pela assistente social.\nSe você já preencheu a inscrição, em breve a assistente social entrará em contato.');
+            return;
+          } else {
+            const tipo = (data.tipo || '').toString().toLowerCase();
+            console.log('[LOGIN][TIPO NORMALIZADO]', tipo); 
+            switch (tipo) {
+              case 'administrador':
+                navigate('/home');
+                break;
+              case 'asssistente social':
+                navigate('/assistente-social');
+                break;
+              case 'voluntario':
+                navigate('/home-user');
+                break;
+              case 'valor social':
+              case 'gratuidade':
+                navigate('/home-user');
+                break;
+              default:
+                navigate('/home-user');
+            }
           }
         }
       })
