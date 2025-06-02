@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User,
@@ -34,10 +35,8 @@ import {
     UserCheck,
     Save,
     Smartphone,
-    Clock,
-    Check
+    Clock,    Check
 } from "lucide-react";
-import { useLocation, useNavigate } from 'react-router-dom';
 
 export function InscricaoAnamnese() {
     const [formData, setFormData] = useState({
@@ -61,13 +60,20 @@ export function InscricaoAnamnese() {
     });
 
     // State for error feedback when submitting
-    const [submitError, setSubmitError] = useState<string | null>(null);
-
-    // New state to store user ID from first phase
+    const [submitError, setSubmitError] = useState<string | null>(null);    // New state to store user ID from first phase
     const [userId, setUserId] = useState<number | null>(null);
 
+    // Interface para os dados da primeira fase
+    interface PrimeiraFaseData {
+        nome?: string;
+        email?: string;
+        dataNascimento?: string;
+        telefone?: string;
+        id?: number;
+    }
+
     // Estado para controle dos dados da primeira fase
-    const [primeiraFaseData, setPrimeiraFaseData] = useState<any>(null);
+    const [primeiraFaseData, setPrimeiraFaseData] = useState<PrimeiraFaseData | null>(null);
 
     const [currentStep, setCurrentStep] = useState(1);
     const [completedFields, setCompletedFields] = useState(new Set());
@@ -513,15 +519,56 @@ export function InscricaoAnamnese() {
                 localStorage.removeItem('inscricao_form_timestamp');
                 // Redireciona para /login após sucesso
                 navigate('/login');
-                return;
-            } else {
+                return;            } else {
                 console.log('Formulário com erros:', errors);
             }
-        } catch (error: any) {
-            setSubmitError(error.message || 'Erro ao enviar inscrição.');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Erro ao enviar inscrição.';
+            setSubmitError(errorMessage);
         } finally {
-            setIsSubmitting(false);
-        }
+            setIsSubmitting(false);        }
+    };
+
+    const closeSuccessModal = () => {
+        setShowSuccessModal(false);
+        setFormData({
+            nomeCompleto: "",
+            telefone: "",
+            dataNascimento: "",
+            email: "",
+            cep: "",
+            logradouro: "",
+            numero: "",
+            complemento: "",
+            bairro: "",
+            cidade: "",
+            estado: "",
+            areaOrientacao: "",
+            profissao: "",
+            comoSoube: "",
+            sugestaoOutraArea: "",
+            genero: "",
+            isVoluntario: false,
+        });
+        setErrors({
+            nomeCompleto: "",
+            telefone: "",
+            dataNascimento: "",
+            email: "",
+            cep: "",
+            logradouro: "",
+            numero: "",
+            bairro: "",
+            cidade: "",
+            estado: "",
+            areaOrientacao: "",
+            profissao: "",
+            comoSoube: "",
+            genero: "",
+            isVoluntario: "",
+        });
+        setFieldStates({});
+        setLastSaved(null);
     };
 
     // Componente para renderizar campo com estado visual
@@ -809,9 +856,7 @@ export function InscricaoAnamnese() {
                                                     </motion.div>
                                                 )}
                                             </div>
-                                        </motion.h2>
-
-                                        {/* Nome, Telefone, Data de Nascimento */}
+                                        </motion.h2>                                        {/* Nome e Telefone */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
                                             <div className="sm:col-span-2 lg:col-span-6">
                                                 <Label htmlFor="nomeCompleto" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -843,7 +888,7 @@ export function InscricaoAnamnese() {
                                                 )}
                                             </div>
 
-                                            <div className="lg:col-span-3">
+                                            <div className="lg:col-span-6">
                                                 <Label htmlFor="telefone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Telefone <span className="text-red-500">*</span>
                                                 </Label>
@@ -874,8 +919,11 @@ export function InscricaoAnamnese() {
                                                     </motion.p>
                                                 )}
                                             </div>
+                                        </div>
 
-                                            <div className="lg:col-span-3">
+                                        {/* Data de Nascimento e Gênero */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                                            <div className="lg:col-span-6">
                                                 <Label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Data de Nascimento <span className="text-red-500">*</span>
                                                 </Label>
@@ -905,8 +953,7 @@ export function InscricaoAnamnese() {
                                                 )}
                                             </div>
 
-                                            {/* Novo campo para selecionar o gênero */}
-                                            <div className="mb-4 lg:w-1/2 min-w-[180px]">
+                                            <div className="lg:col-span-6">
                                                 <Label htmlFor="genero" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Gênero <span className="text-red-500">*</span>
                                                 </Label>
@@ -916,6 +963,7 @@ export function InscricaoAnamnese() {
                                                         name="genero"
                                                         className={cn(
                                                             "w-full h-12 px-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-all duration-200 shadow-sm text-base pr-10 appearance-auto",
+                                                            "mt-2",
                                                             fieldStates.genero === 'invalid' && "border-red-500 focus:ring-red-500",
                                                             fieldStates.genero === 'valid' && "border-green-500 bg-green-50/50"
                                                         )}
