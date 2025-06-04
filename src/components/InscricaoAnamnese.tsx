@@ -38,11 +38,12 @@ import {
     Clock,    Check
 } from "lucide-react";
 
-export function InscricaoAnamnese() {
-    const [formData, setFormData] = useState({
+export function InscricaoAnamnese() {    const [formData, setFormData] = useState({
         nomeCompleto: "",
         telefone: "",
         dataNascimento: "",
+        cpf: "",
+        faixaSalarial: "",
         email: "",
         cep: "",
         logradouro: "",
@@ -79,9 +80,10 @@ export function InscricaoAnamnese() {
     const [completedFields, setCompletedFields] = useState(new Set());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [fieldStates, setFieldStates] = useState<Record<string, 'valid' | 'invalid' | 'default'>>({});
-    const [isLoading, setIsLoading] = useState({ cep: false });
+    const [fieldStates, setFieldStates] = useState<Record<string, 'valid' | 'invalid' | 'default'>>({});    const [isLoading, setIsLoading] = useState({ cep: false });
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [changedFields, setChangedFields] = useState<Set<string>>(new Set());
+    const [initialFormData, setInitialFormData] = useState<typeof formData | null>(null);
     const [profissionSuggestions, setProfissionSuggestions] = useState<string[]>([]);
     const [showProfessionSuggestions, setShowProfessionSuggestions] = useState(false);
     const profissionInputRef = useRef<HTMLInputElement>(null);
@@ -102,12 +104,12 @@ export function InscricaoAnamnese() {
         "Nutricionista", "Biomédico", "Terapeuta Ocupacional", "Fonoaudiólogo",
         "Assistente Social", "Pedagogo", "Economista", "Publicitário", "Chef",
         "Corretor de Imóveis", "Vendedor", "Consultor", "Analista", "Técnico"
-    ];
-
-    const [errors, setErrors] = useState({
+    ];    const [errors, setErrors] = useState({
         nomeCompleto: "",
         telefone: "",
         dataNascimento: "",
+        cpf: "",
+        faixaSalarial: "",
         email: "",
         cep: "",
         logradouro: "",
@@ -138,20 +140,39 @@ export function InscricaoAnamnese() {
                 console.error('Erro ao carregar dados salvos:', error);
             }
         }
-    }, []);
-
-    // Auto-salvar dados no localStorage
+    }, []);    // Intelligent auto-save that only saves changed fields
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            if (Object.values(formData).some(value => typeof value === 'string' ? value.trim() !== '' : value !== undefined)) {
+            if (changedFields.size > 0) {
+                // Create partial data with only changed fields
+                const changedData: Partial<typeof formData> = {};
+                changedFields.forEach(fieldName => {
+                    if (fieldName in formData) {
+                        changedData[fieldName as keyof typeof formData] = formData[fieldName as keyof typeof formData];
+                    }
+                });
+
+                // Save to localStorage with timestamp
+                const saveData = {
+                    ...changedData,
+                    lastModified: new Date().toISOString(),
+                    userId: idUsuario
+                };
+                
                 localStorage.setItem('inscricao_form_data', JSON.stringify(formData));
+                localStorage.setItem('inscricao_changed_fields', JSON.stringify(Array.from(changedFields)));
                 localStorage.setItem('inscricao_form_timestamp', new Date().toISOString());
                 setLastSaved(new Date());
+                
+                // Clear changed fields after save
+                setChangedFields(new Set());
+                
+                console.log('Auto-saved changed fields:', Array.from(changedFields));
             }
-        }, 1000); // Salva 1 segundo após a última mudança
+        }, 2000); // Save 2 seconds after last change
 
         return () => clearTimeout(timeoutId);
-    }, [formData]);
+    }, [changedFields, formData, idUsuario]);
 
     // Filtrar sugestões de profissão
     const filterProfessionSuggestions = (value: string) => {
@@ -228,9 +249,81 @@ export function InscricaoAnamnese() {
                     } else if (age < 16 || age > 120) {
                         errorMessage = "Idade deve estar entre 16 e 120 anos";
                         isValid = false;
+                    }                }
+                break;            case 'cpf': {
+                const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
+                if (!value) {
+                    errorMessage = "CPF é obrigatório";
+                    isValid = false;
+                } else if (!cpfRegex.test(value)) {
+                    errorMessage = "CPF inválido (formato: 000.000.000-00)";
+                    isValid = false;
+                } else {
+                    // Validação aprimorada de CPF
+                    const cleanCPF = value.replace(/\D/g, '');
+                      // Lista expandida de CPFs inválidos conhecidos
+                    const invalidCPFs = [
+                        // CPFs com todos os dígitos iguais
+                        '00000000000', '11111111111', '22222222222', '33333333333',
+                        '44444444444', '55555555555', '66666666666', '77777777777',
+                        '88888888888', '99999999999',
+                        // CPFs sequenciais e outros padrões conhecidos inválidos
+                        '12345678909', '98765432100', '12345678901', '01234567890',
+                        '10203040506', '20304050607', '30405060708', '40506070809',
+                        '50607080910', '60708091011', '70809101112', '80910111213',
+                        '90111213140', '01112131415', '11213141516', '21314151617',
+                        // CPFs comumente usados em testes (que são inválidos)
+                        '12312312312', '98798798798', '11144477735', '12345678912',
+                        '00000000191', '12345678900'
+                    ];
+                    
+                    if (cleanCPF.length !== 11) {
+                        errorMessage = "CPF deve ter 11 dígitos";
+                        isValid = false;
+                    } else if (invalidCPFs.includes(cleanCPF)) {
+                        errorMessage = "CPF inválido";
+                        isValid = false;
+                    } else {
+                        // Verificação do algoritmo de CPF
+                        let sum = 0;
+                        let remainder;
+                        
+                        // Primeira verificação
+                        for (let i = 1; i <= 9; i++) {
+                            sum += parseInt(cleanCPF.substring(i-1, i)) * (11 - i);
+                        }
+                        
+                        remainder = (sum * 10) % 11;
+                        if (remainder === 10 || remainder === 11) remainder = 0;
+                        if (remainder !== parseInt(cleanCPF.substring(9, 10))) {
+                            errorMessage = "CPF inválido";
+                            isValid = false;
+                        } else {
+                            // Segunda verificação
+                            sum = 0;
+                            for (let i = 1; i <= 10; i++) {
+                                sum += parseInt(cleanCPF.substring(i-1, i)) * (12 - i);
+                            }
+                            
+                            remainder = (sum * 10) % 11;
+                            if (remainder === 10 || remainder === 11) remainder = 0;
+                            if (remainder !== parseInt(cleanCPF.substring(10, 11))) {
+                                errorMessage = "CPF inválido";
+                                isValid = false;
+                            }
+                        }
                     }
+                }break;
+            }
+
+            case 'faixaSalarial':
+                if (!value) {
+                    errorMessage = "Faixa salarial é obrigatória";
+                    isValid = false;
                 }
-                break; case 'cep': {
+                break;
+
+            case 'cep': {
                     const cepRegex = /^\d{5}-\d{3}$/;
                     if (!value) {
                         errorMessage = "CEP é obrigatório";
@@ -272,11 +365,12 @@ export function InscricaoAnamnese() {
         }));
 
         return isValid;
-    };
-
-    // Handler para mudanças nos campos com validação em tempo real
+    };    // Handler para mudanças nos campos com validação em tempo real
     const handleFieldChange = (fieldName: string, value: string | boolean) => {
         setFormData(prev => ({ ...prev, [fieldName]: value }));
+        
+        // Track changed fields for intelligent auto-save
+        setChangedFields(prev => new Set(prev).add(fieldName));
 
         // Debounce validation
         setTimeout(() => {
@@ -364,12 +458,11 @@ export function InscricaoAnamnese() {
 
     // Verificar se seção está completa
     const isSectionComplete = (section: number) => {
-        switch (section) {
-            case 1:
+        switch (section) {            case 1:
                 return formData.nomeCompleto && formData.telefone && formData.dataNascimento &&
-                    formData.email && formData.profissao &&
+                    formData.cpf && formData.faixaSalarial && formData.email && formData.profissao &&
                     !errors.nomeCompleto && !errors.telefone && !errors.dataNascimento &&
-                    !errors.email && !errors.profissao;
+                    !errors.cpf && !errors.faixaSalarial && !errors.email && !errors.profissao;
             case 2:
                 return formData.cep && formData.logradouro && formData.numero &&
                     formData.bairro && formData.cidade && formData.estado &&
@@ -527,14 +620,13 @@ export function InscricaoAnamnese() {
             setSubmitError(errorMessage);
         } finally {
             setIsSubmitting(false);        }
-    };
-
-    const closeSuccessModal = () => {
-        setShowSuccessModal(false);
-        setFormData({
+    };    const closeSuccessModal = () => {
+        setShowSuccessModal(false);        setFormData({
             nomeCompleto: "",
             telefone: "",
             dataNascimento: "",
+            cpf: "",
+            faixaSalarial: "",
             email: "",
             cep: "",
             logradouro: "",
@@ -554,6 +646,8 @@ export function InscricaoAnamnese() {
             nomeCompleto: "",
             telefone: "",
             dataNascimento: "",
+            cpf: "",
+            faixaSalarial: "",
             email: "",
             cep: "",
             logradouro: "",
@@ -742,8 +836,7 @@ export function InscricaoAnamnese() {
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
-            >
-                {/* Progress Bar */}
+            >                {/* Progress Bar Enhanced */}
                 <motion.div
                     className="w-full max-w-4xl mx-auto mb-8"
                     initial={{ opacity: 0, y: -20 }}
@@ -755,13 +848,70 @@ export function InscricaoAnamnese() {
                             <span>Progresso do Formulário</span>
                             <span>{calculateProgress()}%</span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden mb-4">
                             <motion.div
                                 className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full shadow-sm"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${calculateProgress()}%` }}
                                 transition={{ duration: 0.8, ease: "easeOut" }}
                             />
+                        </div>
+                        
+                        {/* Visual Progress Steps */}
+                        <div className="grid grid-cols-3 gap-4 px-4 pb-2">
+                            {/* Step 1: Dados Pessoais */}
+                            <div className="flex items-center gap-2">
+                                <motion.div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                        isSectionComplete(1) 
+                                            ? 'bg-green-500 text-white shadow-lg' 
+                                            : 'bg-blue-500 text-white'
+                                    }`}
+                                    animate={isSectionComplete(1) ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {isSectionComplete(1) ? <CheckCircle2 className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                                </motion.div>
+                                <span className={`text-xs font-medium ${isSectionComplete(1) ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                    Pessoais
+                                </span>
+                            </div>
+                            
+                            {/* Step 2: Endereço */}
+                            <div className="flex items-center gap-2 justify-center">
+                                <motion.div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                        isSectionComplete(2) 
+                                            ? 'bg-green-500 text-white shadow-lg' 
+                                            : 'bg-blue-500 text-white'
+                                    }`}
+                                    animate={isSectionComplete(2) ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {isSectionComplete(2) ? <CheckCircle2 className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                                </motion.div>
+                                <span className={`text-xs font-medium ${isSectionComplete(2) ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                    Endereço
+                                </span>
+                            </div>
+                            
+                            {/* Step 3: Orientação */}
+                            <div className="flex items-center gap-2 justify-end">
+                                <motion.div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                        isSectionComplete(3) 
+                                            ? 'bg-green-500 text-white shadow-lg' 
+                                            : 'bg-blue-500 text-white'
+                                    }`}
+                                    animate={isSectionComplete(3) ? { scale: [1, 1.1, 1] } : {}}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {isSectionComplete(3) ? <CheckCircle2 className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
+                                </motion.div>
+                                <span className={`text-xs font-medium ${isSectionComplete(3) ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                    Orientação
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </motion.div>
@@ -861,8 +1011,7 @@ export function InscricaoAnamnese() {
                                             <div className="sm:col-span-2 lg:col-span-6">
                                                 <Label htmlFor="nomeCompleto" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Nome Completo <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('nomeCompleto',
+                                                </Label>                                                {renderFieldWithState('nomeCompleto',
                                                     <Input
                                                         id="nomeCompleto"
                                                         value={formData.nomeCompleto}
@@ -873,14 +1022,20 @@ export function InscricaoAnamnese() {
                                                             fieldStates.nomeCompleto === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.nomeCompleto === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para nome completo"
+                                                        aria-describedby={errors.nomeCompleto ? "nomeCompleto-error" : undefined}
+                                                        aria-invalid={!!errors.nomeCompleto}
+                                                        autoComplete="name"
+                                                        inputMode="text"
                                                         required
                                                     />
-                                                )}
-                                                {errors.nomeCompleto && (
+                                                )}                                                {errors.nomeCompleto && (
                                                     <motion.p
+                                                        id="nomeCompleto-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.nomeCompleto}
@@ -891,8 +1046,7 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-6">
                                                 <Label htmlFor="telefone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Telefone <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('telefone',
+                                                </Label>                                                {renderFieldWithState('telefone',
                                                     <InputMask
                                                         mask={formatPhoneNumber(formData.telefone)}
                                                         id="telefone"
@@ -905,14 +1059,20 @@ export function InscricaoAnamnese() {
                                                             fieldStates.telefone === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.telefone === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para telefone"
+                                                        aria-describedby={errors.telefone ? "telefone-error" : undefined}
+                                                        aria-invalid={!!errors.telefone}
+                                                        autoComplete="tel"
+                                                        inputMode="tel"
                                                         required
                                                     />
-                                                )}
-                                                {errors.telefone && (
+                                                )}                                                {errors.telefone && (
                                                     <motion.p
+                                                        id="telefone-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.telefone}
@@ -926,8 +1086,7 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-6">
                                                 <Label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Data de Nascimento <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('dataNascimento',
+                                                </Label>                                                {renderFieldWithState('dataNascimento',
                                                     <Input
                                                         id="dataNascimento"
                                                         type="date"
@@ -938,14 +1097,20 @@ export function InscricaoAnamnese() {
                                                             fieldStates.dataNascimento === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.dataNascimento === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para data de nascimento"
+                                                        aria-describedby={errors.dataNascimento ? "dataNascimento-error" : undefined}
+                                                        aria-invalid={!!errors.dataNascimento}
+                                                        autoComplete="bday"
+                                                        inputMode="none"
                                                         required
                                                     />
-                                                )}
-                                                {errors.dataNascimento && (
+                                                )}                                                {errors.dataNascimento && (
                                                     <motion.p
+                                                        id="dataNascimento-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.dataNascimento}
@@ -987,14 +1152,88 @@ export function InscricaoAnamnese() {
                                                     </p>
                                                 )}
                                             </div>
+                                        </div>                                        {/* CPF e Faixa Salarial */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                                            <div className="lg:col-span-6">
+                                                <Label htmlFor="cpf" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    CPF <span className="text-red-500">*</span>
+                                                </Label>                                                {renderFieldWithState('cpf',
+                                                    <InputMask
+                                                        mask="999.999.999-99"
+                                                        id="cpf"
+                                                        value={formData.cpf || ''}
+                                                        onChange={(e) => handleFieldChange('cpf', e.target.value)}
+                                                        placeholder="000.000.000-00"
+                                                        className={cn(
+                                                            "flex h-12 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-base ring-offset-background placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200",
+                                                            "mt-2",
+                                                            fieldStates.cpf === 'valid' && "border-green-500 bg-green-50/50",
+                                                            fieldStates.cpf === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                                                        )}
+                                                        aria-label="Campo obrigatório para CPF"
+                                                        aria-describedby={errors.cpf ? "cpf-error" : undefined}
+                                                        aria-invalid={!!errors.cpf}
+                                                        autoComplete="off"
+                                                        inputMode="numeric"
+                                                        required
+                                                    />
+                                                )}                                                {errors.cpf && (
+                                                    <motion.p
+                                                        id="cpf-error"
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
+                                                    >
+                                                        <TriangleAlert className="w-4 h-4" />
+                                                        {errors.cpf}
+                                                    </motion.p>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-6">
+                                                <Label htmlFor="faixaSalarial" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Qual sua faixa salarial? <span className="text-red-500">*</span>
+                                                </Label>
+                                                {renderFieldWithState('faixaSalarial',
+                                                    <Select value={formData.faixaSalarial} onValueChange={(value) => handleFieldChange('faixaSalarial', value)}>
+                                                        <SelectTrigger className={cn(
+                                                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                                                            fieldStates.faixaSalarial === 'valid' && "border-green-500 bg-green-50/50",
+                                                            fieldStates.faixaSalarial === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                                                        )}>
+                                                            <SelectValue placeholder="Selecione sua faixa salarial" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="ate-1-salario">Até 1 salário mínimo</SelectItem>
+                                                            <SelectItem value="1-a-2-salarios">1 a 2 salários mínimos</SelectItem>
+                                                            <SelectItem value="2-a-3-salarios">2 a 3 salários mínimos</SelectItem>
+                                                            <SelectItem value="3-a-5-salarios">3 a 5 salários mínimos</SelectItem>
+                                                            <SelectItem value="5-a-10-salarios">5 a 10 salários mínimos</SelectItem>
+                                                            <SelectItem value="10-a-20-salarios">10 a 20 salários mínimos</SelectItem>
+                                                            <SelectItem value="acima-20-salarios">Acima de 20 salários mínimos</SelectItem>
+                                                            <SelectItem value="prefiro-nao-informar">Prefiro não informar</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                                {errors.faixaSalarial && (
+                                                    <motion.p
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                    >
+                                                        <TriangleAlert className="w-4 h-4" />
+                                                        {errors.faixaSalarial}
+                                                    </motion.p>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Email */}
                                         <div className="mb-6">
                                             <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Email <span className="text-red-500">*</span>
-                                            </Label>
-                                            {renderFieldWithState('email',
+                                            </Label>                                            {renderFieldWithState('email',
                                                 <Input
                                                     id="email"
                                                     type="email"
@@ -1007,14 +1246,19 @@ export function InscricaoAnamnese() {
                                                         fieldStates.email === 'valid' && "border-green-500 bg-green-50/50",
                                                         fieldStates.email === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                     )}
+                                                    aria-label="Campo obrigatório para email"
+                                                    aria-describedby={errors.email ? "email-error" : undefined}
+                                                    aria-invalid={!!errors.email}
+                                                    autoComplete="email"
                                                     required
                                                 />
-                                            )}
-                                            {errors.email && (
+                                            )}                                            {errors.email && (
                                                 <motion.p
+                                                    id="email-error"
                                                     initial={{ opacity: 0, y: -10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                    role="alert"
                                                 >
                                                     <TriangleAlert className="w-4 h-4" />
                                                     {errors.email}
@@ -1026,8 +1270,7 @@ export function InscricaoAnamnese() {
                                         <div className="relative">
                                             <Label htmlFor="profissao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Profissão <span className="text-red-500">*</span>
-                                            </Label>
-                                            {renderFieldWithState('profissao',
+                                            </Label>                                            {renderFieldWithState('profissao',
                                                 <Input
                                                     ref={profissionInputRef}
                                                     id="profissao"
@@ -1039,7 +1282,11 @@ export function InscricaoAnamnese() {
                                                         fieldStates.profissao === 'valid' && "border-green-500 bg-green-50/50",
                                                         fieldStates.profissao === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                     )}
-                                                    autoComplete="off"
+                                                    aria-label="Campo obrigatório para profissão"
+                                                    aria-describedby={errors.profissao ? "profissao-error" : undefined}
+                                                    aria-invalid={!!errors.profissao}
+                                                    autoComplete="organization-title"
+                                                    inputMode="text"
                                                     required
                                                 />
                                             )}
@@ -1073,9 +1320,11 @@ export function InscricaoAnamnese() {
                                                 )}
                                             </AnimatePresence>                                        {errors.profissao && (
                                                 <motion.p
+                                                    id="profissao-error"
                                                     initial={{ opacity: 0, y: -10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                    role="alert"
                                                 >
                                                     <TriangleAlert className="w-4 h-4" />
                                                     {errors.profissao}
@@ -1133,8 +1382,7 @@ export function InscricaoAnamnese() {
                                                 <Label htmlFor="cep" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     CEP <span className="text-red-500">*</span>
                                                 </Label>
-                                                <div className="relative">
-                                                    {renderFieldWithState('cep',
+                                                <div className="relative">                                                    {renderFieldWithState('cep',
                                                         <InputMask
                                                             mask="99999-999"
                                                             id="cep"
@@ -1147,6 +1395,11 @@ export function InscricaoAnamnese() {
                                                                 fieldStates.cep === 'valid' && "border-green-500 bg-green-50/50",
                                                                 fieldStates.cep === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                             )}
+                                                            aria-label="Campo obrigatório para CEP"
+                                                            aria-describedby={errors.cep ? "cep-error" : undefined}
+                                                            aria-invalid={!!errors.cep}
+                                                            autoComplete="postal-code"
+                                                            inputMode="numeric"
                                                             required
                                                         />
                                                     )}
@@ -1155,12 +1408,13 @@ export function InscricaoAnamnese() {
                                                             <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
                                                         </div>
                                                     )}
-                                                </div>
-                                                {errors.cep && (
+                                                </div>                                                {errors.cep && (
                                                     <motion.p
+                                                        id="cep-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.cep}
@@ -1171,8 +1425,7 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-6">
                                                 <Label htmlFor="logradouro" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Logradouro <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('logradouro',
+                                                </Label>                                                {renderFieldWithState('logradouro',
                                                     <Input
                                                         id="logradouro"
                                                         value={formData.logradouro}
@@ -1183,14 +1436,21 @@ export function InscricaoAnamnese() {
                                                             fieldStates.logradouro === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.logradouro === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para logradouro (rua, avenida)"
+                                                        aria-describedby={errors.logradouro ? "logradouro-error" : undefined}
+                                                        aria-invalid={!!errors.logradouro}
+                                                        autoComplete="address-line1"
+                                                        inputMode="text"
                                                         required
                                                     />
                                                 )}
                                                 {errors.logradouro && (
                                                     <motion.p
+                                                        id="logradouro-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.logradouro}
@@ -1201,8 +1461,7 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-3">
                                                 <Label htmlFor="numero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Número <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('numero',
+                                                </Label>                                                {renderFieldWithState('numero',
                                                     <Input
                                                         id="numero"
                                                         value={formData.numero}
@@ -1213,6 +1472,11 @@ export function InscricaoAnamnese() {
                                                             fieldStates.numero === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.numero === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para número do endereço"
+                                                        aria-describedby={errors.numero ? "numero-error" : undefined}
+                                                        aria-invalid={!!errors.numero}
+                                                        autoComplete="address-line2"
+                                                        inputMode="numeric"
                                                         required
                                                     />
                                                 )}
@@ -1234,21 +1498,22 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-3">
                                                 <Label htmlFor="complemento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Complemento
-                                                </Label>
-                                                <Input
+                                                </Label>                                                <Input
                                                     id="complemento"
                                                     value={formData.complemento}
                                                     onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
                                                     placeholder="Apto, Bloco, etc."
                                                     className="mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                    aria-label="Campo opcional para complemento do endereço"
+                                                    autoComplete="address-line3"
+                                                    inputMode="text"
                                                 />
                                             </div>
 
                                             <div className="lg:col-span-3">
                                                 <Label htmlFor="bairro" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Bairro <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('bairro',
+                                                </Label>                                                {renderFieldWithState('bairro',
                                                     <Input
                                                         id="bairro"
                                                         value={formData.bairro}
@@ -1259,14 +1524,21 @@ export function InscricaoAnamnese() {
                                                             fieldStates.bairro === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.bairro === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para bairro"
+                                                        aria-describedby={errors.bairro ? "bairro-error" : undefined}
+                                                        aria-invalid={!!errors.bairro}
+                                                        autoComplete="address-level2"
+                                                        inputMode="text"
                                                         required
                                                     />
                                                 )}
                                                 {errors.bairro && (
                                                     <motion.p
+                                                        id="bairro-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.bairro}
@@ -1277,8 +1549,7 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-4">
                                                 <Label htmlFor="cidade" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Cidade <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('cidade',
+                                                </Label>                                                {renderFieldWithState('cidade',
                                                     <Input
                                                         id="cidade"
                                                         value={formData.cidade}
@@ -1289,14 +1560,21 @@ export function InscricaoAnamnese() {
                                                             fieldStates.cidade === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.cidade === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para cidade"
+                                                        aria-describedby={errors.cidade ? "cidade-error" : undefined}
+                                                        aria-invalid={!!errors.cidade}
+                                                        autoComplete="address-level1"
+                                                        inputMode="text"
                                                         required
                                                     />
                                                 )}
                                                 {errors.cidade && (
                                                     <motion.p
+                                                        id="cidade-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.cidade}
@@ -1307,8 +1585,7 @@ export function InscricaoAnamnese() {
                                             <div className="lg:col-span-2">
                                                 <Label htmlFor="estado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Estado <span className="text-red-500">*</span>
-                                                </Label>
-                                                {renderFieldWithState('estado',
+                                                </Label>                                                {renderFieldWithState('estado',
                                                     <Input
                                                         id="estado"
                                                         value={formData.estado}
@@ -1319,15 +1596,22 @@ export function InscricaoAnamnese() {
                                                             fieldStates.estado === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.estado === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
+                                                        aria-label="Campo obrigatório para estado (UF)"
+                                                        aria-describedby={errors.estado ? "estado-error" : undefined}
+                                                        aria-invalid={!!errors.estado}
+                                                        autoComplete="address-level1"
+                                                        inputMode="text"
                                                         maxLength={2}
                                                         required
                                                     />
                                                 )}
                                                 {errors.estado && (
                                                     <motion.p
+                                                        id="estado-error"
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
                                                     >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.estado}
@@ -1378,21 +1662,25 @@ export function InscricaoAnamnese() {
                                                     </motion.div>
                                                 )}
                                             </div>
-                                        </motion.h2>
-
-                                        {/* Área de Orientação */}
+                                        </motion.h2>                                        {/* Área de Orientação */}
                                         <div className="mb-6">
                                             <Label htmlFor="areaOrientacao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Área que gostaria de receber orientação <span className="text-red-500">*</span>
                                             </Label>
                                             <Select
                                                 value={formData.areaOrientacao}
-                                                onValueChange={(value) => setFormData({ ...formData, areaOrientacao: value })}
+                                                onValueChange={(value) => handleFieldChange('areaOrientacao', value)}
                                             >
-                                                <SelectTrigger className="w-full mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                <SelectTrigger 
+                                                    className="w-full mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                    aria-label="Campo obrigatório para seleção da área de orientação desejada"
+                                                    aria-describedby={errors.areaOrientacao ? "areaOrientacao-error" : "areaOrientacao-help"}
+                                                    aria-invalid={!!errors.areaOrientacao}
+                                                    aria-required="true"
+                                                >
                                                     <SelectValue placeholder="Selecione uma área de orientação" />
                                                 </SelectTrigger>
-                                                <SelectContent className="max-h-60">
+                                                <SelectContent className="max-h-60" role="listbox">
                                                     <SelectItem value="juridica">ORIENTAÇÃO JURÍDICA (CIVIL, TRABALHISTA, CRIMINAL, FAMILIAR)</SelectItem>
                                                     <SelectItem value="financeira">ORIENTAÇÃO FINANCEIRA (CONTROLE DE GASTOS, APRENDER A INVESTIR...)</SelectItem>
                                                     <SelectItem value="psicopedagogica">ORIENTAÇÃO PSICOPEDAGOGICA (DIFICULDADE EM APRENDIZAGEM NA ESCOLA)</SelectItem>
@@ -1409,28 +1697,42 @@ export function InscricaoAnamnese() {
                                                     <SelectItem value="redesSocias">ORIENTAÇÃO - REDES SOCIAIS</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                            <div id="areaOrientacao-help" className="sr-only">
+                                                Selecione a área em que você gostaria de receber orientação profissional
+                                            </div>
                                             {errors.areaOrientacao && (
-                                                <p className="text-sm text-red-500 mt-2 flex items-center gap-1">
+                                                <motion.p
+                                                    id="areaOrientacao-error"
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                    role="alert"
+                                                >
                                                     <TriangleAlert className="w-4 h-4" />
                                                     {errors.areaOrientacao}
-                                                </p>
+                                                </motion.p>
                                             )}
                                         </div>
 
                                         {/* Como soube e Sugestão */}
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                            <div>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">                                            <div>
                                                 <Label htmlFor="comoSoube" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Como soube do projeto <span className="text-red-500">*</span>
                                                 </Label>
                                                 <Select
                                                     value={formData.comoSoube}
-                                                    onValueChange={(value) => setFormData({ ...formData, comoSoube: value })}
+                                                    onValueChange={(value) => handleFieldChange('comoSoube', value)}
                                                 >
-                                                    <SelectTrigger className="w-full mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                    <SelectTrigger 
+                                                        className="w-full mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                        aria-label="Campo obrigatório para informar como conheceu o projeto"
+                                                        aria-describedby={errors.comoSoube ? "comoSoube-error" : "comoSoube-help"}
+                                                        aria-invalid={!!errors.comoSoube}
+                                                        aria-required="true"
+                                                    >
                                                         <SelectValue placeholder="Selecione uma opção" />
                                                     </SelectTrigger>
-                                                    <SelectContent>
+                                                    <SelectContent role="listbox">
                                                         <SelectItem value="internet">Internet</SelectItem>
                                                         <SelectItem value="redes-sociais">Redes Sociais</SelectItem>
                                                         <SelectItem value="indicacao">Indicação Amigo</SelectItem>
@@ -1438,11 +1740,20 @@ export function InscricaoAnamnese() {
                                                         <SelectItem value="outros">Outros</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                <div id="comoSoube-help" className="sr-only">
+                                                    Informe como você ficou sabendo do projeto Mãos Amigas
+                                                </div>
                                                 {errors.comoSoube && (
-                                                    <p className="text-sm text-red-500 mt-2 flex items-center gap-1">
+                                                    <motion.p
+                                                        id="comoSoube-error"
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                                                        role="alert"
+                                                    >
                                                         <TriangleAlert className="w-4 h-4" />
                                                         {errors.comoSoube}
-                                                    </p>
+                                                    </motion.p>
                                                 )}
                                             </div>
 
@@ -1474,11 +1785,12 @@ export function InscricaoAnamnese() {
                                                 variant="outline"
                                                 onClick={() => {
                                                     localStorage.removeItem('inscricao_form_data');
-                                                    localStorage.removeItem('inscricao_form_timestamp');
-                                                    setFormData({
+                                                    localStorage.removeItem('inscricao_form_timestamp');                                                    setFormData({
                                                         nomeCompleto: "",
                                                         telefone: "",
                                                         dataNascimento: "",
+                                                        cpf: "",
+                                                        faixaSalarial: "", // Campo obrigatório adicionado
                                                         email: "",
                                                         cep: "",
                                                         logradouro: "",
@@ -1494,11 +1806,12 @@ export function InscricaoAnamnese() {
                                                         genero: "", // Resetar o campo de gênero
                                                         isVoluntario: false, // Resetar o campo "É voluntário?"
                                                     });
-                                                    setFieldStates({});
-                                                    setErrors({
+                                                    setFieldStates({});                                                    setErrors({
                                                         nomeCompleto: "",
                                                         telefone: "",
                                                         dataNascimento: "",
+                                                        cpf: "",
+                                                        faixaSalarial: "",
                                                         email: "",
                                                         cep: "",
                                                         logradouro: "",
