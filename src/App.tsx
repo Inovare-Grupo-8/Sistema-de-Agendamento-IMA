@@ -22,6 +22,7 @@ import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
 import AgendarHorarioUser from "@/components/AgendarHorarioUser";
 import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
 import AssistenteSocial from "@/components/AssistenteSocial";
+import ProfileFormAssistenteSocial from "@/components/ProfileFormAssistenteSocial";
 import CadastroVoluntario from "@/components/CadastroVoluntario";
 import PagamentoUser from "@/components/PagamentoUser";
 import { UserProvider } from "@/contexts/UserContext";
@@ -73,8 +74,9 @@ const App = () => {
                       <Route path="/profile-form" element={<ProfileForm />} />                      <Route path="/login" element={<TelaLogin />} />                      
                       <Route path="/cadastro" element={<TelaLogin />} />
                       {/* Rota para o formulário de inscrição */}
-                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />{/* Rotas da assistente social */}
+                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />                      {/* Rotas da assistente social */}
                       <Route path="/assistente-social" element={<AssistenteSocial />} />
+                      <Route path="/profile-form-assistente-social" element={<ProfileFormAssistenteSocial />} />
                       <Route path="/cadastro-voluntario" element={<CadastroVoluntario />} />
 
                       {/* Redirecionamento para a home do usuário como fallback */}
