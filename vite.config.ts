@@ -5,6 +5,7 @@ import path from "path";
 
 export default defineConfig(() => ({
 
+  base: '/Sistema-de-Agendamento-IMA/',
   server: {
     host: "::",
     port: 3030,
