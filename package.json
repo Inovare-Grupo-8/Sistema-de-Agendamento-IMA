@@ -2,10 +2,9 @@
   "name": "vite_react_shadcn_ts",
   "private": true,  "version": "0.0.0",
   "type": "module",
-  "homepage": "https://inovare-grupo-8.github.io/Sistema-de-Agendamento-IMA/",
-  "scripts": {
+  "homepage": "https://inovare-grupo-8.github.io/Sistema-de-Agendamento-IMA/",  "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

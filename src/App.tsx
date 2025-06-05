@@ -53,8 +53,8 @@ const App = () => {
           <Sonner />
           <ProfileImageProvider>
             <UserProvider>
-              <ProfessionalProvider>
-                <Router>
+              <ProfessionalProvider>                
+                <Router basename="/">
                   <UserNavigationProvider>
                     <Routes>
                       {/* Rotas do usuário */}
