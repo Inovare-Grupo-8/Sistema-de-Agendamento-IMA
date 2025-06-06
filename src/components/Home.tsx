@@ -21,11 +21,12 @@ import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConsultaApiService } from "@/services/consultaApi";
 
 interface ConsultaSummary {
-  total: number;
-  hoje: number;
-  proximaSemana: number;
+  hoje: number;        
+  semana: number;   
+  mes: number;    
 }
 
 interface AtendimentoSummary {
@@ -71,14 +72,13 @@ const Home = () => {
   useEffect(() => {
     if (selectedDate) {
       localStorage.setItem("selectedDateForAvailability", selectedDate.toISOString());
-    }
-  }, [selectedDate]);
+    }  }, [selectedDate]);
 
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
-    total: 0,
     hoje: 0,
-    proximaSemana: 0
+    semana: 0,
+    mes: 0
   });
 
   const [atendimentosSummary, setAtendimentosSummary] = useState<AtendimentoSummary>({
@@ -144,21 +144,33 @@ const Home = () => {
       tipo: "Consulta Online",
       status: "cancelada"
     }
-  ]);
-
-  // Simular o carregamento de dados
+  ]);  // Carregar dados das consultas via API
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
+    const loadConsultaData = async () => {
+      setLoading(true);
+      setError("");
+      
+      // Debug: verificar dados do usuário no localStorage
+      const userData = localStorage.getItem('userData');
+      console.log('UserData no localStorage:', userData);
+      
       try {
-        // Simulando dados de consultas
+        console.log('Iniciando chamada para getAllConsultaStats...');
+        
+        // Buscar dados de consultas da API
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('voluntario');
+        
+        console.log('Dados retornados da API:', consultaStats);
+        
         setConsultasSummary({
-          total: 15,
-          hoje: 2,
-          proximaSemana: 8
+          hoje: consultaStats.hoje,       // Card azul - consultas de hoje
+          semana: consultaStats.semana,   // Card verde - consultas da semana
+          mes: consultaStats.mes          // Card amarelo - consultas do mês
         });
         
-        // Simulando dados de atendimentos
+        console.log('Estado atualizado com sucesso');
+        
+        // Manter dados simulados para outras seções que ainda não têm API
         setAtendimentosSummary({
           realizados: 42,
           cancelados: 5,
@@ -166,19 +178,36 @@ const Home = () => {
           avaliacaoMedia: 4.7
         });
         
-        // Simulando dados de horários disponíveis
         setHorariosSummary({
           disponiveis: 12,
           ocupados: 6,
           proximoDisponivel: new Date(2025, 4, 18, 10, 0) // 18 de maio de 2025, 10:00
         });
         
-        setLoading(false);
-      } catch (err) {
-        setError("Erro ao carregar dados do dashboard");
+      } catch (err: any) {
+        console.error('Erro ao carregar dados das consultas:', err);
+        console.error('Detalhes do erro:', {
+          message: err.message,
+          status: err.status,
+          stack: err.stack
+        });
+        
+        setError(err.message || "Erro ao carregar dados das consultas");
+        
+        // Fallback para dados simulados em caso de erro
+        setConsultasSummary({
+          hoje: 5,   // Dados simulados para debug
+          semana: 12,
+          mes: 38
+        });
+        
+        console.log('Usando dados simulados devido ao erro');
+      } finally {
         setLoading(false);
       }
-    }, 1000);
+    };
+
+    loadConsultaData();
   }, []);
 
   const statusColors: Record<string, string> = {
@@ -459,28 +488,27 @@ const Home = () => {
                         <Skeleton className="h-8 sm:h-12 w-full" />
                       </div>
                     ) : (
-                      <div className="space-y-3 sm:space-y-4">
-                        <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
+                      <div className="space-y-3 sm:space-y-4">                        <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
                           <motion.div 
                             whileHover={{ scale: 1.05 }}
                             className="flex flex-col items-center p-1.5 sm:p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md"
                           >
-                            <span className="text-sm sm:text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Total</span>
+                            <span className="text-sm sm:text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.hoje}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
                           </motion.div>
                           <motion.div 
                             whileHover={{ scale: 1.05 }}
                             className="flex flex-col items-center p-1.5 sm:p-2 bg-green-50 dark:bg-green-900/20 rounded-md"
                           >
-                            <span className="text-sm sm:text-lg font-bold text-green-700 dark:text-green-300">{consultasSummary.hoje}</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
+                            <span className="text-sm sm:text-lg font-bold text-green-700 dark:text-green-300">{consultasSummary.semana}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Semana</span>
                           </motion.div>
                           <motion.div 
                             whileHover={{ scale: 1.05 }}
                             className="flex flex-col items-center p-1.5 sm:p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md"
                           >
-                            <span className="text-sm sm:text-lg font-bold text-amber-700 dark:text-amber-300">{consultasSummary.proximaSemana}</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Semana</span>
+                            <span className="text-sm sm:text-lg font-bold text-amber-700 dark:text-amber-300">{consultasSummary.mes}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Mês</span>
                           </motion.div>
                         </div>
                         

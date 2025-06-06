@@ -542,15 +542,14 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
         console.log("Buscando usuário com idUsuario:", idUsuario);
         setFetchingUser(true);
         setFetchUserError(null);
-        fetch(`http://localhost:8080/usuarios/fase1?idUsuario=${idUsuario}`)
+        fetch(`http://localhost:8080/usuarios/verificar-cadastro?idUsuario=${idUsuario}`)
             .then(async (res) => {
                 console.log("Resposta da API:", res);
-                if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');
-                const data = await res.json();
+                if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');                const data = await res.json();
                 console.log("Dados recebidos:", data);
                 setFormData((prev) => ({
                     ...prev,
-                    nomeCompleto: data.nome || prev.nomeCompleto,
+                    nomeCompleto: (data.nome && data.sobrenome) ? `${data.nome} ${data.sobrenome}` : (data.nome || prev.nomeCompleto),
                     email: data.email || prev.email,
                     dataNascimento: data.dataNascimento || prev.dataNascimento,
                 }));
@@ -563,13 +562,12 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
         if ((!idUsuario || idUsuario === '0') && formData.email && fieldStates.email === 'valid') {
             setFetchingUser(true);
             // Não mostra erro, apenas tenta preencher se encontrar
-            fetch(`http://localhost:8080/usuarios/fase1?email=${encodeURIComponent(formData.email)}`)
+            fetch(`http://localhost:8080/usuarios/verificar-cadastro?email=${encodeURIComponent(formData.email)}`)
                 .then(async (res) => {
-                    if (!res.ok) throw new Error('Usuário não encontrado com este email.');
-                    const data = await res.json();
+                    if (!res.ok) throw new Error('Usuário não encontrado com este email.');                    const data = await res.json();
                     setFormData((prev) => ({
                         ...prev,
-                        nomeCompleto: data.nome || prev.nomeCompleto,
+                        nomeCompleto: (data.nome && data.sobrenome) ? `${data.nome} ${data.sobrenome}` : (data.nome || prev.nomeCompleto),
                         email: data.email || prev.email,
                         dataNascimento: data.dataNascimento || prev.dataNascimento,
                     }));
