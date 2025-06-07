@@ -38,7 +38,8 @@ import {
     Clock,    Check
 } from "lucide-react";
 
-export function InscricaoAnamnese() {    const [formData, setFormData] = useState({
+export function CompletarCadastroUsuarioAssistido() {
+    const [formData, setFormData] = useState({
         nomeCompleto: "",
         telefone: "",
         dataNascimento: "",
@@ -125,9 +126,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
     });
 
     // Carregar dados salvos ao montar o componente
-    useEffect(() => {
-        const savedData = localStorage.getItem('inscricao_form_data');
-        const savedTimestamp = localStorage.getItem('inscricao_form_timestamp');
+    useEffect(() => {        const savedData = localStorage.getItem('cadastro_usuario_assistido_form_data');
+        const savedTimestamp = localStorage.getItem('cadastro_usuario_assistido_form_timestamp');
 
         if (savedData) {
             try {
@@ -157,10 +157,9 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                     lastModified: new Date().toISOString(),
                     userId: idUsuario
                 };
-                
-                localStorage.setItem('inscricao_form_data', JSON.stringify(formData));
-                localStorage.setItem('inscricao_changed_fields', JSON.stringify(Array.from(changedFields)));
-                localStorage.setItem('inscricao_form_timestamp', new Date().toISOString());
+                  localStorage.setItem('cadastro_usuario_assistido_form_data', JSON.stringify(formData));
+                localStorage.setItem('cadastro_usuario_assistido_changed_fields', JSON.stringify(Array.from(changedFields)));
+                localStorage.setItem('cadastro_usuario_assistido_form_timestamp', new Date().toISOString());
                 setLastSaved(new Date());
                 
                 // Clear changed fields after save
@@ -677,9 +676,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                     throw new Error('Erro ao completar cadastro');
                 }
                 
-                // Success: clear local storage and show modal
-                localStorage.removeItem('inscricao_form_data');
-                localStorage.removeItem('inscricao_form_timestamp');
+                // Success: clear local storage and show modal                localStorage.removeItem('cadastro_usuario_assistido_form_data');
+                localStorage.removeItem('cadastro_usuario_assistido_form_timestamp');
                 // Redireciona para /login após sucesso
                 navigate('/login');
                 return;
@@ -1006,9 +1004,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                 className="text-4xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-white dark:via-blue-400 dark:to-purple-400 mb-3"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                Inscrição de Atendimento
+                                transition={{ delay: 0.2 }}                            >
+                                Completar Cadastro do Usuário Assistido
                             </motion.h1>
                             <motion.p
                                 className="text-xl text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-2"
@@ -1855,9 +1852,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                onClick={() => {
-                                                    localStorage.removeItem('inscricao_form_data');
-                                                    localStorage.removeItem('inscricao_form_timestamp');                                                    setFormData({
+                                                onClick={() => {                                                    localStorage.removeItem('cadastro_usuario_assistido_form_data');
+                                                    localStorage.removeItem('cadastro_usuario_assistido_form_timestamp');setFormData({
                                                         nomeCompleto: "",
                                                         telefone: "",
                                                         dataNascimento: "",

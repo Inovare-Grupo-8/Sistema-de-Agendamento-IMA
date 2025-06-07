@@ -20,7 +20,7 @@ import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
 import AgendarHorarioUser from "@/components/AgendarHorarioUser";
-import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
+import { CompletarCadastroUsuarioAssistido } from "./components/CompletarCadastroUsuarioAssistido";
 import AssistenteSocial from "@/components/AssistenteSocial";
 import ProfileFormAssistenteSocial from "@/components/ProfileFormAssistenteSocial";
 import CadastroVoluntario from "@/components/CadastroVoluntario";
@@ -77,7 +77,7 @@ const App = () => {
                       <Route path="/login" element={<TelaLogin />} />                      
                       <Route path="/cadastro" element={<TelaLogin />} />
                       {/* Rota para o formulário de inscrição */}
-                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />
+                      <Route path="/completar-cadastro-usuario" element={<CompletarCadastroUsuarioAssistido />} />
                       {/* Rota para completar cadastro do assistido */}
                       <Route path="/completar-cadastro-voluntario" element={<CompletarCadastroVoluntario />} />
                       {/* Rotas da assistente social */}
