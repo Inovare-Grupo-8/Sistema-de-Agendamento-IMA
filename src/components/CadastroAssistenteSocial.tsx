@@ -24,7 +24,7 @@ interface NovoAssistenteSocialData {
     genero: string;
     renda: number;
     tipo: 'ADMINISTRADOR' | 'USUARIO' | 'VOLUNTARIO';
-    funcao: string;
+    funcao: 'ASSISTENCIA_SOCIAL';
     profissao: string;
     telefone: {
         ddd: string;
@@ -56,6 +56,25 @@ const formatCep = (cep: string) => {
     return digits.replace(/^(\d{5})(\d{3}).*/, '$1-$2');
 };
 
+const formatCpf = (cpf: string) => {
+    // Remove any non-digit characters
+    const digits = cpf.replace(/\D/g, '');
+    // Format as XXX.XXX.XXX-XX
+    return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, '$1.$2.$3-$4');
+};
+
+const formatTelefone = (telefone: string) => {
+    // Remove any non-digit characters
+    const digits = telefone.replace(/\D/g, '');
+    // Format based on length (9 digits = XXXXX-XXXX, 8 digits = XXXX-XXXX)
+    if (digits.length === 9) {
+        return digits.replace(/^(\d{5})(\d{4}).*/, '$1-$2');
+    } else if (digits.length === 8) {
+        return digits.replace(/^(\d{4})(\d{4}).*/, '$1-$2');
+    }
+    return digits;
+};
+
 export default function CadastroAssistenteSocial() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [loading, setLoading] = useState(false);
@@ -75,9 +94,9 @@ export default function CadastroAssistenteSocial() {
         cpf: '',
         dataNascimento: '',
         genero: '',
-        renda: 0,
+        renda: 0,        
         tipo: 'ADMINISTRADOR', 
-        funcao: 'assistente social', 
+        funcao: 'ASSISTENCIA_SOCIAL',
         profissao: '',
         telefone: {
             ddd: '',
@@ -99,9 +118,7 @@ export default function CadastroAssistenteSocial() {
                 complemento: ''
             }
         }
-    });
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    });    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         
         if (name === "endereco.cep") {
@@ -111,6 +128,27 @@ export default function CadastroAssistenteSocial() {
                 endereco: {
                     ...prev.endereco,
                     cep: formattedCep
+                }
+            }));
+            return;
+        }
+
+        if (name === "cpf") {
+            const formattedCpf = formatCpf(value);
+            setFormData(prev => ({
+                ...prev,
+                cpf: formattedCpf
+            }));
+            return;
+        }
+
+        if (name === "telefone.numero") {
+            const formattedTelefone = formatTelefone(value);
+            setFormData(prev => ({
+                ...prev,
+                telefone: {
+                    ...prev.telefone,
+                    numero: formattedTelefone
                 }
             }));
             return;
@@ -149,28 +187,22 @@ export default function CadastroAssistenteSocial() {
                 [name]: value
             }));
         }
-    };
-
-    const validateForm = () => {
+    };    const validateForm = () => {
         const errors: Record<string, string> = {};
         
+        // Campos obrigatórios baseados no AssistenteSocialInput.java
         if (!formData.nome.trim()) errors.nome = "Nome é obrigatório";
         if (!formData.sobrenome.trim()) errors.sobrenome = "Sobrenome é obrigatório";
-        if (!formData.cpf.trim()) errors.cpf = "CPF é obrigatório";
-        if (!formData.dataNascimento) errors.dataNascimento = "Data de nascimento é obrigatória";
-        if (!formData.genero) errors.genero = "Gênero é obrigatório";
-        if (!formData.profissao.trim()) errors.profissao = "Profissão é obrigatória";
-        if (!formData.voluntario.crp.trim()) errors['voluntario.crp'] = "CRP é obrigatório";
-        if (!formData.voluntario.especialidade.trim()) errors['voluntario.especialidade'] = "Especialidade é obrigatória";
-        if (!formData.voluntario.bio.trim()) errors['voluntario.bio'] = "Biografia é obrigatória";
         
+        // Email - obrigatório e com validação
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!formData.email.trim()) {
-            errors.email = "Email é obrigatório";
+            errors.email = "E-mail é obrigatório";
         } else if (!emailRegex.test(formData.email)) {
-            errors.email = "Email inválido";
+            errors.email = "E-mail inválido";
         }
 
+        // Senha - obrigatória
         if (!formData.senha.trim()) {
             errors.senha = "Senha é obrigatória";
         } else if (formData.senha.length < 6) {
@@ -181,11 +213,46 @@ export default function CadastroAssistenteSocial() {
             errors.confirmarSenha = "As senhas não coincidem";
         }
         
-        if (!formData.telefone.ddd) errors['telefone.ddd'] = "DDD é obrigatório";
-        if (!formData.telefone.numero) errors['telefone.numero'] = "Número é obrigatório";
+        // CPF - obrigatório
+        const cpfDigits = formData.cpf.replace(/\D/g, '');
+        if (!formData.cpf.trim()) {
+            errors.cpf = "CPF é obrigatório";
+        } else if (cpfDigits.length !== 11) {
+            errors.cpf = "CPF deve ter 11 dígitos";
+        }
         
-        if (!formData.endereco.cep) errors['endereco.cep'] = "CEP é obrigatório";
-        if (!formData.endereco.numero) errors['endereco.numero'] = "Número é obrigatório";
+        // Data de nascimento - obrigatória
+        if (!formData.dataNascimento) errors.dataNascimento = "Data de nascimento é obrigatória";
+        
+        // Gênero - obrigatório
+        if (!formData.genero) errors.genero = "Gênero é obrigatório";
+        
+        // Profissão - obrigatória
+        if (!formData.profissao.trim()) errors.profissao = "Profissão é obrigatória";
+        
+        // DDD - obrigatório
+        if (!formData.telefone.ddd.trim()) errors['telefone.ddd'] = "DDD é obrigatório";
+        
+        // Número (endereço) - obrigatório
+        if (!formData.endereco.numero.trim()) errors['endereco.numero'] = "Número é obrigatório";
+        
+        // CEP - obrigatório
+        if (!formData.endereco.cep.trim()) errors['endereco.cep'] = "CEP é obrigatório";
+        
+        // Telefone - obrigatório
+        const telefoneDigits = formData.telefone.numero.replace(/\D/g, '');
+        if (!formData.telefone.numero.trim()) {
+            errors['telefone.numero'] = "Telefone é obrigatório";
+        } else if (telefoneDigits.length < 8 || telefoneDigits.length > 9) {
+            errors['telefone.numero'] = "Telefone deve ter 8 ou 9 dígitos";
+        }
+        
+        // Campos opcionais (não validamos se obrigatórios):
+        // - renda (Double)
+        // - complemento (String)
+        // - crp (String)
+        // - especialidade (String)
+        // - bio (String)
         
         setValidationErrors(errors);
         return Object.keys(errors).length === 0;
@@ -201,15 +268,13 @@ export default function CadastroAssistenteSocial() {
             return;
         }
 
-        setLoading(true);
-
-        try {
+        setLoading(true);        try {
             const dadosParaEnviar = {
                 nome: formData.nome,
                 sobrenome: formData.sobrenome,
                 email: formData.email,
                 senha: formData.senha,
-                cpf: formData.cpf,
+                cpf: formData.cpf.replace(/\D/g, ''), // Remove formatting from CPF
                 dataNascimento: formData.dataNascimento,
                 genero: formData.genero,
                 renda: formData.renda,
@@ -217,12 +282,12 @@ export default function CadastroAssistenteSocial() {
                 funcao: formData.funcao,
                 profissao: formData.profissao,
                 ddd: formData.telefone.ddd,
-                numero: formData.telefone.numero,
-                cep: formData.endereco.cep,
+                numero: formData.telefone.numero.replace(/\D/g, ''), // Remove formatting from phone
+                cep: formData.endereco.cep.replace(/\D/g, ''), // Remove formatting from CEP
                 complemento: formData.endereco.complemento,
                 crp: formData.voluntario.crp,
                 especialidade: formData.voluntario.especialidade,
-                telefone: `${formData.telefone.ddd}${formData.telefone.numero}`,
+                telefone: `${formData.telefone.ddd}${formData.telefone.numero.replace(/\D/g, '')}`,
                 bio: formData.voluntario.bio
             };
 
@@ -456,8 +521,7 @@ export default function CadastroAssistenteSocial() {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="space-y-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">                                            <div className="space-y-2">
                                                 <Label htmlFor="cpf" className="flex items-center justify-between">
                                                     CPF
                                                     {validationErrors.cpf && (
@@ -471,6 +535,7 @@ export default function CadastroAssistenteSocial() {
                                                     onChange={handleInputChange}
                                                     className={validationErrors.cpf ? 'border-red-500' : ''}
                                                     placeholder="123.456.789-00"
+                                                    maxLength={14}
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -559,22 +624,18 @@ export default function CadastroAssistenteSocial() {
                                                     placeholder="Digite sua profissão"
                                                 />
                                             </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="voluntario.bio" className="flex items-center justify-between">
-                                                Biografia
-                                                {validationErrors['voluntario.bio'] && (
-                                                    <span className="text-xs text-red-500">{validationErrors['voluntario.bio']}</span>
-                                                )}
+                                        </div>                                        <div className="space-y-2">
+                                            <Label htmlFor="voluntario.bio">
+                                                Biografia (opcional)
                                             </Label>
                                             <textarea 
                                                 id="voluntario.bio" 
                                                 name="voluntario.bio" 
                                                 value={formData.voluntario.bio} 
-                                                onChange={(e) => handleInputChange({ ...e, target: { ...e.target, type: 'text' } } as any)}
-                                                className={`w-full p-2 rounded-md border ${validationErrors['voluntario.bio'] ? 'border-red-500' : 'border-gray-300'}`}
+                                                onChange={handleInputChange}
+                                                className="w-full p-2 rounded-md border border-gray-300"
                                                 rows={4}
+                                                placeholder="Descreva sua biografia profissional..."
                                             />
                                         </div>
 
@@ -607,15 +668,15 @@ export default function CadastroAssistenteSocial() {
                                                         maxLength={2}
                                                         placeholder="11"
                                                     />
-                                                </div>
-                                                <div className="col-span-3 space-y-2">
+                                                </div>                                                <div className="col-span-3 space-y-2">
                                                     <Label htmlFor="telefone.numero">Número</Label>
                                                     <Input 
                                                         id="telefone.numero" 
                                                         name="telefone.numero" 
                                                         value={formData.telefone.numero} 
                                                         onChange={handleInputChange}
-                                                        placeholder="987654321"
+                                                        placeholder="98765-4321"
+                                                        maxLength={10}
                                                     />
                                                 </div>
                                             </div>
