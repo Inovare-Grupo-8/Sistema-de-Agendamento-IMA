@@ -627,7 +627,7 @@ export function CompletarCadastroUsuarioAssistido() {
                 areaOrientacao: formData.areaOrientacao,
                 comoSoube: formData.comoSoube,
                 sugestaoOutraArea: formData.sugestaoOutraArea || null,
-                tipo: "VALOR_SOCIAL", 
+                tipo: "NAO_CLASSIFICADO", 
                 endereco: {
                     cep: formData.cep.replace(/\D/g, ''), // Remove formatting
                     numero: formData.numero,
