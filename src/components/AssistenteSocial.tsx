@@ -81,7 +81,7 @@ const assistenteSocialData: AssistenteSocialData = {
 };
 
 // Dados mockados de usuários do sistema
-const totalUsuarios = 127;
+// const totalUsuarios = 127; // Removido - agora será dinâmico
 
 // Dados mockados de atendimentos
 const atendimentosData: AtendimentoSocial[] = [
@@ -189,11 +189,11 @@ const AssistenteSocial = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();
-
-  // Estados para controle da interface
+  const { theme, toggleTheme } = useThemeToggleWithNotification();  // Estados para controle da interface
   const [atendimentosHoje, setAtendimentosHoje] = useState<AtendimentoSocial[]>([]);
   const [proximosAtendimentos, setProximosAtendimentos] = useState<AtendimentoSocial[]>([]);
+  const [totalUsuarios, setTotalUsuarios] = useState<number>(0);
+  const [usuariosNaoClassificados, setUsuariosNaoClassificados] = useState<number>(0);
     // Estados para formulários
   const [formularios, setFormularios] = useState<FormularioInscricao[]>(formulariosPendentes);
   const [formularioSelecionado, setFormularioSelecionado] = useState<FormularioInscricao | null>(null);
@@ -202,14 +202,37 @@ const AssistenteSocial = () => {
   const [showReprovacaoModal, setShowReprovacaoModal] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [tipoCandidato, setTipoCandidato] = useState<"multidisciplinar" | "valor_social" | "">("");
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
+  const [isProcessing, setIsProcessing] = useState(false);  useEffect(() => {
     // Simular carregamento de dados
     const loadData = async () => {
       setLoading(true);
       
-      // Simular delay de API
+      try {
+        // Buscar total de usuários da API
+        const response = await fetch('http://localhost:8080/usuarios');
+        if (response.ok) {
+          const usuarios = await response.json();
+          setTotalUsuarios(usuarios.length);
+          
+          // Contar usuários não classificados
+          const naoClassificados = usuarios.filter((usuario: any) => 
+            usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO" || !usuario.tipo
+          );
+          setUsuariosNaoClassificados(naoClassificados.length);
+        } else {
+          console.error('Erro ao buscar usuários:', response.status);
+          // Manter valor padrão em caso de erro
+          setTotalUsuarios(0);
+          setUsuariosNaoClassificados(0);
+        }
+      } catch (error) {
+        console.error('Erro ao conectar com a API:', error);
+        // Manter valor padrão em caso de erro
+        setTotalUsuarios(0);
+        setUsuariosNaoClassificados(0);
+      }
+      
+      // Simular delay de API para outros dados
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Filtrar atendimentos de hoje
@@ -516,8 +539,7 @@ const AssistenteSocial = () => {
             <div className="flex flex-col">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Dashboard - Assistente Social</h1>
               <p className="text-gray-600 dark:text-gray-400 mb-6">Gerencie seus atendimentos e acompanhe seu trabalho social</p>              {/* Cards de resumo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
-                {/* Formulários pendentes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">                {/* Formulários pendentes */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -529,7 +551,7 @@ const AssistenteSocial = () => {
                         <div>
                           <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Pendentes</p>
                           <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                            {formularios.filter(f => f.status === "pendente").length}
+                            {usuariosNaoClassificados}
                           </p>
                         </div>
                         <div className="p-2 sm:p-3 rounded-full bg-orange-100 dark:bg-orange-900/30">
@@ -538,7 +560,7 @@ const AssistenteSocial = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>                {/* Total de usuários */}
+                </motion.div>{/* Total de usuários */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
