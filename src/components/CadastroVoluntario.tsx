@@ -83,6 +83,11 @@ const assistenteSocialNavItems = [
     icon: <UserCheck className="w-6 h-6" color="#ED4231" />
   },
   {
+    path: '/cadastro-assistente',
+    label: 'Cadastrar Assistente', 
+    icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
+  },
+  {
     path: "/cadastro-voluntario",
     label: "Cadastrar Voluntário",
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />

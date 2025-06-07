@@ -210,18 +210,22 @@ const TelaLogin: React.FC = () => {
                 if (!data.tipo) {
                     setModalErro('Aguarde o contato da assistente social');
                     return;
-                }
-
-                const tipoUsuario = (data.tipo || '').toString().toLowerCase();
+                }                const tipoUsuario = (data.tipo || '').toString().toUpperCase();
                 switch (tipoUsuario) {
-                    case 'administrador':
-                        navigate('/home');
-                        break;
-                    case 'assistente social':
+                    case 'ADMINISTRADOR':
                         navigate('/assistente-social');
                         break;
-                    default:
+                    case 'VOLUNTARIO':
+                        navigate('/home');
+                        break;
+                    case 'VALOR_SOCIAL':
+                    case 'GRATUIDADE':
                         navigate('/home-user');
+                        break;
+                    default:
+                        // For NAO_CLASSIFICADO or any other unhandled types
+                        setModalErro('Entre em contato com a administração ou se teve o contato, espere que breve receberá a liberação para acessar o sistema');
+                        return;
                 }
             }
         } catch (error: any) {
