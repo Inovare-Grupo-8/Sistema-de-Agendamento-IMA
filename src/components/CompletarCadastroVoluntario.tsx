@@ -158,24 +158,10 @@ export function CompletarCadastroVoluntario() {
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const idUsuario = searchParams.get('id');
-
   const validateField = (fieldName: string, value: string) => {
     let isValid = true;
     let errorMessage = "";
-    switch (fieldName) {      case 'cpf': {
-        const cleanCPF = value.replace(/\D/g, '');
-        if (!value) {
-          errorMessage = "CPF é obrigatório";
-          isValid = false;
-        } else if (cleanCPF.length !== 11) {
-          errorMessage = "CPF deve ter 11 dígitos";
-          isValid = false;
-        } else if (!/^\d{11}$/.test(cleanCPF)) {
-          errorMessage = "CPF deve conter apenas números";
-          isValid = false;
-        }
-        break;
-      }
+    switch (fieldName) {
       case 'dataNascimento':
         if (!value) {
           errorMessage = "Data de nascimento é obrigatória";
@@ -228,7 +214,8 @@ export function CompletarCadastroVoluntario() {
           errorMessage = "DDD obrigatório (2 dígitos)";
           isValid = false;
         }
-        break;      case 'telefone': {
+        break;
+      case 'telefone': {
         const cleanPhone = value.replace(/\D/g, '');
         if (!value) {
           errorMessage = "Telefone é obrigatório";
@@ -306,7 +293,6 @@ export function CompletarCadastroVoluntario() {
     }, 2000);
     return () => clearTimeout(timeoutId);
   }, [changedFields, formData]);
-
   // Buscar dados do usuário quando o ID está disponível
   useEffect(() => {
     if (!idUsuario) {
@@ -328,6 +314,7 @@ export function CompletarCadastroVoluntario() {
           nomeCompleto: (data.nome && data.sobrenome) ? `${data.nome} ${data.sobrenome}` : (data.nome || prev.nomeCompleto),
           email: data.email || prev.email,
           dataNascimento: data.dataNascimento || prev.dataNascimento,
+          cpf: data.cpf || prev.cpf, // CPF comes from first phase
         }));
       })
       .catch((error) => {
@@ -391,39 +378,49 @@ export function CompletarCadastroVoluntario() {
       if (!validateField(field, formData[field as keyof typeof formData])) isValid = false;
     });
     return isValid;
-  };
-
-  // Payload para backend
+  };  // Payload para backend
   const getPayload = () => {
     // Clean up phone number - remove all non-digits and ensure proper format
     const cleanPhone = formData.telefone.replace(/\D/g, '');
-    // Clean up CPF - remove all non-digits
-    const cleanCpf = formData.cpf.replace(/\D/g, '');
     // Clean up CEP - remove all non-digits for backend
     const cleanCep = formData.cep.replace(/\D/g, '');
     
+    // Parse phone number: 11 digits = ddd (2) + prefixo (5) + sufixo (4)
+    let telefoneData = {};
+    if (cleanPhone.length === 11) {
+      telefoneData = {
+        ddd: cleanPhone.substring(0, 2),
+        prefixo: cleanPhone.substring(2, 7),
+        sufixo: cleanPhone.substring(7, 11),
+        whatsapp: true // Default to true for volunteers
+      };
+    } else if (cleanPhone.length === 10) {
+      // Handle 10-digit numbers: ddd (2) + prefixo (4) + sufixo (4) -> convert to new format
+      telefoneData = {
+        ddd: cleanPhone.substring(0, 2),
+        prefixo: "9" + cleanPhone.substring(2, 6), // Add 9 prefix for mobile
+        sufixo: cleanPhone.substring(6, 10),
+        whatsapp: true
+      };
+    }
+    
     const payload: any = {
-      cpf: cleanCpf,
+      // CPF is not included here since it comes from first phase
       dataNascimento: formData.dataNascimento,
       genero: formData.genero,
       renda: convertFaixaSalarialToNumber(formData.faixaSalarial),
-      funcao: formData.funcao,
-      profissao: formData.profissao,
       tipo: "VOLUNTARIO",
       endereco: {
         cep: cleanCep,
         numero: formData.numero,
-        complemento: formData.complemento || "",
-        logradouro: formData.logradouro,
-        bairro: formData.bairro,
-        cidade: formData.cidade,
-        estado: formData.estado
+        complemento: formData.complemento || "N/A" // Required field, provide default
       },
-      telefone: {
-        ddd: cleanPhone.substring(0, 2),
-        numero: cleanPhone.substring(2)
-      }
+      telefone: telefoneData,
+      profissao: formData.profissao
     };
+
+    // Add optional fields
+    if (formData.funcao) payload.funcao = formData.funcao;
     if (formData.crm) payload.crm = formData.crm;
     return payload;
   };
@@ -452,11 +449,10 @@ export function CompletarCadastroVoluntario() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         credentials: 'include',
-      });
-
-      if (!response.ok) {
+      });      if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Resposta do servidor:', errorData);
+        
         throw new Error(errorData.message || 'Erro ao completar cadastro');
       }
 
@@ -466,12 +462,10 @@ export function CompletarCadastroVoluntario() {
       
       // Mostrar modal de sucesso e redirecionar
       setShowSuccessModal(true);
-      setTimeout(() => navigate('/login'), 2000);
-
-    } catch (error: unknown) {
+      setTimeout(() => navigate('/login'), 2000);    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao enviar cadastro.';
       setSubmitError(errorMessage);
-      setErrors(prev => ({ ...prev, cpf: errorMessage }));
+      
       console.error('Erro no submit:', error);
     } finally {
       setIsSubmitting(false);
@@ -650,17 +644,16 @@ export function CompletarCadastroVoluntario() {
                           </select>
                           {errors.genero && <span className={formClasses.error}>{errors.genero}</span>}
                         </div>
-                      ))}
-                      {renderFieldWithState('cpf', (
+                      ))}                      {renderFieldWithState('cpf', (
                         <div>
-                          <label className={formClasses.label}>CPF *</label>
+                          <label className={formClasses.label}>CPF (da Primeira Fase)</label>
                           <input 
                             type="text" 
-                            className={formClasses.input} 
+                            className={`${formClasses.input} bg-gray-100 dark:bg-gray-700 cursor-not-allowed`} 
                             value={formData.cpf} 
-                            onChange={e => handleMaskedFieldChange('cpf', e.target.value)} 
-                            maxLength={14} 
-                            placeholder="000.000.000-00" 
+                            readOnly
+                            placeholder="CPF será carregado automaticamente" 
+                            title="CPF foi informado na primeira fase do cadastro"
                           />
                           {errors.cpf && <span className={formClasses.error}>{errors.cpf}</span>}
                         </div>
