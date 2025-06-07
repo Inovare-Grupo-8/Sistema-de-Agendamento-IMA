@@ -151,7 +151,7 @@ const TelaLogin: React.FC = () => {
 
             localStorage.setItem('userData', JSON.stringify(data));
               if (data.fase === 1) {
-                navigate(data.idUsuario ? `/inscricao-anamnese?id=${data.idUsuario}` : '/inscricao-anamnese');
+                navigate(data.idUsuario ? `/completar-cadastro-usuario?id=${data.idUsuario}` : '/completar-cadastro-usuario');
             } else {
                 if (!data.tipo) {
                     setModalErro('Aguarde o contato da assistente social');
@@ -209,7 +209,7 @@ const TelaLogin: React.FC = () => {
                 mensagem: 'Cadastro realizado com sucesso! Deseja continuar para o formulário de anamnese?',
                 onConfirm: () => {
                     setModalConfirmacao(null);
-                    navigate(data.idUsuario ? `/inscricao-anamnese?id=${data.idUsuario}` : '/inscricao-anamnese');
+                    navigate(data.idUsuario ? `/completar-cadastro-usuario?id=${data.idUsuario}` : '/completar-cadastro-usuario');
                 }
             });
         } catch (error: any) {
