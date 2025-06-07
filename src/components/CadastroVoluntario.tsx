@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, UserCheck, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, Shield, Lock, Upload, Search, Filter, EyeOff, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, Search, Filter, AlertCircle, EyeOff, Shield, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -106,6 +106,11 @@ const assistenteSocialNavItems = [
     path: "/assistente-social",
     label: "Home",
     icon: <HomeIcon className="w-6 h-6" color="#ED4231" />
+  },
+  {
+    path: "/classificacao-usuarios",
+    label: "Classificar Usuários",
+    icon: <UserCheck className="w-6 h-6" color="#ED4231" />
   },
   {
     path: "/cadastro-voluntario",
