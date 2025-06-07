@@ -22,11 +22,13 @@ import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { userNavigationItems } from "@/utils/userNavigation";
+import { ConsultaApiService } from "@/services/consultaApi";
 
 interface ConsultaSummary {
   total: number;
   proxima: Date | null;
   canceladas: number;
+  semana: number; // Adicionar campo para consultas da semana
 }
 
 interface AtendimentoSummary {
@@ -93,14 +95,14 @@ const HomeUser = () => {
   useEffect(() => {
     if (selectedDate) {
       localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
-    }
-  }, [selectedDate]);
+    }  }, [selectedDate]);
 
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
     proxima: null,
-    canceladas: 0
+    canceladas: 0,
+    semana: 0
   });
 
   // Adicionando estado para o status da próxima consulta
@@ -171,21 +173,24 @@ const HomeUser = () => {
       }
     ]
   );
-
-  // Simular o carregamento de dados
+  // Carregar dados das consultas via API
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
+    const loadConsultaData = async () => {
+      setLoading(true);
+      setError("");
+      
       try {
-        // Simulando dados de consultas
-        const proximaData = new Date(2025, 4, 18, 10, 0); // 18 de maio de 2025, 10:00
-        setConsultasSummary({
-          total: 5,
-          proxima: proximaData,
-          canceladas: 1
+        // Buscar dados de consultas da API
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');        // Para o usuário assistido, mapear os dados corretamente
+        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
+          setConsultasSummary({
+          total: consultaStats.hoje, // Consultas de hoje (card azul)
+          proxima: proximaData, // Próxima consulta agendada
+          canceladas: consultaStats.mes, // Consultas do mês (card vermelho)
+          semana: consultaStats.semana // Consultas da semana (card verde)
         });
         
-        // Preencher dados da próxima consulta
+        // Preencher dados da próxima consulta se existir
         if (proximasConsultas.length > 0) {
           const proximaConsulta = proximasConsultas.find(c => 
             c.data.toDateString() === proximaData.toDateString()
@@ -199,21 +204,30 @@ const HomeUser = () => {
               status: proximaConsulta.status
             });
           }
-        }
-        
-        // Simulando dados de atendimentos
+        }          // Atualizar dados dos atendimentos com dados da API
         setAtendimentosSummary({
-          realizados: 8,
-          proximos: 2,
+          realizados: consultaStats.semana || 8,
+          proximos: consultaStats.semana || 2, // Usar dados da semana para o card verde
           ultimaAvaliacao: 5
         });
         
-        setLoading(false);
-      } catch (err) {
-        setError("Erro ao carregar dados do dashboard");
+      } catch (err: any) {
+        console.error('Erro ao carregar dados das consultas:', err);
+        setError(err.message || "Erro ao carregar dados das consultas");
+          // Fallback para dados simulados em caso de erro
+        const proximaData = new Date(2025, 4, 18, 10, 0);
+        setConsultasSummary({
+          total: 0,
+          proxima: proximaData,
+          canceladas: 0,
+          semana: 0
+        });
+      } finally {
         setLoading(false);
       }
-    }, 1000);
+    };
+
+    loadConsultaData();
   }, [proximasConsultas]);
 
   const statusColors: Record<string, string> = {
@@ -552,34 +566,31 @@ const HomeUser = () => {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <Tooltip>
+                          <div className="grid grid-cols-3 gap-2 text-center">                            <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div 
                                   whileHover={{ scale: 1.05 }}
                                   className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-help"
                                 >
                                   <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
-                                  <span className="text-xs text-gray-600 dark:text-gray-400">Total</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
                                 </motion.div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Total de consultas que você já agendou na plataforma</p>
+                                <p>Consultas agendadas para hoje</p>
                               </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
+                            </Tooltip>                            <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div 
                                   whileHover={{ scale: 1.05 }}
                                   className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-md cursor-help"
                                 >
-                                  <span className="text-lg font-bold text-green-700 dark:text-green-300">{atendimentosSummary.proximos}</span>
-                                  <span className="text-xs text-gray-600 dark:text-gray-400">Próximas</span>
+                                  <span className="text-lg font-bold text-green-700 dark:text-green-300">{consultasSummary.semana}</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Semana</span>
                                 </motion.div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Consultas agendadas para os próximos dias</p>
+                                <p>Consultas agendadas para esta semana</p>
                               </TooltipContent>
                             </Tooltip>
 
@@ -590,11 +601,10 @@ const HomeUser = () => {
                                   className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-md cursor-help"
                                 >
                                   <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.canceladas}</span>
-                                  <span className="text-xs text-gray-600 dark:text-gray-400">Canceladas</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Mês</span>
                                 </motion.div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Consultas que foram canceladas por você ou pelo profissional</p>
+                              </TooltipTrigger>                              <TooltipContent>
+                                <p>Total de consultas agendadas para este mês</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -821,7 +831,8 @@ const HomeUser = () => {
                     </CardTitle>
                     <CardDescription>Selecione uma data para agendar</CardDescription>
                   </CardHeader>
-                  <CardContent>                    <div className="flex justify-center">
+                  <CardContent>                    
+                    <div className="flex justify-center">
                       <Calendar
                         mode="single"
                         selected={selectedDate}

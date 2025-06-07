@@ -20,13 +20,14 @@ import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 import { UserNavigationProvider } from "@/contexts/UserNavigationContext";
 import AgendarHorarioUser from "@/components/AgendarHorarioUser";
-import { InscricaoAnamnese } from "./components/InscricaoAnamnese";
+import { CompletarCadastroUsuarioAssistido } from "./components/CompletarCadastroUsuarioAssistido";
 import AssistenteSocial from "@/components/AssistenteSocial";
 import ProfileFormAssistenteSocial from "@/components/ProfileFormAssistenteSocial";
 import CadastroVoluntario from "@/components/CadastroVoluntario";
 import PagamentoUser from "@/components/PagamentoUser";
 import { UserProvider } from "@/contexts/UserContext";
 import { ProfessionalProvider } from "@/contexts/ProfessionalContext";
+import { CompletarCadastroVoluntario } from "@/components/CompletarCadastroVoluntario";
 
 const queryClient = new QueryClient();
 
@@ -58,7 +59,8 @@ const App = () => {
               <ProfessionalProvider>
                 <Router>
                   <UserNavigationProvider>
-                    <Routes>                      {/* Rotas do usuário */}
+                    <Routes>                      
+                      {/* Rotas do usuário */}
                       <Route path="/home-user" element={<HomeUser />} />
                       <Route path="/agenda-user" element={<AgendaUser />} />
                       <Route path="/historico-user" element={<HistoricoUser />} />
@@ -71,10 +73,14 @@ const App = () => {
                       <Route path="/disponibilizar-horario" element={<DisponibilizarHorario />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/historico" element={<Historico />} />
-                      <Route path="/profile-form" element={<ProfileForm />} />                      <Route path="/login" element={<TelaLogin />} />                      
+                      <Route path="/profile-form" element={<ProfileForm />} />                      
+                      <Route path="/login" element={<TelaLogin />} />                      
                       <Route path="/cadastro" element={<TelaLogin />} />
                       {/* Rota para o formulário de inscrição */}
-                      <Route path="/inscricao-anamnese" element={<InscricaoAnamnese />} />                      {/* Rotas da assistente social */}
+                      <Route path="/completar-cadastro-usuario" element={<CompletarCadastroUsuarioAssistido />} />
+                      {/* Rota para completar cadastro do assistido */}
+                      <Route path="/completar-cadastro-voluntario" element={<CompletarCadastroVoluntario />} />
+                      {/* Rotas da assistente social */}
                       <Route path="/assistente-social" element={<AssistenteSocial />} />
                       <Route path="/profile-form-assistente-social" element={<ProfileFormAssistenteSocial />} />
                       <Route path="/cadastro-voluntario" element={<CadastroVoluntario />} />

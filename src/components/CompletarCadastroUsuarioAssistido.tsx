@@ -38,7 +38,8 @@ import {
     Clock,    Check
 } from "lucide-react";
 
-export function InscricaoAnamnese() {    const [formData, setFormData] = useState({
+export function CompletarCadastroUsuarioAssistido() {
+    const [formData, setFormData] = useState({
         nomeCompleto: "",
         telefone: "",
         dataNascimento: "",
@@ -125,9 +126,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
     });
 
     // Carregar dados salvos ao montar o componente
-    useEffect(() => {
-        const savedData = localStorage.getItem('inscricao_form_data');
-        const savedTimestamp = localStorage.getItem('inscricao_form_timestamp');
+    useEffect(() => {        const savedData = localStorage.getItem('cadastro_usuario_assistido_form_data');
+        const savedTimestamp = localStorage.getItem('cadastro_usuario_assistido_form_timestamp');
 
         if (savedData) {
             try {
@@ -142,10 +142,9 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
         }
     }, []);    // Intelligent auto-save that only saves changed fields
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (changedFields.size > 0) {
+        const timeoutId = setTimeout(() => {            if (changedFields.size > 0) {
                 // Create partial data with only changed fields
-                const changedData: Partial<typeof formData> = {};
+                const changedData: any = {};
                 changedFields.forEach(fieldName => {
                     if (fieldName in formData) {
                         changedData[fieldName as keyof typeof formData] = formData[fieldName as keyof typeof formData];
@@ -158,10 +157,9 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                     lastModified: new Date().toISOString(),
                     userId: idUsuario
                 };
-                
-                localStorage.setItem('inscricao_form_data', JSON.stringify(formData));
-                localStorage.setItem('inscricao_changed_fields', JSON.stringify(Array.from(changedFields)));
-                localStorage.setItem('inscricao_form_timestamp', new Date().toISOString());
+                  localStorage.setItem('cadastro_usuario_assistido_form_data', JSON.stringify(formData));
+                localStorage.setItem('cadastro_usuario_assistido_changed_fields', JSON.stringify(Array.from(changedFields)));
+                localStorage.setItem('cadastro_usuario_assistido_form_timestamp', new Date().toISOString());
                 setLastSaved(new Date());
                 
                 // Clear changed fields after save
@@ -542,15 +540,14 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
         console.log("Buscando usuário com idUsuario:", idUsuario);
         setFetchingUser(true);
         setFetchUserError(null);
-        fetch(`http://localhost:8080/usuarios/fase1?idUsuario=${idUsuario}`)
+        fetch(`http://localhost:8080/usuarios/verificar-cadastro?idUsuario=${idUsuario}`)
             .then(async (res) => {
                 console.log("Resposta da API:", res);
-                if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');
-                const data = await res.json();
+                if (!res.ok) throw new Error('Erro ao buscar dados do usuário.');                const data = await res.json();
                 console.log("Dados recebidos:", data);
                 setFormData((prev) => ({
                     ...prev,
-                    nomeCompleto: data.nome || prev.nomeCompleto,
+                    nomeCompleto: (data.nome && data.sobrenome) ? `${data.nome} ${data.sobrenome}` : (data.nome || prev.nomeCompleto),
                     email: data.email || prev.email,
                     dataNascimento: data.dataNascimento || prev.dataNascimento,
                 }));
@@ -563,13 +560,12 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
         if ((!idUsuario || idUsuario === '0') && formData.email && fieldStates.email === 'valid') {
             setFetchingUser(true);
             // Não mostra erro, apenas tenta preencher se encontrar
-            fetch(`http://localhost:8080/usuarios/fase1?email=${encodeURIComponent(formData.email)}`)
+            fetch(`http://localhost:8080/usuarios/verificar-cadastro?email=${encodeURIComponent(formData.email)}`)
                 .then(async (res) => {
-                    if (!res.ok) throw new Error('Usuário não encontrado com este email.');
-                    const data = await res.json();
+                    if (!res.ok) throw new Error('Usuário não encontrado com este email.');                    const data = await res.json();
                     setFormData((prev) => ({
                         ...prev,
-                        nomeCompleto: data.nome || prev.nomeCompleto,
+                        nomeCompleto: (data.nome && data.sobrenome) ? `${data.nome} ${data.sobrenome}` : (data.nome || prev.nomeCompleto),
                         email: data.email || prev.email,
                         dataNascimento: data.dataNascimento || prev.dataNascimento,
                     }));
@@ -578,7 +574,75 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
         }
     }, [formData.email, idUsuario, fieldStates.email]);
 
-    // Atualize o handleSubmit para permitir envio mesmo sem idUsuario
+    // Utility functions for payload transformation
+    const parsePhoneNumber = (phone: string) => {
+        // Extract from format "(11) 98765-4321" to ddd, prefixo, sufixo
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length === 11) {
+            return {
+                ddd: cleaned.substring(0, 2),
+                prefixo: cleaned.substring(2, 7),
+                sufixo: cleaned.substring(7, 11),
+                whatsapp: true // Default to true, could be made configurable
+            };
+        } else if (cleaned.length === 10) {
+            return {
+                ddd: cleaned.substring(0, 2),
+                prefixo: cleaned.substring(2, 6),
+                sufixo: cleaned.substring(6, 10),
+                whatsapp: false
+            };
+        }
+        throw new Error('Invalid phone number format');
+    };
+
+    const convertSalaryRange = (faixaSalarial: string): number => {
+        const salaryMap: Record<string, number> = {
+            'ate-1-salario': 1412,
+            '1-a-2-salarios': 2824,
+            '2-a-3-salarios': 4236,
+            '3-a-5-salarios': 7060,
+            '5-a-10-salarios': 14120,
+            'acima-10-salarios': 20000
+        };
+        return salaryMap[faixaSalarial] || 0;
+    };
+
+    const formatDateForBackend = (dateString: string): string => {
+        // Convert from YYYY-MM-DD to backend LocalDate format
+        return dateString; // LocalDate expects YYYY-MM-DD format
+    };
+
+    const transformToBackendPayload = (formData: any) => {
+        try {
+            const telefoneData = parsePhoneNumber(formData.telefone);
+              return {
+                nomeCompleto: formData.nomeCompleto,
+                email: formData.email,
+                cpf: formData.cpf.replace(/\D/g, ''), // Remove formatting
+                dataNascimento: formatDateForBackend(formData.dataNascimento),
+                faixaSalarial: convertSalaryRange(formData.faixaSalarial),
+                genero: formData.genero,
+                profissao: formData.profissao,
+                areaOrientacao: formData.areaOrientacao,
+                comoSoube: formData.comoSoube,
+                sugestaoOutraArea: formData.sugestaoOutraArea || null,
+                tipo: "VALOR_SOCIAL", 
+                endereco: {
+                    cep: formData.cep.replace(/\D/g, ''), // Remove formatting
+                    numero: formData.numero,
+                    complemento: formData.complemento || null
+                },
+                telefone: telefoneData,
+                isVoluntario: false
+            };
+        } catch (error) {
+            console.error('Error transforming payload:', error);
+            throw new Error('Erro ao processar dados do formulário');
+        }
+    };
+
+    // Updated handleSubmit function
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -588,38 +652,45 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                 setIsSubmitting(false);
                 return;
             }
-            // Não bloqueia mais se não houver idUsuario
+            
             if (validateForm()) {
-                // PATCH /usuarios/fase2/{idUsuario} se houver id, senão apenas PATCH /usuarios/fase2
-                const payload = {
-                    ...formData,
-                    isVoluntario: false
-                };
+                // Transform form data to backend format
+                const payload = transformToBackendPayload(formData);
+                
                 let url = 'http://localhost:8080/usuarios/fase2';
                 if (idUsuario) {
                     url += `/${idUsuario}`;
                 }
+                
+                console.log('Sending payload:', payload); // Debug log
+                
                 const response = await fetch(url, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
+                
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Backend error:', errorText);
                     throw new Error('Erro ao completar cadastro');
                 }
-                // Success: clear local storage and show modal
-                localStorage.removeItem('inscricao_form_data');
-                localStorage.removeItem('inscricao_form_timestamp');
+                
+                // Success: clear local storage and show modal                localStorage.removeItem('cadastro_usuario_assistido_form_data');
+                localStorage.removeItem('cadastro_usuario_assistido_form_timestamp');
                 // Redireciona para /login após sucesso
                 navigate('/login');
-                return;            } else {
+                return;
+            } else {
                 console.log('Formulário com erros:', errors);
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Erro ao enviar inscrição.';
             setSubmitError(errorMessage);
+            console.error('Submit error:', error);
         } finally {
-            setIsSubmitting(false);        }
+            setIsSubmitting(false);
+        }
     };    const closeSuccessModal = () => {
         setShowSuccessModal(false);        setFormData({
             nomeCompleto: "",
@@ -933,9 +1004,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                 className="text-4xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-white dark:via-blue-400 dark:to-purple-400 mb-3"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                Inscrição de Atendimento
+                                transition={{ delay: 0.2 }}                            >
+                                Completar Cadastro do Usuário Assistido
                             </motion.h1>
                             <motion.p
                                 className="text-xl text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-2"
@@ -1582,26 +1652,25 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                                 )}
                                             </div>
 
-                                            <div className="lg:col-span-2">
-                                                <Label htmlFor="estado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            <div className="lg:col-span-2">                                                <Label htmlFor="estado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Estado <span className="text-red-500">*</span>
-                                                </Label>                                                {renderFieldWithState('estado',
+                                                </Label>
+                                                {renderFieldWithState('estado',
                                                     <Input
                                                         id="estado"
                                                         value={formData.estado}
-                                                        onChange={(e) => handleFieldChange('estado', e.target.value.toUpperCase())}
+                                                        onChange={(e) => handleFieldChange('estado', e.target.value)}
                                                         placeholder="SP"
                                                         className={cn(
                                                             "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
                                                             fieldStates.estado === 'valid' && "border-green-500 bg-green-50/50",
                                                             fieldStates.estado === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
                                                         )}
-                                                        aria-label="Campo obrigatório para estado (UF)"
+                                                        aria-label="Campo obrigatório para estado"
                                                         aria-describedby={errors.estado ? "estado-error" : undefined}
                                                         aria-invalid={!!errors.estado}
                                                         autoComplete="address-level1"
                                                         inputMode="text"
-                                                        maxLength={2}
                                                         required
                                                     />
                                                 )}
@@ -1622,7 +1691,7 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                     </div>
                                 </motion.div>
 
-                                {/* Orientação e Informações Adicionais */}
+                                {/* Orientação section */}
                                 <motion.div
                                     className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-purple-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden"
                                     variants={sectionVariants}
@@ -1647,11 +1716,11 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                                 {isSectionComplete(3) ? (
                                                     <CheckCircle2 className="w-6 h-6 text-white" />
                                                 ) : (
-                                                    <GraduationCap className="w-6 h-6 text-white" />
+                                                    <Heart className="w-6 h-6 text-white" />
                                                 )}
                                             </motion.div>
                                             <div>
-                                                <span>Orientação e Informações Adicionais</span>
+                                                <span>Orientação e Sugestões</span>
                                                 {isSectionComplete(3) && (
                                                     <motion.div
                                                         className="text-sm text-green-600 dark:text-green-400 font-normal"
@@ -1662,7 +1731,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                                     </motion.div>
                                                 )}
                                             </div>
-                                        </motion.h2>                                        {/* Área de Orientação */}
+                                        </motion.h2>
+
                                         <div className="mb-6">
                                             <Label htmlFor="areaOrientacao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Área que gostaria de receber orientação <span className="text-red-500">*</span>
@@ -1712,10 +1782,9 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                                     {errors.areaOrientacao}
                                                 </motion.p>
                                             )}
-                                        </div>
-
-                                        {/* Como soube e Sugestão */}
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">                                            <div>
+                                        </div>                                        {/* Como soube e Sugestão */}
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <div>
                                                 <Label htmlFor="comoSoube" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Como soube do projeto <span className="text-red-500">*</span>
                                                 </Label>
@@ -1763,10 +1832,10 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                                 </Label>                                            <Input
                                                     id="sugestaoOutraArea"
                                                     value={formData.sugestaoOutraArea}
-                                                    onChange={(e) => setFormData({ ...formData, sugestaoOutraArea: e.target.value })}
-                                                    placeholder="Sugira uma nova área de orientação (opcional)"
+                                                    onChange={(e) => setFormData({ ...formData, sugestaoOutraArea: e.target.value })}                                                    placeholder="Sugira uma nova área de orientação (opcional)"
                                                     className="mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                />                                        </div>
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -1783,9 +1852,8 @@ export function InscricaoAnamnese() {    const [formData, setFormData] = useStat
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                onClick={() => {
-                                                    localStorage.removeItem('inscricao_form_data');
-                                                    localStorage.removeItem('inscricao_form_timestamp');                                                    setFormData({
+                                                onClick={() => {                                                    localStorage.removeItem('cadastro_usuario_assistido_form_data');
+                                                    localStorage.removeItem('cadastro_usuario_assistido_form_timestamp');setFormData({
                                                         nomeCompleto: "",
                                                         telefone: "",
                                                         dataNascimento: "",
