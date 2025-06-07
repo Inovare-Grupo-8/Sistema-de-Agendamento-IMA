@@ -38,10 +38,24 @@ export interface AssistenteSocialOutput {
 export const useAssistenteSocial = () => {
     const fetchPerfil = async (): Promise<AssistenteSocialOutput> => {
         try {
-            const response = await fetch('/api/assistentes-sociais/perfil', {
+            // Pegar dados do usuário logado do localStorage
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('Usuário não está logado');
+            }
+            
+            const user = JSON.parse(userData);
+            const usuarioId = user.idUsuario;
+            
+            if (!usuarioId) {
+                throw new Error('ID do usuário não encontrado');
+            }
+
+            const response = await fetch(`http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
                 }
             });
 
@@ -54,14 +68,26 @@ export const useAssistenteSocial = () => {
             console.error('Erro ao buscar perfil:', error);
             throw error;
         }
-    };
-
-    const atualizarPerfil = async (dados: AssistenteSocialInput): Promise<AssistenteSocialOutput> => {
+    };    const atualizarPerfil = async (dados: AssistenteSocialInput): Promise<AssistenteSocialOutput> => {
         try {
-            const response = await fetch('/api/assistentes-sociais/perfil', {
-                method: 'PUT',
+            // Pegar dados do usuário logado do localStorage
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('Usuário não está logado');
+            }
+            
+            const user = JSON.parse(userData);
+            const usuarioId = user.idUsuario;
+            
+            if (!usuarioId) {
+                throw new Error('ID do usuário não encontrado');
+            }
+
+            const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
                 },
                 body: JSON.stringify(dados)
             });
