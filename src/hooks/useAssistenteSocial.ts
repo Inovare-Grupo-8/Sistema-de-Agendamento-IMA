@@ -13,6 +13,7 @@ interface Endereco {
 export interface AssistenteSocialInput {
     nome: string;
     sobrenome: string;
+    cpf?: string;
     crp: string;
     especialidade: string;
     telefone: string;
@@ -26,6 +27,7 @@ export interface AssistenteSocialOutput {
     idUsuario: number;
     nome: string;
     sobrenome: string;
+    cpf?: string;
     crp: string;
     especialidade: string;
     telefone: string;
@@ -33,6 +35,9 @@ export interface AssistenteSocialOutput {
     bio?: string;
     fotoUrl?: string;
     endereco?: Endereco;
+    // Dados profissionais vindos do backend
+    registroProfissional?: string;
+    biografiaProfissional?: string;
 }
 
 export const useAssistenteSocial = () => {
@@ -40,26 +45,42 @@ export const useAssistenteSocial = () => {
         try {
             // Pegar dados do usuário logado do localStorage
             const userData = localStorage.getItem('userData');
+            
+            console.log('🔍 Debug - userData:', userData);
+            
             if (!userData) {
                 throw new Error('Usuário não está logado');
             }
             
             const user = JSON.parse(userData);
+            const token = user.token; // Token está dentro do objeto user
             const usuarioId = user.idUsuario;
+            
+            console.log('🔍 Debug - token:', token ? 'Token exists' : 'No token');
+            console.log('🔍 Debug - usuarioId:', usuarioId);
             
             if (!usuarioId) {
                 throw new Error('ID do usuário não encontrado');
             }
 
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`, {
+            const url = `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`;
+            console.log('🔍 Debug - URL:', url);
+            console.log('🔍 Debug - Authorization header:', `Bearer ${token || ''}`);
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    'Authorization': `Bearer ${token || ''}`
                 }
             });
 
+            console.log('🔍 Debug - Response status:', response.status);
+            console.log('🔍 Debug - Response statusText:', response.statusText);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.log('🔍 Debug - Error response:', errorText);
                 throw new Error('Erro ao buscar perfil');
             }
 
@@ -68,7 +89,9 @@ export const useAssistenteSocial = () => {
             console.error('Erro ao buscar perfil:', error);
             throw error;
         }
-    };    const atualizarPerfil = async (dados: AssistenteSocialInput): Promise<AssistenteSocialOutput> => {
+    };
+
+    const atualizarPerfil = async (dados: AssistenteSocialInput): Promise<AssistenteSocialOutput> => {
         try {
             // Pegar dados do usuário logado do localStorage
             const userData = localStorage.getItem('userData');
@@ -77,6 +100,7 @@ export const useAssistenteSocial = () => {
             }
             
             const user = JSON.parse(userData);
+            const token = user.token; // Token está dentro do objeto user
             const usuarioId = user.idUsuario;
             
             if (!usuarioId) {
@@ -87,7 +111,7 @@ export const useAssistenteSocial = () => {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    'Authorization': `Bearer ${token || ''}`
                 },
                 body: JSON.stringify(dados)
             });
@@ -101,11 +125,193 @@ export const useAssistenteSocial = () => {
             console.error('Erro ao atualizar perfil:', error);
             throw error;
         }
+    };    const atualizarDadosProfissionais = async (dados: {
+        registroProfissional?: string;
+        especialidade?: string;
+        biografiaProfissional?: string;
+    }): Promise<void> => {
+        try {
+            // Pegar dados do usuário logado do localStorage
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('Usuário não está logado');
+            }
+            
+            const user = JSON.parse(userData);
+            const token = user.token;
+            const usuarioId = user.idUsuario;
+            
+            if (!usuarioId) {
+                throw new Error('ID do usuário não encontrado');
+            }
+
+            // Converter para o formato esperado pelo backend
+            const dadosParaEnviar = {
+                registroProfissional: dados.registroProfissional,
+                biografiaProfissional: dados.biografiaProfissional
+            };
+
+            const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-profissionais?usuarioId=${usuarioId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token || ''}`
+                },
+                body: JSON.stringify(dadosParaEnviar)
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao atualizar dados profissionais');
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar dados profissionais:', error);
+            throw error;
+        }
+    };
+
+    const buscarEndereco = async (): Promise<Endereco | null> => {
+        try {
+            // Pegar dados do usuário logado do localStorage
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('Usuário não está logado');
+            }
+            
+            const user = JSON.parse(userData);
+            const token = user.token;
+            const usuarioId = user.idUsuario;
+            
+            if (!usuarioId) {
+                throw new Error('ID do usuário não encontrado');
+            }
+
+            const response = await fetch(`http://localhost:8080/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token || ''}`
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return null; // Endereço não encontrado
+                }
+                throw new Error('Erro ao buscar endereço');
+            }
+
+            const enderecoOutput = await response.json();
+            
+            // Converter EnderecoOutput para Endereco
+            return {
+                rua: enderecoOutput.logradouro || '',
+                numero: enderecoOutput.numero || '',
+                complemento: enderecoOutput.complemento || '',
+                bairro: enderecoOutput.bairro || '',
+                cidade: enderecoOutput.cidade || '',
+                estado: enderecoOutput.uf || '',
+                cep: enderecoOutput.cep || ''
+            };
+        } catch (error) {
+            console.error('Erro ao buscar endereço:', error);
+            throw error;
+        }
+    };
+
+    const atualizarEndereco = async (endereco: {
+        cep: string;
+        numero: string;
+        complemento?: string;
+    }): Promise<void> => {
+        try {
+            // Pegar dados do usuário logado do localStorage
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('Usuário não está logado');
+            }
+            
+            const user = JSON.parse(userData);
+            const token = user.token;
+            const usuarioId = user.idUsuario;
+            
+            if (!usuarioId) {
+                throw new Error('ID do usuário não encontrado');
+            }
+
+            // Preparar dados para envio no formato esperado pelo backend
+            const enderecoInput = {
+                cep: endereco.cep,
+                numero: endereco.numero,
+                complemento: endereco.complemento || ''
+            };
+
+            const response = await fetch(`http://localhost:8080/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token || ''}`
+                },
+                body: JSON.stringify(enderecoInput)
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao atualizar endereço');
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar endereço:', error);
+            throw error;
+        }    };
+
+    // Função específica para atualizar apenas dados pessoais básicos (nome e email)
+    const atualizarDadosPessoais = async (dados: { nome: string; email: string }): Promise<{ nome: string; email: string }> => {
+        try {
+            // Pegar dados do usuário logado do localStorage
+            const userData = localStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('Usuário não está logado');
+            }
+            
+            const user = JSON.parse(userData);
+            const token = user.token;
+            const usuarioId = user.idUsuario;
+            
+            if (!usuarioId) {
+                throw new Error('ID do usuário não encontrado');
+            }
+
+            const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token || ''}`
+                },
+                body: JSON.stringify(dados)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erro na resposta:', errorText);
+                throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return {
+                nome: result.nome || dados.nome,
+                email: result.email || dados.email
+            };
+        } catch (error) {
+            console.error('Erro ao atualizar dados pessoais:', error);
+            throw error;
+        }
     };
 
     return {
         fetchPerfil,
-        atualizarPerfil
+        atualizarPerfil,
+        atualizarDadosPessoais,
+        atualizarDadosProfissionais,
+        buscarEndereco,
+        atualizarEndereco
     };
 };
 
