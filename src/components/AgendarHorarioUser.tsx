@@ -476,27 +476,26 @@ const AgendarHorarioUser = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+            </div>          </div>
         </main>
+
+        {/* Logout dialog */}
+        <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+              <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+              <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+                Sair
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
-    
-    {/* Logout dialog */}
-    <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
-          <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
-          <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
-            Sair
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 };
 
