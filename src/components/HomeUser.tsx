@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -59,6 +59,19 @@ interface ConsultaCancelamento {
 }
 
 const HomeUser = () => {
+  const navigate = useNavigate();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  
+  // Handle logout function
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+  };
   const { t } = useTranslation();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -492,8 +505,10 @@ const HomeUser = () => {
             {/* Botão de Sair permanece o mesmo */}
             <SidebarMenuItem>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
+                <TooltipTrigger asChild>                  <SidebarMenuButton 
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                    onClick={() => setShowLogoutDialog(true)}
+                  >
                     <span className="flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                       <span>Sair</span>
@@ -1863,8 +1878,23 @@ const HomeUser = () => {
           .w-full.sm\\:w-auto {
             width: 100% !important;
           }
-        }
-      `}</style>
+        }      `}</style>
+      
+      {/* Logout dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+              Sair
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
