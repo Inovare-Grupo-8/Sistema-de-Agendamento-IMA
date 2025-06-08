@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -129,9 +129,19 @@ const Historico = () => {
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const location = useLocation();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);  const location = useLocation();
   const { professionalData } = useProfessional();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -728,6 +738,21 @@ const Historico = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowFeedbackModal(false)}>
               Fechar
+            </Button>          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logout Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+              Sair
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar, User, Clock, Menu, History, Sun, Moon, Home, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
@@ -9,14 +9,26 @@ import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotifi
 import { useUserData } from "@/hooks/useUserData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { toast } from "@/components/ui/use-toast";
 
 const HomeAdmin = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData } = useUserData();
+  
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+  };
 
   return (
     <SidebarProvider>
@@ -218,11 +230,10 @@ const HomeAdmin = () => {
                 Tem certeza que deseja sair da sua conta?
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+            <DialogFooter className="flex gap-2">              <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
                 Cancelar
               </Button>
-              <Button variant="destructive" onClick={() => {/* Add logout logic */}}>
+              <Button variant="destructive" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
                 Sair
               </Button>
             </DialogFooter>

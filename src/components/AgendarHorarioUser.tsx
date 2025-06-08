@@ -1,7 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, ChevronLeft, ChevronRight, Sun, Moon, Home as HomeIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
@@ -36,10 +44,24 @@ const tiposConsulta = ["Consulta Online", "Consulta Presencial"];
 
 const AgendarHorarioUser = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
+  // Add state for logout dialog
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  
+  // Handle logout function
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+  };
 
   const [userData, setUserData] = useState(() => {
     const savedData = localStorage.getItem("userData");
@@ -206,8 +228,10 @@ const AgendarHorarioUser = () => {
             
             <SidebarMenuItem>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
+                <TooltipTrigger asChild>                  <SidebarMenuButton 
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                    onClick={() => setShowLogoutDialog(true)}
+                  >
                     <span className="flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                       <span>Sair</span>
@@ -452,9 +476,24 @@ const AgendarHorarioUser = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+            </div>          </div>
         </main>
+
+        {/* Logout dialog */}
+        <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+              <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+              <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+                Sair
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );
