@@ -58,6 +58,33 @@ export interface ApiError {
   status?: number;
 }
 
+export interface ProximaConsulta {
+  horario: string;
+  status: string;
+  modalidade: string;
+  local: string;
+  observacoes: string;
+  especialidade: {
+    idEspecialidade: number;
+    nome: string;
+  };
+  assistido: {
+    idUsuario: number;
+    ficha: {
+      nome: string;
+      sobrenome: string;
+    };
+  };
+  voluntario: {
+    idUsuario: number;
+    ficha: {
+      nome: string;
+      sobrenome: string;
+      profissao: string;
+    };
+  };
+}
+
 // API service class for consultation endpoints
 export class ConsultaApiService {
   
@@ -164,6 +191,20 @@ export class ConsultaApiService {
       status: -1
     };
   }
-}
 
+  /**
+   * Get next consultation for user
+   * @param idUsuario - ID of the user to get next consultation
+   * @returns Promise with next consultation data
+   */
+  static async getProximaConsulta(idUsuario: number): Promise<ProximaConsulta> {
+    try {
+      const response = await apiClient.get<ProximaConsulta>(`/consulta/consultas/${idUsuario}/proxima`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching próxima consulta:', error);
+      throw this.handleApiError(error);
+    }
+  }
+}
 export default ConsultaApiService;
