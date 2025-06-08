@@ -290,6 +290,15 @@ const ProfileFormAssistenteSocial = () => {
         });
         return;
       }
+
+      if (!formData.sobrenome || !formData.sobrenome.trim()) {
+        toast({
+          title: "Sobrenome obrigatório",
+          description: "Por favor, preencha o sobrenome",
+          variant: "destructive"
+        });
+        return;
+      }
       
       if (!formData.email || !formData.email.trim()) {
         toast({
@@ -299,21 +308,33 @@ const ProfileFormAssistenteSocial = () => {
         });
         return;
       }
-      
-      // Validação de email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
+
+      if (!formData.telefone || !formData.telefone.trim()) {
         toast({
-          title: "Email inválido",
-          description: "Por favor, insira um email válido",
+          title: "Telefone obrigatório",
+          description: "Por favor, preencha o telefone",
           variant: "destructive"
         });
         return;
-      }      // Preparar apenas os dados pessoais básicos que o endpoint /dados-pessoais aceita
+      }
+
+      // Validação de telefone
+      const phoneError = isPhone(formData.telefone);
+      if (phoneError) {
+        toast({
+          title: "Telefone inválido",
+          description: phoneError,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Preparar apenas os dados pessoais básicos que o endpoint /dados-pessoais aceita
       const dadosPessoais = {
         nome: formData.nome,
-        email: formData.email
-        // Nota: sobrenome e telefone devem ser salvos em suas respectivas abas
+        email: formData.email,
+        sobrenome: formData.sobrenome,
+        telefone: formData.telefone
       };
 
       console.log('Dados pessoais básicos para enviar:', dadosPessoais);
@@ -325,7 +346,9 @@ const ProfileFormAssistenteSocial = () => {
       setFormData(prevData => ({
         ...prevData,
         nome: dadosAtualizados.nome || prevData.nome,
-        email: dadosAtualizados.email || prevData.email
+        email: dadosAtualizados.email || prevData.email,
+        sobrenome: dadosAtualizados.sobrenome || prevData.sobrenome,
+        telefone: dadosAtualizados.telefone || prevData.telefone
       }));
       
       if (selectedImage && imagePreview) {

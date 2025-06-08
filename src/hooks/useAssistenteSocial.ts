@@ -262,15 +262,25 @@ export const useAssistenteSocial = () => {
             throw error;
         }    };
 
-    // Função específica para atualizar apenas dados pessoais básicos (nome e email)
-    const atualizarDadosPessoais = async (dados: { nome: string; email: string }): Promise<{ nome: string; email: string }> => {
+    // Função específica para atualizar apenas dados pessoais básicos
+    const atualizarDadosPessoais = async (dados: { 
+        nome: string; 
+        email: string; 
+        sobrenome: string;
+        telefone: string;
+    }): Promise<{ 
+        nome: string; 
+        email: string; 
+        sobrenome: string;
+        telefone: string;
+    }> => {
         try {
             // Pegar dados do usuário logado do localStorage
             const userData = localStorage.getItem('userData');
             if (!userData) {
                 throw new Error('Usuário não está logado');
             }
-            
+
             const user = JSON.parse(userData);
             const token = user.token;
             const usuarioId = user.idUsuario;
@@ -297,7 +307,9 @@ export const useAssistenteSocial = () => {
             const result = await response.json();
             return {
                 nome: result.nome || dados.nome,
-                email: result.email || dados.email
+                email: result.email || dados.email,
+                sobrenome: result.sobrenome || dados.sobrenome,
+                telefone: result.telefone || dados.telefone
             };
         } catch (error) {
             console.error('Erro ao atualizar dados pessoais:', error);
