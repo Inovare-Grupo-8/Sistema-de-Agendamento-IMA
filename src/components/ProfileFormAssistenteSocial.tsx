@@ -397,55 +397,79 @@ const ProfileFormAssistenteSocial = () => {
   
   // Função específica para salvar dados profissionais
   const handleSaveProfessionalData = async () => {
+    if (!formChanged) {
+        toast({
+            title: "Nenhuma alteração detectada",
+            description: "Altere algum campo para salvar",
+            variant: "default"
+        });
+        return;
+    }
+    
     setLoading(true);
     
     try {
-      // Validar campos profissionais
-      if (!formData.crp || !formData.crp.trim()) {
-        toast({
-          title: "CRP obrigatório",
-          description: "Por favor, preencha o número do CRP",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (!formData.especialidade || !formData.especialidade.trim()) {
-        toast({
-          title: "Especialidade obrigatória",
-          description: "Por favor, preencha sua especialidade",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Preparar dados profissionais para envio
-      const dadosProfissionais = {
-        registroProfissional: formData.crp,
-        especialidade: formData.especialidade,
-        biografiaProfissional: formData.bio || ''
-      };
-
-      await atualizarDadosProfissionais(dadosProfissionais);
-      
-      setSuccessMessage("Dados profissionais atualizados com sucesso!");
-      setFormChanged(false);
-      
-      toast({
-        title: "Dados profissionais atualizados",
-        description: "Suas informações profissionais foram atualizadas com sucesso!",
-      });
+        // Validar campos profissionais
+        if (!formData.crp || !formData.crp.trim()) {
+            toast({
+                title: "CRP obrigatório",
+                description: "Por favor, preencha o número do CRP",
+                variant: "destructive"
+            });
+            return;
+        }
         
-      setTimeout(() => setSuccessMessage(""), 3000);
+        if (!formData.especialidade || !formData.especialidade.trim()) {
+            toast({
+                title: "Especialidade obrigatória",
+                description: "Por favor, preencha sua especialidade",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        console.log('Dados profissionais a serem enviados:', {
+            crp: formData.crp,
+            especialidade: formData.especialidade,
+            bio: formData.bio
+        });
+
+        // Preparar dados profissionais para envio
+        const dadosProfissionais = {
+            crp: formData.crp,
+            especialidade: formData.especialidade,
+            bio: formData.bio || ''
+        };
+
+        const resultado = await atualizarDadosProfissionais(dadosProfissionais);
+        console.log('Resposta da atualização:', resultado);
+
+        // Atualizar o estado do formulário com os dados retornados
+        setFormData(prevData => ({
+            ...prevData,
+            crp: resultado.crp,
+            especialidade: resultado.especialidade,
+            bio: resultado.bio
+        }));
+      
+        setSuccessMessage("Dados profissionais atualizados com sucesso!");
+        setFormChanged(false);
+      
+        toast({
+            title: "Dados profissionais atualizados",
+            description: "Suas informações profissionais foram atualizadas com sucesso!",
+        });
+          
+        setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error('Erro ao salvar dados profissionais:', error);
-      toast({
-        title: "Erro ao salvar dados profissionais",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar seus dados profissionais.",
-        variant: "destructive"
-      });
+        console.error('Erro ao salvar dados profissionais:', error);
+        toast({
+            title: "Erro ao salvar dados profissionais",
+            description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar seus dados profissionais.",
+            variant: "destructive"
+        });
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
   

@@ -126,12 +126,15 @@ export const useAssistenteSocial = () => {
             throw error;
         }
     };    const atualizarDadosProfissionais = async (dados: {
-        registroProfissional?: string;
-        especialidade?: string;
-        biografiaProfissional?: string;
-    }): Promise<void> => {
+        crp: string;
+        especialidade: string;
+        bio?: string;
+    }): Promise<{
+        crp: string;
+        especialidade: string;
+        bio?: string;
+    }> => {
         try {
-            // Pegar dados do usuário logado do localStorage
             const userData = localStorage.getItem('userData');
             if (!userData) {
                 throw new Error('Usuário não está logado');
@@ -147,9 +150,14 @@ export const useAssistenteSocial = () => {
 
             // Converter para o formato esperado pelo backend
             const dadosParaEnviar = {
-                registroProfissional: dados.registroProfissional,
-                biografiaProfissional: dados.biografiaProfissional
+                funcao: "ASSISTENCIA_SOCIAL",
+                registroProfissional: dados.crp,
+                especialidade: dados.especialidade,
+                biografiaProfissional: dados.bio,
+                especialidades: []
             };
+
+            console.log('Enviando dados profissionais para o backend:', dadosParaEnviar);
 
             const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-profissionais?usuarioId=${usuarioId}`, {
                 method: 'PATCH',
@@ -160,9 +168,29 @@ export const useAssistenteSocial = () => {
                 body: JSON.stringify(dadosParaEnviar)
             });
 
+            console.log('Status da resposta:', response.status);
+
             if (!response.ok) {
-                throw new Error('Erro ao atualizar dados profissionais');
+                const errorText = await response.text();
+                console.error('Erro na resposta:', errorText);
+                throw new Error(`Erro ao atualizar dados profissionais: ${response.status}. ${errorText}`);
             }
+
+            // Handle 204 No Content response
+            if (response.status === 204) {
+                console.log('Dados profissionais atualizados com sucesso (204 No Content)');
+                return dados; // Return the original data since update was successful
+            }
+
+            const result = await response.json();
+            console.log('Resposta do backend:', result);
+
+            // Return the server response data if available, otherwise fallback to original data
+            return {
+                crp: result.registroProfissional || dados.crp,
+                especialidade: result.especialidade || dados.especialidade,
+                bio: result.biografiaProfissional || dados.bio
+            };
         } catch (error) {
             console.error('Erro ao atualizar dados profissionais:', error);
             throw error;
