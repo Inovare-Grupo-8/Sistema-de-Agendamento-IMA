@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Sun, Moon, Home as HomeIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { ProximaConsulta} from "@/services/consultaApi";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
@@ -141,6 +142,36 @@ const HomeUser = () => {
       }
     ]
   );
+
+  //Proxima consulta do usuario
+   const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
+ // Adicionar useEffect para carregar a próxima consulta
+  useEffect(() => {
+    const loadProximaConsulta = async () => {
+      try {
+        const userData = localStorage.getItem("userData");
+        if (!userData) {
+          console.log("User data not found");
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const idUsuario = user.idUsuario; // Note que aqui usamos idUsuario conforme o backend
+
+        const consulta = await ConsultaApiService.getProximaConsulta(idUsuario);
+        setProximaConsulta(consulta);
+      } catch (error) {
+        console.error("Erro ao carregar próxima consulta:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar sua próxima consulta",
+          variant: "destructive"
+        });
+      }
+    };
+
+    loadProximaConsulta();
+  }, []);
 
   // Dados de exemplo para o histórico recente
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>(
@@ -618,18 +649,18 @@ const HomeUser = () => {
                             >
                               <div className="flex justify-between items-center mb-2">
                                 <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-300">Próxima consulta:</h3>
-                                {proximaConsultaData && (
+                                {proximaConsulta && (
                                   <div className="flex items-center gap-1">
-                                    {renderStatusIcon(proximaConsultaData.status)}
+                                    {renderStatusIcon(proximaConsulta.status.toLocaleLowerCase())}
                                     <span className="text-xs text-gray-600 dark:text-gray-400">
-                                      Status: {proximaConsultaData.status === 'agendada' ? 'Confirmada' : 
-                                             proximaConsultaData.status === 'realizada' ? 'Realizada' : 
-                                             proximaConsultaData.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                                      Status: {proximaConsulta.status === 'AGENDADA' ? 'Confirmada' : 
+                                             proximaConsulta.status === 'REALIZADA' ? 'Realizada' : 
+                                             proximaConsulta.status === 'CANCELADA' ? 'Cancelada' : 'Remarcada'}
                                     </span>
                                   </div>
                                 )}
                               </div>
-                              {proximaConsultaData ? (
+                              {proximaConsulta ? (
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
@@ -638,15 +669,16 @@ const HomeUser = () => {
                                     </Badge>
                                   </div>
                                   <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600 dark:text-gray-400">{proximaConsultaData.tipo}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{proximaConsulta.modalidade}</span>
                                     <span className="text-gray-600 dark:text-gray-400">
                                       <Clock className="w-3 h-3 inline mr-1" />
-                                      {consultasSummary.proxima.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                      {new Date(proximaConsulta.horario).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                     </span>
-                                  </div>                                <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
+                                  </div>                                
+                                  <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
                                     <Clock className="w-4 h-4 text-[#ED4231]" />
                                     <span className="text-sm font-medium text-[#ED4231]">
-                                      {formatarData(consultasSummary.proxima)}
+                                      {formatarData(new Date(proximaConsulta.horario))}
                                     </span>
                                   </div>
                                   <div className="flex gap-2 mt-2">
