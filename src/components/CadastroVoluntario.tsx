@@ -38,24 +38,15 @@ interface AssistenteSocialData {
 
 // Interface para voluntário (compatível com a API)
 interface Voluntario {
-  idUsuario: number;
-  idVoluntario: number;
+  id: string;
   nome: string;
   sobrenome: string;
   email: string;
-  telefone?: string;
-  cpf?: string;
-  crp?: string;
-  funcao?: string;
-  areaOrientacao?: string;
-  especialidade?: string; // Para compatibilidade com código existente
-  experiencia?: string;
-  bio?: string;
-  foto?: string;
-  status: "ativo" | "inativo" | "pendente";
-  dataCadastro: Date;
+  telefone: string;
+  status: "pendente" | "ativo" | "inativo";
+  especialidade: string;
+  dataRegistro: Date;
   ultimoAcesso?: Date;
-  ativo?: boolean;
 }
 
 // Itens de navegação para o assistente social
@@ -76,13 +67,8 @@ const assistenteSocialNavItems = [
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
   },
   {
-    path: "/cadastro-voluntario",
-    label: "Cadastrar Voluntário",
-    icon: <UserPlus className="w-6 h-6" color="#ED4231" />
-  },
-  {
     path: "/profile-form-assistente-social",
-    label: "Editar Perfil",
+    label: "Meu Perfil",
     icon: <User className="w-6 h-6" color="#ED4231" />
   }
 ];
@@ -136,8 +122,7 @@ const CadastroVoluntario = () => {
       
       // Converter dados da API para o formato do componente
       const voluntariosConvertidos: Voluntario[] = dadosApi.map(vol => ({
-        idUsuario: vol.idUsuario,
-        idVoluntario: vol.idVoluntario,
+        id: vol.idUsuario,
         nome: vol.nome,
         sobrenome: vol.sobrenome,
         email: vol.email,
@@ -145,9 +130,9 @@ const CadastroVoluntario = () => {
         areaOrientacao: vol.areaOrientacao,
         especialidade: vol.funcao || vol.areaOrientacao || "Não especificado",
         status: VoluntarioApiService.determinarStatus(vol),
-        dataCadastro: new Date(vol.dataCadastro),
+        dataRegistro: new Date(vol.dataCadastro),
         ultimoAcesso: vol.ultimoAcesso ? new Date(vol.ultimoAcesso) : undefined,
-        ativo: vol.ativo
+        telefone: vol.telefone
       }));
       
       setVoluntarios(voluntariosConvertidos);
@@ -1071,7 +1056,7 @@ const CadastroVoluntario = () => {
                                 <p>{voluntario.especialidade}</p>
                               </div>                              <div className="flex items-center gap-1">
                                 <CalendarIcon className="w-3 h-3" />
-                                <p>Cadastrado em: {formatarData(voluntario.dataCadastro)}</p>
+                                <p>Cadastrado em: {formatarData(voluntario.dataRegistro)}</p>
                               </div>
                               {voluntario.ultimoAcesso && (
                                 <div className="flex items-center gap-1">

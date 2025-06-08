@@ -25,7 +25,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Interface para dados do assistente social
+// Interface for social worker navigation items
+interface UserNavigationItem {
+  path: string;
+  label: string;
+  icon: JSX.Element;
+}
+
+// Interface for social worker form data
 interface AssistenteSocialFormData {
   idUsuario: number;
   nome: string;
@@ -50,7 +57,7 @@ interface AssistenteSocialFormData {
   avaliacaoMedia: number;
 }
 
-// Dados padrão do assistente social
+// Default form data for social worker
 const assistenteSocialDataDefault: AssistenteSocialFormData = {
   idUsuario: 0,
   nome: "",
@@ -74,7 +81,7 @@ const assistenteSocialDataDefault: AssistenteSocialFormData = {
   avaliacaoMedia: 0
 };
 
-// Itens de navegação padronizados para o assistente social 
+// Navigation items for the social worker
 export const assistenteSocialNavItems: Record<string, UserNavigationItem> = {
   home: {
     path: '/assistente-social',
@@ -100,7 +107,7 @@ export const assistenteSocialNavItems: Record<string, UserNavigationItem> = {
     path: '/profile-form-assistente-social',
     label: 'Meu Perfil',
     icon: <User className="w-6 h-6" color="#ED4231" />,
-  },
+  }
 };
 
 export default function ProfileFormAssistenteSocial() {
