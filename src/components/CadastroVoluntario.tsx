@@ -67,6 +67,11 @@ const assistenteSocialNavItems = [
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
   },
   {
+    path: '/cadastro-voluntario',
+    label: 'Cadastrar Voluntário',
+    icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
+  },
+  {
     path: "/profile-form-assistente-social",
     label: "Meu Perfil",
     icon: <User className="w-6 h-6" color="#ED4231" />

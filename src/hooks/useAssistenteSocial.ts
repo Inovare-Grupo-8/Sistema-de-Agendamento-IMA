@@ -45,6 +45,24 @@ export interface AssistenteSocialOutput {
 export const useAssistenteSocial = () => {
     const navigate = useNavigate();
 
+    const atualizarUltimoAcesso = async (usuarioId: number, token: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/usuarios/${usuarioId}/ultimo-acesso`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Erro ao atualizar último acesso:', response.status);
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar último acesso:', error);
+        }
+    };
+
     const fetchPerfil = async (): Promise<AssistenteSocialOutput> => {
         try {
             // Pegar dados do usuário logado do localStorage
@@ -70,6 +88,9 @@ export const useAssistenteSocial = () => {
                 navigate('/');
                 throw new Error('ID do usuário não encontrado');
             }
+
+            // Atualizar último acesso do usuário
+            await atualizarUltimoAcesso(usuarioId, token);
 
             const url = `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`;
             console.log('🔍 Debug - URL:', url);
