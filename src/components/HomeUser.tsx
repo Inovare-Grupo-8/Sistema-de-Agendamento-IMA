@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -22,8 +22,7 @@ import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { userNavigationItems } from "@/utils/userNavigation";
-import { ConsultaApiService, ConsultaDto, ConsultaOutput } from "@/services/consultaApi";
-import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { ConsultaApiService } from "@/services/consultaApi";
 
 interface ConsultaSummary {
   total: number;
@@ -59,19 +58,6 @@ interface ConsultaCancelamento {
 }
 
 const HomeUser = () => {
-  const navigate = useNavigate();
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  
-  // Handle logout function
-  const handleLogout = () => {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('profileData');
-    navigate('/');
-    toast({
-      title: "Sessão encerrada",
-      description: "Você foi desconectado com sucesso.",
-    });
-  };
   const { t } = useTranslation();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -133,85 +119,106 @@ const HomeUser = () => {
     proximos: 0,
     ultimaAvaliacao: null
   });
+
   // Dados de exemplo para as próximas consultas
-  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
+  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>(
+    [
+      {
+        id: 1,
+        profissional: "Dr. Ricardo Santos",
+        especialidade: "Psicologia",
+        data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
+        tipo: "Consulta Online",
+        status: "agendada"
+      },
+      {
+        id: 2,
+        profissional: "Dra. Ana Costa",
+        especialidade: "Nutrição",
+        data: new Date(2025, 4, 20, 14, 30), // 20 de maio de 2025, 14:30
+        tipo: "Consulta Presencial",
+        status: "agendada"
+      }
+    ]
+  );
 
   // Dados de exemplo para o histórico recente
-  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);  // Carregar dados das consultas via API
+  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>(
+    [
+      {
+        id: 1,
+        profissional: "Dr. Carlos Pereira",
+        especialidade: "Psicologia",
+        data: new Date(2025, 4, 10, 11, 0), // 10 de maio de 2025, 11:00
+        tipo: "Consulta Online",
+        status: "realizada",
+        avaliacao: 5
+      },
+      {
+        id: 2,
+        profissional: "Dra. Lucia Ferreira",
+        especialidade: "Nutrição",
+        data: new Date(2025, 4, 12, 15, 0), // 12 de maio de 2025, 15:00
+        tipo: "Consulta Presencial",
+        status: "realizada",
+        avaliacao: 4
+      },
+      {
+        id: 3,
+        profissional: "Dr. Ricardo Santos",
+        especialidade: "Psicologia",
+        data: new Date(2025, 4, 8, 17, 30), // 8 de maio de 2025, 17:30
+        tipo: "Consulta Online",
+        status: "cancelada"
+      }
+    ]
+  );
+  // Carregar dados das consultas via API
   useEffect(() => {
     const loadConsultaData = async () => {
       setLoading(true);
       setError("");
       
       try {
-        // Buscar todos os dados em paralelo
-        const [consultaStats, proximasConsultasData, historicoData] = await Promise.all([
-          ConsultaApiService.getAllConsultaStats('assistido'),
-          ConsultaApiService.getProximasConsultas('assistido'),
-          ConsultaApiService.getConsultasRecentes('assistido')
-        ]);
-
-        // Converter dados das próximas consultas do formato da API para o formato local
-        const proximasFormatted: Consulta[] = proximasConsultasData.map(consulta => ({
-          id: consulta.id,
-          profissional: consulta.nomeVoluntario,
-          especialidade: consulta.especialidadeVoluntario,
-          data: new Date(consulta.horario),
-          tipo: consulta.modalidade,
-          status: consulta.status,
-          avaliacao: consulta.avaliacao
-        }));
-
-        // Converter dados do histórico do formato da API para o formato local  
-        const historicoFormatted: Consulta[] = historicoData.map(consulta => ({
-          id: consulta.id,
-          profissional: consulta.profissional,
-          especialidade: consulta.especialidade,
-          data: new Date(consulta.data),
-          tipo: consulta.tipo,
-          status: consulta.status,
-          avaliacao: consulta.avaliacao
-        }));
-
-        // Atualizar estados com dados reais
-        setProximasConsultas(proximasFormatted);
-        setHistoricoRecente(historicoFormatted);
-
-        // Mapear dados das estatísticas
-        const proximaData = proximasFormatted.length > 0 ? proximasFormatted[0].data : null;
-        setConsultasSummary({
-          total: consultaStats.hoje,
-          proxima: proximaData,
-          canceladas: consultaStats.mes,
-          semana: consultaStats.semana
+        // Buscar dados de consultas da API
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');        // Para o usuário assistido, mapear os dados corretamente
+        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
+          setConsultasSummary({
+          total: consultaStats.hoje, // Consultas de hoje (card azul)
+          proxima: proximaData, // Próxima consulta agendada
+          canceladas: consultaStats.mes, // Consultas do mês (card vermelho)
+          semana: consultaStats.semana // Consultas da semana (card verde)
         });
         
         // Preencher dados da próxima consulta se existir
-        if (proximasFormatted.length > 0) {
-          const proximaConsulta = proximasFormatted[0];
-          setProximaConsultaData({
-            profissional: proximaConsulta.profissional,
-            especialidade: proximaConsulta.especialidade,
-            tipo: proximaConsulta.tipo,
-            status: proximaConsulta.status
-          });
-        }
-
-        // Atualizar dados dos atendimentos com dados da API
+        if (proximasConsultas.length > 0) {
+          const proximaConsulta = proximasConsultas.find(c => 
+            c.data.toDateString() === proximaData.toDateString()
+          );
+          
+          if (proximaConsulta) {
+            setProximaConsultaData({
+              profissional: proximaConsulta.profissional,
+              especialidade: proximaConsulta.especialidade,
+              tipo: proximaConsulta.tipo,
+              status: proximaConsulta.status
+            });
+          }
+        }          // Atualizar dados dos atendimentos com dados da API
         setAtendimentosSummary({
-          realizados: historicoFormatted.filter(c => c.status === 'realizada').length,
-          proximos: proximasFormatted.length,
-          ultimaAvaliacao: historicoFormatted.find(c => c.avaliacao)?.avaliacao || null
+          realizados: consultaStats.semana || 8,
+          proximos: consultaStats.semana || 2, // Usar dados da semana para o card verde
+          ultimaAvaliacao: 5
         });
         
       } catch (err: any) {
         console.error('Erro ao carregar dados das consultas:', err);
         setError(err.message || "Erro ao carregar dados das consultas");
-        
-        // Manter valores vazios em caso de erro
+          // Fallback para dados simulados em caso de erro
+        const proximaData = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
-          proxima: null,
+          proxima: proximaData,
           canceladas: 0,
           semana: 0
         });
@@ -221,7 +228,7 @@ const HomeUser = () => {
     };
 
     loadConsultaData();
-  }, []); // Remover dependência de proximasConsultas para evitar loop infinito
+  }, [proximasConsultas]);
 
   const statusColors: Record<string, string> = {
     agendada: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -346,53 +353,38 @@ const HomeUser = () => {
         duration: 3000,
       });
       return;
-    }    setCancellandoConsulta(true);
+    }
 
-    try {
-      // Cancelar consulta via API
-      const response = await fetch(`/api/consultas/${consultaParaCancelar?.id}/cancelar`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    setCancellandoConsulta(true);
 
-      if (!response.ok) {
-        throw new Error('Erro ao cancelar consulta');
-      }
+    // Simular delay de processamento
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (consultaParaCancelar) {
-        // Atualizar o status da consulta para cancelada
-        setProximasConsultas(prev => 
-          prev.map(consulta => 
-            consulta.id === consultaParaCancelar.id 
-              ? { ...consulta, status: 'cancelada' }
-              : consulta
-          )
-        );
-          // Atualizar contadores
-        setConsultasSummary(prev => ({
-          ...prev,
-          canceladas: prev.canceladas + 1
-        }));
-        
-        setAtendimentosSummary(prev => ({
-          ...prev,
-          proximos: prev.proximos - 1
-        }));
-        
-        toast({
-          title: "Consulta cancelada com sucesso",
-          description: `A consulta com ${consultaParaCancelar.profissional} foi cancelada. Você receberá um e-mail de confirmação.`,
-          variant: "default",
-          duration: 5000,
-        });
-      }
-    } catch (error) {
+    if (consultaParaCancelar) {
+      // Atualizar o status da consulta para cancelada
+      setProximasConsultas(prev => 
+        prev.map(consulta => 
+          consulta.id === consultaParaCancelar.id 
+            ? { ...consulta, status: 'cancelada' }
+            : consulta
+        )
+      );
+      
+      // Atualizar contadores
+      setConsultasSummary(prev => ({
+        ...prev,
+        canceladas: prev.canceladas + 1
+      }));
+      
+      setAtendimentosSummary(prev => ({
+        ...prev,
+        proximos: prev.proximos - 1
+      }));
+      
       toast({
-        title: "Erro ao cancelar consulta",
-        description: "Ocorreu um erro ao cancelar a consulta. Tente novamente.",
-        variant: "destructive",
+        title: "Consulta cancelada com sucesso",
+        description: `A consulta com ${consultaParaCancelar.profissional} foi cancelada. Você receberá um e-mail de confirmação.`,
+        variant: "default",
         duration: 5000,
       });
     }
@@ -449,18 +441,14 @@ const HomeUser = () => {
   };
 
   return (
-    <SidebarProvider>      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
+    <SidebarProvider>
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>
-            <ProfileAvatar 
-              profileImage={profileImage}
-              name={userData?.nome || 'User'}
-              size="w-10 h-10"
-              className="border-2 border-[#ED4231]"
-            />
+            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
             <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
           </div>
         )}
@@ -468,18 +456,14 @@ const HomeUser = () => {
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
           bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
           fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>          <div className="w-full flex justify-start mb-6">
+        }>
+          <div className="w-full flex justify-start mb-6">
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar 
-              profileImage={profileImage}
-              name={userData?.nome || 'User'}
-              size="w-16 h-16"
-              className="border-4 border-[#EDF2FB]"
-            />
+            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -504,18 +488,14 @@ const HomeUser = () => {
             
             {/* Botão de Sair permanece o mesmo */}
             <SidebarMenuItem>
-              <Tooltip>                <TooltipTrigger asChild>
-                  <div>
-                    <SidebarMenuButton 
-                      className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
-                      onClick={() => setShowLogoutDialog(true)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
-                        <span>Sair</span>
-                      </span>
-                    </SidebarMenuButton>
-                  </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
+                    <span className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                      <span>Sair</span>
+                    </span>
+                  </SidebarMenuButton>
                 </TooltipTrigger>
                 <TooltipContent className="z-50">Sair da conta</TooltipContent>
               </Tooltip>
@@ -530,14 +510,10 @@ const HomeUser = () => {
           </div>
         </div>
 
-        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
+        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
             <div className="flex items-center gap-3">
-              <ProfileAvatar 
-                profileImage={profileImage}
-                name={userData?.nome || 'User'}
-                size="w-10 h-10"
-                className="border-2 border-[#ED4231]"
-              />
+              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -591,16 +567,15 @@ const HomeUser = () => {
                       ) : (
                         <div className="space-y-4">
                           <div className="grid grid-cols-3 gap-2 text-center">                            <Tooltip>
-                              <TooltipTrigger asChild>                      <div>
-                        <motion.div 
-                          whileHover={{ scale: 1.05 }}
-                          className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-help"
-                        >
-                          <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
-                        </motion.div>
-                      </div>
-                  </TooltipTrigger>
+                              <TooltipTrigger asChild>
+                                <motion.div 
+                                  whileHover={{ scale: 1.05 }}
+                                  className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-help"
+                                >
+                                  <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
+                                </motion.div>
+                              </TooltipTrigger>
                               <TooltipContent>
                                 <p>Consultas agendadas para hoje</p>
                               </TooltipContent>
@@ -658,11 +633,9 @@ const HomeUser = () => {
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
-                                    <div>
-                                      <Badge className={statusColors[proximaConsultaData.status]}>
-                                        {proximaConsultaData.especialidade}
-                                      </Badge>
-                                    </div>
+                                    <Badge className={statusColors[proximaConsultaData.status]}>
+                                      {proximaConsultaData.especialidade}
+                                    </Badge>
                                   </div>
                                   <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{proximaConsultaData.tipo}</span>
@@ -1017,11 +990,9 @@ const HomeUser = () => {
                       </div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div>
-                            <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800 cursor-help">
-                              {atendimentosSummary.proximos} agendadas
-                            </Badge>
-                          </div>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800 cursor-help">
+                            {atendimentosSummary.proximos} agendadas
+                          </Badge>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Número total de consultas agendadas para os próximos dias</p>
@@ -1070,47 +1041,12 @@ const HomeUser = () => {
                                     </TooltipContent>
                                   </Tooltip>
                                   <span className="font-medium text-gray-800 dark:text-gray-200">{consulta.profissional}</span>
-                                  <div>
-                                    <Badge className={statusColors[consulta.status]}>
-                                      {consulta.status === 'agendada' ? 'Agendada' : 
-                                      consulta.status === 'realizada' ? 'Realizada' : 
-                                      consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
-                                    </Badge>
-                                  </div>
                                 </div>
-                                <div className="flex gap-1">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        onClick={() => abrirModalDetalhes(consulta)}
-                                      >
-                                        Detalhes
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Ver informações detalhadas da consulta</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                        onClick={() => abrirModalCancelamento(consulta)}
-                                      >
-                                        Cancelar
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Cancelar esta consulta (pode haver taxas)</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
+                                <Badge className={statusColors[consulta.status]}>
+                                  {consulta.status === 'agendada' ? 'Agendada' : 
+                                  consulta.status === 'realizada' ? 'Realizada' : 
+                                  consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                                </Badge>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1249,50 +1185,16 @@ const HomeUser = () => {
                             className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg hover:border-[#ED4231]/30 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                           >
                             <div className="flex flex-col gap-1">
-                              <div className="flex justify-between items-center">                                <div className="flex items-center gap-2">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
                                   {renderStatusIcon(consulta.status)}
                                   <span className="font-medium text-gray-800 dark:text-gray-200">{consulta.profissional}</span>
-                                  <div>
-                                    <Badge className={statusColors[consulta.status]}>
-                                      {consulta.status === 'agendada' ? 'Agendada' : 
-                                      consulta.status === 'realizada' ? 'Realizada' : 
-                                      consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
-                                    </Badge>
-                                  </div>
                                 </div>
-                                <div className="flex gap-1">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        onClick={() => abrirModalDetalhes(consulta)}
-                                      >
-                                        Detalhes
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Ver informações detalhadas da consulta</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                        onClick={() => abrirModalCancelamento(consulta)}
-                                      >
-                                        Cancelar
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Cancelar esta consulta (pode haver taxas)</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
+                                <Badge className={statusColors[consulta.status]}>
+                                  {consulta.status === 'agendada' ? 'Agendada' : 
+                                  consulta.status === 'realizada' ? 'Realizada' : 
+                                  consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                                </Badge>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1468,7 +1370,7 @@ const HomeUser = () => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
-                          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><path d="m9 9 5 5v-5h-5" />
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><path d="m9 9 5 5v-5h-5" />
                         </svg>
                         <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
                       </div>
@@ -1526,7 +1428,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />
@@ -1954,23 +1856,8 @@ const HomeUser = () => {
           .w-full.sm\\:w-auto {
             width: 100% !important;
           }
-        }      `}</style>
-      
-      {/* Logout dialog */}
-      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
-            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
-              Sair
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }
+      `}</style>
     </SidebarProvider>
   );
 };

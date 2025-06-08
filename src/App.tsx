@@ -92,7 +92,7 @@ const App = () => {
                       <Route path="/cadastro-assistente" element={<ProtectedRoute><CadastroAssistenteSocial /></ProtectedRoute>} />
                       <Route path="/cadastro-voluntario" element={<ProtectedRoute><CadastroVoluntario /></ProtectedRoute>} />
                       <Route path="/classificacao-usuarios" element={<ProtectedRoute><ClassificacaoUsuarios /></ProtectedRoute>} />                      {/* Redirecionamento para a home do usuário como fallback */}
-                      <Route path="/" element={<ProtectedRoute><HomeUser /></ProtectedRoute>} />
+                      <Route path="/" element={<ProtectedRoute><TelaLogin /></ProtectedRoute>} />
                       {/* Rota padrão para página não encontrada */}
                       <Route path="*" element={<NotFound />} />                      </Routes>
                     </UserNavigationProvider>

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -69,6 +69,7 @@ interface FormularioInscricao {
   areaOrientacao: string;
   comoSoube: string;
   sugestaoOutraArea: string;
+  isVoluntario: boolean;
 }
 
 // Itens de navegação para o assistente social
@@ -105,7 +106,8 @@ const assistenteSocialNavItems = [
   }
 ];
 
-const AssistenteSocial = () => {
+export function AssistenteSocial() {
+  const navigate = useNavigate();
   const location = useLocation();
   const { fetchPerfil } = useAssistenteSocial();
   
@@ -287,7 +289,8 @@ const AssistenteSocial = () => {
         },
         body: JSON.stringify({
           observacoesAssistente: observacoes,
-          tipoCandidato: tipoCandidato
+          tipoCandidato: tipoCandidato,
+          isVoluntario: formularioSelecionado.isVoluntario
         })
       });
 
@@ -308,14 +311,20 @@ const AssistenteSocial = () => {
       setFormularioSelecionado(null);
       setObservacoes("");
       setTipoCandidato("");
-      
-      const tipoTexto = tipoCandidato === "multidisciplinar" ? "Candidato Multidisciplinar" : "Candidato que Paga o Valor Social";
-      
-      toast({
-        title: "Formulário aprovado!",
-        description: `O formulário de ${formularioSelecionado.nomeCompleto} foi aprovado como ${tipoTexto}.`,
-        variant: "default",
-      });
+
+      // Se for voluntário, redirecionar para a URL específica
+      if (formularioSelecionado.isVoluntario) {
+        // Redirecionar para completar cadastro de voluntário
+        window.location.href = `http://localhost:3030/completar-cadastro-voluntario?id=${formularioSelecionado.id}`;
+      } else {
+        // Feedback padrão para não voluntários
+        const tipoTexto = tipoCandidato === "multidisciplinar" ? "Candidato Multidisciplinar" : "Candidato que Paga o Valor Social";
+        toast({
+          title: "Formulário aprovado!",
+          description: `O formulário de ${formularioSelecionado.nomeCompleto} foi aprovado como ${tipoTexto}.`,
+          variant: "default",
+        });
+      }
     } catch (error) {
       toast({
         title: "Erro ao aprovar",

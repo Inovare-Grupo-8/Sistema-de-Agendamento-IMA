@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +17,6 @@ import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { userNavigationItems } from "@/utils/userNavigation";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -33,9 +33,9 @@ const especialistas = [
 ];
 
 const horariosDisponiveis = [
-  { data: new Date(2024, 6, 15), horarios: ["09:00", "10:00", "14:00", "15:00"] },
-  { data: new Date(2024, 6, 16), horarios: ["08:00", "11:00", "13:00", "16:00"] },
-  { data: new Date(2024, 6, 17), horarios: ["08:30", "10:30", "14:30", "16:30"] },
+  { data: parseISO(new Date(2024, 6, 15).toISOString().split('T')[0] + 'T00:00:00'), horarios: ["09:00", "10:00", "14:00", "15:00"] },
+  { data: parseISO(new Date(2024, 6, 16).toISOString().split('T')[0] + 'T00:00:00'), horarios: ["08:00", "11:00", "13:00", "16:00"] },
+  { data: parseISO(new Date(2024, 6, 17).toISOString().split('T')[0] + 'T00:00:00'), horarios: ["08:30", "10:30", "14:30", "16:30"] },
   { data: new Date(2024, 6, 18), horarios: ["09:00", "11:00", "15:00", "17:00"] },
   { data: new Date(2024, 6, 19), horarios: ["10:00", "13:00", "15:00", "16:00"] },
 ];
@@ -387,7 +387,7 @@ const AgendarHorarioUser = () => {
                               </svg>
                             ) : (
                               <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 005.25 3h13.5A2.25 2.25 0 0021 5.25z" />
                               </svg>
                             )}
                             {tipo}
@@ -476,7 +476,8 @@ const AgendarHorarioUser = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>          </div>
+            </div>          
+            </div>
         </main>
 
         {/* Logout dialog */}

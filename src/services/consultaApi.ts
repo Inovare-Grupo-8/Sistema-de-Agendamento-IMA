@@ -54,25 +54,49 @@ export interface ConsultaCount {
 }
 
 export interface ConsultaDto {
-  id: number;
-  profissional: string;
-  especialidade: string;
-  data: string; // ISO date string
-  tipo: string;
+  idConsulta: number;
+  horario: string; // ISO date string
   status: string;
-  avaliacao?: number;
-  feedback?: string;
+  modalidade: string;
+  local: string;
+  observacoes: string;
+  idEspecialidade: number;
+  nomeEspecialidade: string;
+  idVoluntario: number;
+  nomeVoluntario: string;
+  idAssistido: number;
+  nomeAssistido: string;
+  feedbackStatus: string;
+  avaliacaoStatus: string;
+  criadoEm: string; // ISO date string
+  atualizadoEm: string; // ISO date string
 }
 
 export interface ConsultaOutput {
-  id: number;
-  nomeVoluntario: string;
-  especialidadeVoluntario: string;
+  idConsulta: number;
   horario: string; // ISO date string
-  modalidade: string;
   status: string;
-  avaliacao?: number;
-  feedback?: string;
+  modalidade: string;
+  local: string;
+  observacoes: string;
+  especialidade: {
+    id: number;
+    nome: string;
+  };
+  voluntario: {
+    idUsuario: number;
+    email: string;
+    ficha: {
+      nome: string;
+    };
+  };
+  assistido: {
+    idUsuario: number;
+    email: string;
+    ficha: {
+      nome: string;
+    };
+  };
 }
 
 export interface ApiError {
@@ -203,6 +227,21 @@ export class ConsultaApiService {
       return response.data;
     } catch (error) {
       console.error('Error fetching historico consultas:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Cancel a consultation
+   * @param id - The ID of the consultation to cancel
+   * @returns Promise with the cancelled consultation
+   */
+  static async cancelarConsulta(id: number): Promise<ConsultaDto> {
+    try {
+      const response = await apiClient.post<ConsultaDto>(`/consulta/cancelar/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error cancelling consulta:', error);
       throw this.handleApiError(error);
     }
   }

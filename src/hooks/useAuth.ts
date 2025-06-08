@@ -20,11 +20,29 @@ const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const atualizarUltimoAcesso = async (usuarioId: string, token: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/usuarios/${usuarioId}/ultimo-acesso`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Erro ao atualizar último acesso após login:', response.status);
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar último acesso após login:', error);
+        }
+    };
 
   // Função para verificar se uma rota é pública
   const isPublicRoute = useCallback((path: string) => {
@@ -71,39 +89,45 @@ export function useAuth() {
     setError(null);
     
     try {
-      // Simular uma chamada de API
-      const response = await new Promise<User>((resolve) => {
-        setTimeout(() => {
-          resolve({
-            id: '123',
-            nome: credentials.email.includes('prof') ? 'Dr. Profissional' : 'Paciente',
-            email: credentials.email,
-            tipo: credentials.email.includes('prof') ? 'profissional' : 'paciente',
-            token: 'token-simulado-' + Math.random()
-          });
-        }, 1000);
+      const response = await fetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials)
       });
+
+      if (!response.ok) {
+        throw new Error('Credenciais inválidas');
+      }
+
+      const data = await response.json();
+      
+      // Atualizar último acesso após login bem-sucedido
+      await atualizarUltimoAcesso(data.idUsuario, data.token);
       
       // Salvar no localStorage
-      localStorage.setItem(TOKEN_KEY, response.token);
-      localStorage.setItem(USER_KEY, JSON.stringify(response));
-      
-      setUser(response);
+      localStorage.setItem('userData', JSON.stringify(data));
       
       // Redirecionar com base no tipo de usuário
-      const targetPath = response.tipo === 'profissional' ? '/home' : '/home-user';
-      navigate(targetPath, { replace: true });
+      if (data.tipo === 'ADMINISTRADOR') {
+        navigate('/home-admin');
+      } else if (data.tipo === 'VOLUNTARIO' && data.funcao === 'ASSISTENCIA_SOCIAL') {
+        navigate('/assistente-social');
+      } else if (data.tipo === 'USUARIO') {
+        navigate('/home-user');
+      }
       
-      return response;
+      return data;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
       setError(message);
       toast({
-        title: "Erro de autenticação",
+        title: "Erro ao fazer login",
         description: message,
         variant: "destructive",
       });
-      return null;
+      throw err;
     } finally {
       setLoading(false);
     }
