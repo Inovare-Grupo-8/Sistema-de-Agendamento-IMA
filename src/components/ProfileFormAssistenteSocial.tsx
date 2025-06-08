@@ -209,7 +209,7 @@ const ProfileFormAssistenteSocial = () => {
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  const { fetchPerfil, atualizarPerfil, atualizarDadosPessoais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco } = useAssistenteSocial();  // Função para carregar dados do perfil
+  const { fetchPerfil, atualizarPerfil, atualizarDadosPessoais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco, uploadFoto } = useAssistenteSocial();  // Função para carregar dados do perfil
   useEffect(() => {
     const carregarPerfil = async () => {
       try {
@@ -376,16 +376,27 @@ const ProfileFormAssistenteSocial = () => {
       setLoading(false);
     }
   };
-
-  // Função geral para salvar foto (mantida para compatibilidade)
+  // Função para salvar a foto de perfil
   const handleSave = async () => {
     if (selectedImage && imagePreview) {
-      setProfileImage(imagePreview);
-      toast({
-        title: "Foto atualizada",
-        description: "Sua foto de perfil foi atualizada com sucesso!",
-      });
-      // Aqui você pode implementar o upload da imagem para o servidor se necessário
+      try {
+        setLoading(true);
+        const url = await uploadFoto(selectedImage);
+        setProfileImage(imagePreview);
+        toast({
+          title: "Foto atualizada",
+          description: "Sua foto de perfil foi atualizada com sucesso!",
+        });
+      } catch (error) {
+        console.error('Erro ao fazer upload da foto:', error);
+        toast({
+          title: "Erro ao atualizar foto",
+          description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar sua foto de perfil.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
     } else {
       toast({
         title: "Nenhuma foto selecionada",
@@ -1099,10 +1110,9 @@ const ProfileFormAssistenteSocial = () => {
                             accept="image/*" 
                             onChange={handleImageChange}
                             className="hidden"
-                          />
-                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                            Formatos suportados: JPG, PNG, GIF<br/>
-                            Tamanho máximo: 5MB
+                          />                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                            Formatos suportados: JPG, PNG<br/>
+                            Tamanho máximo: 1MB (imagens maiores serão comprimidas automaticamente)
                           </p>
                         </div>
                       </div>
