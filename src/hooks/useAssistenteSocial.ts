@@ -271,10 +271,8 @@ export const useAssistenteSocial = () => {
                 cep: endereco.cep,
                 numero: endereco.numero,
                 complemento: endereco.complemento || ''
-            };
-
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
-                method: 'PATCH',
+            };            const response = await fetch(`http://localhost:8080/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token || ''}`
