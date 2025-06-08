@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
@@ -10,29 +12,78 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
-import { Badge } from "@/components/ui/badge";
-import { useAssistenteSocial, AssistenteSocialInput, AssistenteSocialOutput } from "@/hooks/useAssistenteSocial";
-import { UserNavigationItem } from "@/utils/userNavigation";
-import { formatters, isPhone, isRequired, isEmail } from "@/utils/validation";
+import { useAssistenteSocial } from "@/hooks/useAssistenteSocial";
+
+// Função para gerar uma cor com base no nome
+const getColorFromName = (name: string) => {
+  const colors = [
+    'bg-blue-200 text-blue-800',
+    'bg-green-200 text-green-800',
+    'bg-purple-200 text-purple-800',
+    'bg-pink-200 text-pink-800',
+    'bg-yellow-200 text-yellow-800',
+    'bg-indigo-200 text-indigo-800',
+    'bg-red-200 text-red-800',
+    'bg-teal-200 text-teal-800'
+  ];
+  
+  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+  return colors[index];
+};
+
+// Componente para avatar com letra
+const LetterAvatar = ({ name, size = 'w-10 h-10' }: { name: string; size?: string }) => {
+  const firstLetter = name.charAt(0).toUpperCase();
+  const colorClass = getColorFromName(name);
+  
+  // Dynamic text sizing based on container size
+  const textSize = size.includes('w-40') ? 'text-6xl' :
+                  size.includes('w-16') ? 'text-4xl' : 
+                  size.includes('w-10') ? 'text-2xl' : 
+                  size.includes('w-8') ? 'text-xl' : 'text-2xl';
+  
+  return (
+    <div className={`${size} rounded-full flex items-center justify-center ${colorClass} font-bold ${textSize} select-none shadow transition-transform hover:scale-105 duration-200`}>
+      {firstLetter}
+    </div>
+  );
+};
 
 // Interface para dados do assistente social
-interface AssistenteSocialFormData extends AssistenteSocialOutput {
+interface AssistenteSocialFormData {
+  idUsuario: number;
+  nome: string;
+  sobrenome: string;
+  crp: string;
+  especialidade: string;
+  telefone: string;
+  email: string;
+  bio: string;
+  fotoUrl?: string;
+  endereco: {
+    rua: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+  };
   proximaDisponibilidade: Date;
   atendimentosRealizados: number;
   avaliacaoMedia: number;
 }
 
-// Dados mockados do assistente social
+// Dados padrão do assistente social
 const assistenteSocialDataDefault: AssistenteSocialFormData = {
   idUsuario: 0,
   nome: "",
   sobrenome: "",
+  email: "",
   crp: "",
   especialidade: "",
   telefone: "",
-  email: "",
   bio: "",
   endereco: {
     rua: "",
@@ -77,7 +128,7 @@ export const assistenteSocialNavItems: Record<string, UserNavigationItem> = {
   },
 };
 
-const ProfileFormAssistenteSocial = () => {
+export default function ProfileFormAssistenteSocial() {
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -93,10 +144,11 @@ const ProfileFormAssistenteSocial = () => {
 
   // Estado para o formulário
   const [formData, setFormData] = useState<AssistenteSocialFormData>(assistenteSocialDataDefault);
-
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
+  const [avatarImageError, setAvatarImageError] = useState(false);
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormChanged(true);
@@ -180,13 +232,11 @@ const ProfileFormAssistenteSocial = () => {
       errors.email = "Email é obrigatório";
     } else if (!emailRegex.test(formData.email)) {
       errors.email = "Email inválido";
-    }
-    
-    // Validação de telefone usando a função importada
-    if (formData.telefone) {
-      const phoneError = isPhone(formData.telefone);
+    }      // Validação de telefone usando a função importada
+    if (formData.telefone && formData.telefone.trim()) {
+      const phoneError = !isPhone(formData.telefone);
       if (phoneError) {
-        errors.telefone = phoneError;
+        errors.telefone = "Telefone inválido - use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX";
       }
     }
 
@@ -267,7 +317,19 @@ const ProfileFormAssistenteSocial = () => {
     };
 
     carregarPerfil();
-  }, []);
+  }, []);  // Reset avatar error state when profile image changes
+  useEffect(() => {
+    if (profileImage && profileImage !== 'undefined' && profileImage !== '') {
+      setAvatarImageError(false);
+    }
+  }, [profileImage]);
+
+  // Reset main image error state when profile image or preview changes
+  useEffect(() => {
+    if ((profileImage && profileImage !== 'undefined' && profileImage !== '') || imagePreview) {
+      setImageError(false);
+    }
+  }, [profileImage, imagePreview]);
 
   // Função para salvar as alterações  // Função para salvar apenas dados pessoais básicos (nome e email)
   const handleSavePersonalData = async () => {
@@ -318,17 +380,17 @@ const ProfileFormAssistenteSocial = () => {
           variant: "destructive"
         });
         return;
-      }
-
-      // Validação de telefone
-      const phoneError = isPhone(formData.telefone);
-      if (phoneError) {
-        toast({
-          title: "Telefone inválido",
-          description: phoneError,
-          variant: "destructive"
-        });
-        return;
+      }      // Validação de telefone
+      if (formData.telefone && formData.telefone.trim()) {
+        const phoneIsValid = isPhone(formData.telefone);
+        if (!phoneIsValid) {
+          toast({
+            title: "Telefone inválido",
+            description: "Por favor, use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX",
+            variant: "destructive"
+          });
+          return;
+        }
       }
       
       // Preparar apenas os dados pessoais básicos que o endpoint /dados-pessoais aceita
@@ -395,11 +457,15 @@ const ProfileFormAssistenteSocial = () => {
         setSelectedImage(null);
         setImagePreview(null);
         setFormChanged(false);
-        
-        toast({
+          toast({
           title: "Foto atualizada",
           description: "Sua foto de perfil foi atualizada com sucesso!",
         });
+
+        // Recarregar a página após sucesso para atualizar todas as referências da imagem
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } catch (error) {
         console.error('Erro ao fazer upload da foto:', error);
         toast({
@@ -599,16 +665,22 @@ const ProfileFormAssistenteSocial = () => {
       description: "Suas alterações foram descartadas com sucesso.",
     });
   };
-
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
         {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
-            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
-            </Button>
-            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
+            </Button>            {profileImage && profileImage !== 'undefined' && profileImage !== '' && !avatarImageError ? (
+              <img 
+                src={profileImage} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" 
+                onError={() => setAvatarImageError(true)}
+              />
+            ) : (
+              <LetterAvatar name={formData.nome || 'U'} />
+            )}
             <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
           </div>
         )}
@@ -622,9 +694,16 @@ const ProfileFormAssistenteSocial = () => {
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
-          </div>
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
+          </div>          <div className="flex flex-col items-center gap-2 mb-8">            {profileImage && profileImage !== 'undefined' && profileImage !== '' && !avatarImageError ? (
+              <img 
+                src={profileImage} 
+                alt="Foto de perfil" 
+                className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" 
+                onError={() => setAvatarImageError(true)}
+              />
+            ) : (
+              <LetterAvatar name={formData.nome || 'U'} size="w-16 h-16" />
+            )}
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {formData.especialidade}
@@ -676,9 +755,16 @@ const ProfileFormAssistenteSocial = () => {
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
           {/* Header */}
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
-            <div className="flex items-center gap-3">
-              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">          <div className="flex items-center gap-3">            {profileImage && profileImage !== 'undefined' && profileImage !== '' && !avatarImageError ? (
+              <img 
+                src={profileImage} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" 
+                onError={() => setAvatarImageError(true)}
+              />
+            ) : (
+              <LetterAvatar name={formData.nome || 'U'} />
+            )}
               <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -1020,9 +1106,8 @@ const ProfileFormAssistenteSocial = () => {
                           className="bg-white dark:bg-gray-800"
                         />
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1 space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
                           <Label htmlFor="cidade">Cidade</Label>
                           <Input 
                             id="cidade" 
@@ -1095,12 +1180,20 @@ const ProfileFormAssistenteSocial = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-col items-center gap-6">
-                        <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
-                          <img 
-                            src={imagePreview || profileImage} 
-                            alt="Foto de perfil" 
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">                          {(imagePreview || (profileImage && profileImage !== 'undefined' && profileImage !== '')) && !imageError
+                            ? (
+                              <img 
+                                src={imagePreview || profileImage} 
+                                alt="Foto de perfil" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.log('Erro ao carregar imagem de perfil:', e);
+                                  setImageError(true);
+                                }}
+                              />
+                            ) : (
+                              <LetterAvatar name={formData.nome || 'U'} size="w-40 h-40" />
+                            )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-4">
@@ -1115,15 +1208,15 @@ const ProfileFormAssistenteSocial = () => {
                             </TooltipTrigger>
                             <TooltipContent side="top">
                               <p>Clique para selecionar uma nova foto de perfil</p>
-                            </TooltipContent>
-                          </Tooltip>
+                            </TooltipContent>                          </Tooltip>
                           <Input 
                             id="photo-upload" 
                             type="file" 
                             accept="image/*" 
                             onChange={handleImageChange}
                             className="hidden"
-                          />                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                          />
+                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                             Formatos suportados: JPG, PNG<br/>
                             Tamanho máximo: 1MB (imagens maiores serão comprimidas automaticamente)
                           </p>
@@ -1153,4 +1246,43 @@ const ProfileFormAssistenteSocial = () => {
   );
 };
 
-export default ProfileFormAssistenteSocial;
+// Adicionando interfaces e utilitários
+interface UserNavigationItem {
+  path: string;
+  label: string;
+  icon: JSX.Element;
+}
+
+const formatters = {
+  phone: (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    
+    // Se tem mais de 11 dígitos, trunca
+    if (numbers.length > 11) {
+      return formatters.phone(numbers.slice(0, 11));
+    }
+    
+    // Formatação progressiva conforme o usuário digita
+    if (numbers.length >= 10) {
+      if (numbers.length === 11) {
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+      } else {
+        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+      }
+    } else if (numbers.length >= 6) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+    } else if (numbers.length >= 2) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    } else if (numbers.length > 0) {
+      return `(${numbers}`;
+    }
+    
+    return value;
+  }
+};
+
+const isPhone = (value: string) => {
+  // Regex para telefone brasileiro no formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+  const regex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
+  return regex.test(value);
+};
