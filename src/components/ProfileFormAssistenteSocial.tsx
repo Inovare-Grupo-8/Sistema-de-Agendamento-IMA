@@ -4,7 +4,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, ArrowLeft } from "lucide-react";
+import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, ArrowLeft, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -14,41 +14,16 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { useCep } from "@/hooks/useCep";
 import { useAssistenteSocial } from "@/hooks/useAssistenteSocial";
-
-// Função para gerar uma cor com base no nome
-const getColorFromName = (name: string) => {
-  const colors = [
-    'bg-blue-200 text-blue-800',
-    'bg-green-200 text-green-800',
-    'bg-purple-200 text-purple-800',
-    'bg-pink-200 text-pink-800',
-    'bg-yellow-200 text-yellow-800',
-    'bg-indigo-200 text-indigo-800',
-    'bg-red-200 text-red-800',
-    'bg-teal-200 text-teal-800'
-  ];
-  
-  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
-  return colors[index];
-};
-
-// Componente para avatar com letra
-const LetterAvatar = ({ name, size = 'w-10 h-10' }: { name: string; size?: string }) => {
-  const firstLetter = name.charAt(0).toUpperCase();
-  const colorClass = getColorFromName(name);
-  
-  // Dynamic text sizing based on container size
-  const textSize = size.includes('w-40') ? 'text-6xl' :
-                  size.includes('w-16') ? 'text-4xl' : 
-                  size.includes('w-10') ? 'text-2xl' : 
-                  size.includes('w-8') ? 'text-xl' : 'text-2xl';
-  
-  return (
-    <div className={`${size} rounded-full flex items-center justify-center ${colorClass} font-bold ${textSize} select-none shadow transition-transform hover:scale-105 duration-200`}>
-      {firstLetter}
-    </div>
-  );
-};
+import { LetterAvatar } from "@/components/ui/LetterAvatar";
+import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Interface para dados do assistente social
 interface AssistenteSocialFormData {
@@ -111,14 +86,14 @@ export const assistenteSocialNavItems: Record<string, UserNavigationItem> = {
     label: 'Classificar Usuários',
     icon: <UserCheck className="w-6 h-6" color="#ED4231" />,
   },
-  cadastrarVoluntario: {
-    path: '/cadastro-voluntario',
-    label: 'Cadastrar Voluntário',
-    icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
-  },
   cadastrarAssistente: {
     path: '/cadastro-assistente',
     label: 'Cadastrar Assistente', 
+    icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
+  },
+  cadastrarVoluntario: {
+    path: '/cadastro-voluntario',
+    label: 'Cadastrar Voluntário',
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
   },
   perfil: {
@@ -141,7 +116,6 @@ export default function ProfileFormAssistenteSocial() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
-
   // Estado para o formulário
   const [formData, setFormData] = useState<AssistenteSocialFormData>(assistenteSocialDataDefault);
   // Estado para a imagem selecionada
@@ -149,6 +123,10 @@ export default function ProfileFormAssistenteSocial() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [avatarImageError, setAvatarImageError] = useState(false);
+  
+  // Estado para o modal de redirecionamento após alteração de email
+  const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
+  const [originalEmail, setOriginalEmail] = useState<string>("");
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormChanged(true);
@@ -280,20 +258,18 @@ export default function ProfileFormAssistenteSocial() {
         if (dados.fotoUrl) {
           console.log('Atualizando foto do perfil:', dados.fotoUrl);
           setProfileImage(dados.fotoUrl);
-        }
-
-        // Garantir que todos os campos obrigatórios existam, mesmo que vazios
+        }        // Garantir que todos os campos obrigatórios existam, mas priorizar dados recebidos
         const dadosCompletos = {
           ...assistenteSocialDataDefault,
           ...dados,
-          nome: dados.nome || "",
-          sobrenome: dados.sobrenome || "",
-          email: dados.email || "",
-          telefone: dados.telefone || "",
-          crp: dados.registroProfissional || "",
-          especialidade: dados.especialidade || "",
-          bio: dados.biografiaProfissional || "",
-          fotoUrl: dados.fotoUrl || "",
+          nome: dados.nome || assistenteSocialDataDefault.nome,
+          sobrenome: dados.sobrenome || assistenteSocialDataDefault.sobrenome,
+          email: dados.email || assistenteSocialDataDefault.email,
+          telefone: dados.telefone || assistenteSocialDataDefault.telefone,
+          crp: dados.crp || assistenteSocialDataDefault.crp,
+          especialidade: dados.especialidade || assistenteSocialDataDefault.especialidade,
+          bio: dados.bio || assistenteSocialDataDefault.bio,
+          fotoUrl: dados.fotoUrl || assistenteSocialDataDefault.fotoUrl,
           endereco: {
             ...assistenteSocialDataDefault.endereco,
             ...(dadosEndereco || {})
@@ -302,9 +278,11 @@ export default function ProfileFormAssistenteSocial() {
           atendimentosRealizados: 0,
           avaliacaoMedia: 0
         };
-        
-        console.log('Dados processados para o formulário:', dadosCompletos);
+          console.log('Dados processados para o formulário:', dadosCompletos);
         setFormData(dadosCompletos);
+        
+        // Armazenar o email original para detectar mudanças
+        setOriginalEmail(dados.email || "");
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
         setFormData(assistenteSocialDataDefault);
@@ -392,16 +370,19 @@ export default function ProfileFormAssistenteSocial() {
           return;
         }
       }
-      
-      // Preparar apenas os dados pessoais básicos que o endpoint /dados-pessoais aceita
+        // Preparar dados pessoais incluindo campos profissionais para assistente social
       const dadosPessoais = {
         nome: formData.nome,
         email: formData.email,
         sobrenome: formData.sobrenome,
-        telefone: formData.telefone
-      };
+        telefone: formData.telefone,
+        crp: formData.crp,
+        bio: formData.bio,
+        especialidade: formData.especialidade
+      };      console.log('Dados pessoais e profissionais para enviar:', dadosPessoais);
 
-      console.log('Dados pessoais básicos para enviar:', dadosPessoais);
+      // Verificar se o email foi alterado
+      const emailAlterado = formData.email !== originalEmail;
 
       // Usar a nova função específica para dados pessoais
       const dadosAtualizados = await atualizarDadosPessoais(dadosPessoais);
@@ -412,7 +393,10 @@ export default function ProfileFormAssistenteSocial() {
         nome: dadosAtualizados.nome || prevData.nome,
         email: dadosAtualizados.email || prevData.email,
         sobrenome: dadosAtualizados.sobrenome || prevData.sobrenome,
-        telefone: dadosAtualizados.telefone || prevData.telefone
+        telefone: dadosAtualizados.telefone || prevData.telefone,
+        crp: dadosAtualizados.crp || prevData.crp,
+        bio: dadosAtualizados.bio || prevData.bio,
+        especialidade: dadosAtualizados.especialidade || prevData.especialidade
       }));
       
       if (selectedImage && imagePreview) {
@@ -420,13 +404,18 @@ export default function ProfileFormAssistenteSocial() {
         // Aqui você pode implementar o upload da imagem se necessário
       }
       
-      setSuccessMessage("Nome e email atualizados com sucesso!");
+      setSuccessMessage("Dados pessoais e profissionais atualizados com sucesso!");
       setFormChanged(false);
       
-      toast({
-        title: "Dados básicos salvos",
-        description: "Nome e email foram atualizados. Use as outras abas para salvar dados profissionais e endereço.",
-      });
+      // Se o email foi alterado, mostrar modal de redirecionamento
+      if (emailAlterado) {
+        setShowEmailChangeModal(true);
+      } else {
+        toast({
+          title: "Dados atualizados",
+          description: "Todos os dados pessoais e profissionais foram atualizados com sucesso.",
+        });
+      }
         
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
@@ -435,11 +424,31 @@ export default function ProfileFormAssistenteSocial() {
         title: "Erro ao salvar dados pessoais",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações pessoais.",
         variant: "destructive"
-      });
-    } finally {
+      });    } finally {
       setLoading(false);
     }
   };
+
+  // Função para lidar com o redirecionamento após alteração de email
+  const handleEmailChangeRedirect = () => {
+    // Limpar dados do localStorage
+    localStorage.removeItem('userData');
+    localStorage.removeItem('authToken');
+    
+    // Redirecionar para o login
+    navigate('/login');
+  };
+
+  // Função para cancelar o redirecionamento (caso o usuário queira continuar)
+  const handleCancelRedirect = () => {
+    setShowEmailChangeModal(false);
+    
+    toast({
+      title: "Dados atualizados",
+      description: "Todos os dados pessoais e profissionais foram atualizados com sucesso.",
+    });
+  };
+
   // Função para salvar a foto de perfil
   const handleSave = async () => {
     if (selectedImage && imagePreview) {
@@ -671,16 +680,13 @@ export default function ProfileFormAssistenteSocial() {
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
-            </Button>            {profileImage && profileImage !== 'undefined' && profileImage !== '' && !avatarImageError ? (
-              <img 
-                src={profileImage} 
-                alt="Avatar" 
-                className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" 
-                onError={() => setAvatarImageError(true)}
-              />
-            ) : (
-              <LetterAvatar name={formData.nome || 'U'} />
-            )}
+            </Button>
+            <ProfileAvatar 
+              profileImage={profileImage}
+              name={formData.nome || 'U'}
+              size="w-10 h-10"
+              className="border-2 border-[#ED4231]"
+            />
             <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
           </div>
         )}
@@ -694,16 +700,13 @@ export default function ProfileFormAssistenteSocial() {
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
-          </div>          <div className="flex flex-col items-center gap-2 mb-8">            {profileImage && profileImage !== 'undefined' && profileImage !== '' && !avatarImageError ? (
-              <img 
-                src={profileImage} 
-                alt="Foto de perfil" 
-                className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" 
-                onError={() => setAvatarImageError(true)}
-              />
-            ) : (
-              <LetterAvatar name={formData.nome || 'U'} size="w-16 h-16" />
-            )}
+          </div>          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar 
+              profileImage={profileImage}
+              name={formData.nome || 'U'}
+              size="w-16 h-16"
+              className="border-4 border-[#EDF2FB]"
+            />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {formData.especialidade}
@@ -755,18 +758,15 @@ export default function ProfileFormAssistenteSocial() {
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
           {/* Header */}
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">          <div className="flex items-center gap-3">            {profileImage && profileImage !== 'undefined' && profileImage !== '' && !avatarImageError ? (
-              <img 
-                src={profileImage} 
-                alt="Avatar" 
-                className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" 
-                onError={() => setAvatarImageError(true)}
-              />
-            ) : (
-              <LetterAvatar name={formData.nome || 'U'} />
-            )}
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
-            </div>
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">          <div className="flex items-center gap-3">
+            <ProfileAvatar 
+              profileImage={profileImage}
+              name={formData.nome || 'U'}
+              size="w-10 h-10"
+              className="border-2 border-[#ED4231]"
+            />
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
+          </div>
             <div className="flex items-center gap-3">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1239,9 +1239,37 @@ export default function ProfileFormAssistenteSocial() {
                 </TabsContent>
               </Tabs>
             </div>
-          </div>
-        </main>
+          </div>        </main>
       </div>
+
+      {/* Modal de Alteração de Email */}
+      <Dialog open={showEmailChangeModal} onOpenChange={setShowEmailChangeModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Email Alterado
+            </DialogTitle>
+            <DialogDescription>
+              Seu email foi alterado com sucesso. Por motivos de segurança, você será redirecionado para a página de login para reautenticar com o novo email.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailChangeModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleEmailChangeRedirect}
+              className="bg-[#ED4231] hover:bg-[#d53a2a]"
+            >
+              Ir para Login
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };

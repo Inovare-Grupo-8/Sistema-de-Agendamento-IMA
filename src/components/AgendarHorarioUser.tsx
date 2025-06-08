@@ -65,9 +65,8 @@ const AgendarHorarioUser = () => {
         h.data.getFullYear() === dataSelecionada.getFullYear()
       )?.horarios || []
     : [];
-
   // Função para avançar no formulário
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1 && !especialistaSelecionado) {
       toast({
         title: "Escolha um especialista",
@@ -107,10 +106,27 @@ const AgendarHorarioUser = () => {
     if (step < 5) {
       setStep(step + 1);
     } else {
-      // Enviar formulário
-      setLoading(true);
+      // Enviar formulário      setLoading(true);
       
-      setTimeout(() => {
+      try {
+        // Agendar consulta via API
+        const response = await fetch('/api/consultas/agendar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            profissionalId: selectedProfessional?.id,
+            data: selectedDate,
+            horario: selectedTime,
+            tipo: selectedType,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao agendar consulta');
+        }
+
         setLoading(false);
         toast({
           title: "Consulta agendada com sucesso!",
@@ -118,11 +134,17 @@ const AgendarHorarioUser = () => {
         });
         
         // Redirecionamento para a página de agenda do usuário
-        // Simular redirecionamento após 2 segundos
         setTimeout(() => {
           window.location.href = "/agenda-user";
         }, 2000);
-      }, 1500);
+      } catch (error) {
+        setLoading(false);
+        toast({
+          title: "Erro ao agendar consulta",
+          description: "Ocorreu um erro ao agendar a consulta. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

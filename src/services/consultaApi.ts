@@ -53,6 +53,28 @@ export interface ConsultaCount {
   count: number;
 }
 
+export interface ConsultaDto {
+  id: number;
+  profissional: string;
+  especialidade: string;
+  data: string; // ISO date string
+  tipo: string;
+  status: string;
+  avaliacao?: number;
+  feedback?: string;
+}
+
+export interface ConsultaOutput {
+  id: number;
+  nomeVoluntario: string;
+  especialidadeVoluntario: string;
+  horario: string; // ISO date string
+  modalidade: string;
+  status: string;
+  avaliacao?: number;
+  feedback?: string;
+}
+
 export interface ApiError {
   message: string;
   status?: number;
@@ -154,11 +176,60 @@ export class ConsultaApiService {
         this.getConsultasDia(userType),
         this.getConsultasSemana(userType),
         this.getConsultasMes(userType)
-      ]);
-
-      return { hoje, semana, mes };
+      ]);      return { hoje, semana, mes };
     } catch (error) {
       console.error('Error fetching all consulta stats:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get upcoming consultations (next 3)
+   * @param userType - "voluntario" for professionals or "assistido" for users
+   * @returns Promise with array of upcoming consultations
+   */
+  static async getProximasConsultas(userType: 'voluntario' | 'assistido'): Promise<ConsultaOutput[]> {
+    try {
+      const response = await apiClient.get<ConsultaOutput[]>(`/consulta/consultas/3-proximas`, {
+        params: { user: userType }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching proximas consultas:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get recent consultations history
+   * @param userType - "voluntario" for professionals or "assistido" for users
+   * @returns Promise with array of recent consultations
+   */
+  static async getConsultasRecentes(userType: 'voluntario' | 'assistido'): Promise<ConsultaDto[]> {
+    try {
+      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/recentes`, {
+        params: { user: userType }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching consultas recentes:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get consultation history
+   * @param userType - "voluntario" for professionals or "assistido" for users
+   * @returns Promise with array of historical consultations
+   */
+  static async getHistoricoConsultas(userType: 'voluntario' | 'assistido'): Promise<ConsultaOutput[]> {
+    try {
+      const response = await apiClient.get<ConsultaOutput[]>(`/consulta/consultas/historico`, {
+        params: { user: userType }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching historico consultas:', error);
       throw this.handleApiError(error);
     }
   }
