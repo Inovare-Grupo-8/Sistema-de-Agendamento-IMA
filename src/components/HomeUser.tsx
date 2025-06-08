@@ -504,16 +504,18 @@ const HomeUser = () => {
             
             {/* Botão de Sair permanece o mesmo */}
             <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>                  <SidebarMenuButton 
-                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
-                    onClick={() => setShowLogoutDialog(true)}
-                  >
-                    <span className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
-                      <span>Sair</span>
-                    </span>
-                  </SidebarMenuButton>
+              <Tooltip>                <TooltipTrigger asChild>
+                  <div>
+                    <SidebarMenuButton 
+                      className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                      onClick={() => setShowLogoutDialog(true)}
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                        <span>Sair</span>
+                      </span>
+                    </SidebarMenuButton>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent className="z-50">Sair da conta</TooltipContent>
               </Tooltip>
@@ -589,15 +591,16 @@ const HomeUser = () => {
                       ) : (
                         <div className="space-y-4">
                           <div className="grid grid-cols-3 gap-2 text-center">                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <motion.div 
-                                  whileHover={{ scale: 1.05 }}
-                                  className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-help"
-                                >
-                                  <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
-                                  <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
-                                </motion.div>
-                              </TooltipTrigger>
+                              <TooltipTrigger asChild>                      <div>
+                        <motion.div 
+                          whileHover={{ scale: 1.05 }}
+                          className="flex flex-col items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-help"
+                        >
+                          <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{consultasSummary.total}</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Hoje</span>
+                        </motion.div>
+                      </div>
+                  </TooltipTrigger>
                               <TooltipContent>
                                 <p>Consultas agendadas para hoje</p>
                               </TooltipContent>
@@ -655,9 +658,11 @@ const HomeUser = () => {
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
-                                    <Badge className={statusColors[proximaConsultaData.status]}>
-                                      {proximaConsultaData.especialidade}
-                                    </Badge>
+                                    <div>
+                                      <Badge className={statusColors[proximaConsultaData.status]}>
+                                        {proximaConsultaData.especialidade}
+                                      </Badge>
+                                    </div>
                                   </div>
                                   <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{proximaConsultaData.tipo}</span>
@@ -1012,9 +1017,11 @@ const HomeUser = () => {
                       </div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800 cursor-help">
-                            {atendimentosSummary.proximos} agendadas
-                          </Badge>
+                          <div>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800 cursor-help">
+                              {atendimentosSummary.proximos} agendadas
+                            </Badge>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Número total de consultas agendadas para os próximos dias</p>
@@ -1063,12 +1070,47 @@ const HomeUser = () => {
                                     </TooltipContent>
                                   </Tooltip>
                                   <span className="font-medium text-gray-800 dark:text-gray-200">{consulta.profissional}</span>
+                                  <div>
+                                    <Badge className={statusColors[consulta.status]}>
+                                      {consulta.status === 'agendada' ? 'Agendada' : 
+                                      consulta.status === 'realizada' ? 'Realizada' : 
+                                      consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <Badge className={statusColors[consulta.status]}>
-                                  {consulta.status === 'agendada' ? 'Agendada' : 
-                                  consulta.status === 'realizada' ? 'Realizada' : 
-                                  consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
-                                </Badge>
+                                <div className="flex gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        onClick={() => abrirModalDetalhes(consulta)}
+                                      >
+                                        Detalhes
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ver informações detalhadas da consulta</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        onClick={() => abrirModalCancelamento(consulta)}
+                                      >
+                                        Cancelar
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Cancelar esta consulta (pode haver taxas)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1207,16 +1249,50 @@ const HomeUser = () => {
                             className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg hover:border-[#ED4231]/30 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                           >
                             <div className="flex flex-col gap-1">
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
+                              <div className="flex justify-between items-center">                                <div className="flex items-center gap-2">
                                   {renderStatusIcon(consulta.status)}
                                   <span className="font-medium text-gray-800 dark:text-gray-200">{consulta.profissional}</span>
+                                  <div>
+                                    <Badge className={statusColors[consulta.status]}>
+                                      {consulta.status === 'agendada' ? 'Agendada' : 
+                                      consulta.status === 'realizada' ? 'Realizada' : 
+                                      consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <Badge className={statusColors[consulta.status]}>
-                                  {consulta.status === 'agendada' ? 'Agendada' : 
-                                  consulta.status === 'realizada' ? 'Realizada' : 
-                                  consulta.status === 'cancelada' ? 'Cancelada' : 'Remarcada'}
-                                </Badge>
+                                <div className="flex gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        onClick={() => abrirModalDetalhes(consulta)}
+                                      >
+                                        Detalhes
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ver informações detalhadas da consulta</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        onClick={() => abrirModalCancelamento(consulta)}
+                                      >
+                                        Cancelar
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Cancelar esta consulta (pode haver taxas)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1392,7 +1468,7 @@ const HomeUser = () => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
-                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><path d="m9 9 5 5v-5h-5" />
+                          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><path d="m9 9 5 5v-5h-5" />
                         </svg>
                         <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
                       </div>
@@ -1450,7 +1526,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />

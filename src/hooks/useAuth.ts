@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 interface User {
   id: string;
@@ -14,6 +15,7 @@ interface LoginCredentials {
   password: string;
 }
 
+const PUBLIC_ROUTES = ['/login', '/cadastro', '/completar-cadastro-usuario', '/completar-cadastro-voluntario'];
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
@@ -22,23 +24,47 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Função para verificar se uma rota é pública
+  const isPublicRoute = useCallback((path: string) => {
+    return PUBLIC_ROUTES.some(route => path.startsWith(route));
+  }, []);
 
   // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_KEY);
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    
-    if (storedUser && storedToken) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error('Erro ao carregar dados do usuário:', e);
+    const checkAuth = async () => {
+      setLoading(true);
+      const userData = localStorage.getItem('userData');
+      const storedUser = localStorage.getItem(USER_KEY);
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+
+      if ((storedUser && storedToken) || userData) {
+        try {
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+          }
+        } catch (e) {
+          console.error('Error loading user data:', e);
+          // Clear invalid data
+          localStorage.removeItem(USER_KEY);
+          localStorage.removeItem(TOKEN_KEY);
+        }
+      } else if (!isPublicRoute(location.pathname)) {
+        // If not on a public route and no auth, redirect to login
+        toast({
+          title: "Acesso negado",
+          description: "Você precisa estar logado para acessar esta página.",
+          variant: "destructive",
+        });
+        navigate('/login', { state: { from: location.pathname }, replace: true });
       }
-    }
-    
-    setLoading(false);
-  }, []);
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, [navigate, location.pathname, isPublicRoute]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setLoading(true);
@@ -46,10 +72,8 @@ export function useAuth() {
     
     try {
       // Simular uma chamada de API
-      // Na implementação real, isso seria uma chamada fetch ou axios
       const response = await new Promise<User>((resolve) => {
         setTimeout(() => {
-          // Mock user
           resolve({
             id: '123',
             nome: credentials.email.includes('prof') ? 'Dr. Profissional' : 'Paciente',
@@ -67,15 +91,18 @@ export function useAuth() {
       setUser(response);
       
       // Redirecionar com base no tipo de usuário
-      if (response.tipo === 'profissional') {
-        navigate('/home');
-      } else {
-        navigate('/home-user');
-      }
+      const targetPath = response.tipo === 'profissional' ? '/home' : '/home-user';
+      navigate(targetPath, { replace: true });
       
       return response;
     } catch (err) {
-      setError('Erro ao fazer login. Verifique suas credenciais e tente novamente.');
+      const message = err instanceof Error ? err.message : 'Erro ao fazer login';
+      setError(message);
+      toast({
+        title: "Erro de autenticação",
+        description: message,
+        variant: "destructive",
+      });
       return null;
     } finally {
       setLoading(false);
@@ -85,11 +112,13 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem('userData'); // Clear new auth data too
     setUser(null);
-    navigate('/login');
+    navigate('/login', { replace: true });
   }, [navigate]);
 
-  const isAuthenticated = !!user;
+  // Check if user is authenticated based on both old and new auth mechanisms
+  const isAuthenticated = !!user || !!localStorage.getItem('userData');
   const userType = user?.tipo;
 
   return {
@@ -99,6 +128,7 @@ export function useAuth() {
     login,
     logout,
     isAuthenticated,
-    userType
+    userType,
+    isPublicRoute
   };
 }

@@ -50,26 +50,26 @@ interface AtendimentoSocial {
 interface FormularioInscricao {
   id: string;
   nomeCompleto: string;
-  telefone: string;
   dataNascimento: string;
   email: string;
+  telefone: string;
   cep: string;
   logradouro: string;
   numero: string;
-  complemento?: string;
+  complemento: string;
   bairro: string;
   cidade: string;
-  estado: string;  areaOrientacao: string;
-  comoSoube: string;
-  sugestaoOutraArea?: string;
+  estado: string;
+  paciente: string;
+  dataEnvio: Date;
   dataSubmissao: Date;
-  status: "pendente" | "aprovado" | "reprovado";
-  observacoesAssistente?: string;
-  tipoCandidato?: "multidisciplinar" | "valor_social";
+  status: "pendente" | "em_analise" | "aprovado" | "rejeitado";
+  tipo: "Individual" | "Familiar" | "Grupo";
+  prioridade: "baixa" | "media" | "alta";
+  areaOrientacao: string;
+  comoSoube: string;
+  sugestaoOutraArea: string;
 }
-
-// Dados de formulários de inscrição pendentes (carregados via API)
-const formulariosPendentesDefault: FormularioInscricao[] = [];
 
 // Itens de navegação para o assistente social
 const assistenteSocialNavItems = [
@@ -78,7 +78,8 @@ const assistenteSocialNavItems = [
     label: "Home",
     icon: <HomeIcon className="w-6 h-6" color="#ED4231" />,
     section: "home"
-  },  {
+  },
+  {
     path: "/classificacao-usuarios",
     label: "Classificar Usuários",
     icon: <UserCheck className="w-6 h-6" color="#ED4231" />,
@@ -111,7 +112,7 @@ const AssistenteSocial = () => {
   // Estados para dados da API
   const [assistenteSocialData, setAssistenteSocialData] = useState<AssistenteSocialData | null>(null);
   const [atendimentosData, setAtendimentosData] = useState<AtendimentoSocial[]>([]);
-  const [formulariosPendentes, setFormulariosPendentes] = useState<FormularioInscricao[]>(formulariosPendentesDefault);
+  const [formulariosPendentes, setFormulariosPendentes] = useState<FormularioInscricao[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -790,7 +791,7 @@ const AssistenteSocial = () => {
                   Tipo de Candidato *
                 </Label>
                 <Select value={tipoCandidato} onValueChange={(value: "multidisciplinar" | "valor_social") => setTipoCandidato(value)}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo de candidato" />
                   </SelectTrigger>
                   <SelectContent>
@@ -848,28 +849,19 @@ const AssistenteSocial = () => {
               </DialogTitle>
               <DialogDescription>
                 {formularioSelecionado && 
-                  `Você está prestes a reprovar o formulário de ${formularioSelecionado.nomeCompleto}. O usuário será notificado sobre a reprovação.`
+                  `Você está prestes a reprovar o formulário de ${formularioSelecionado.nomeCompleto}. Esta ação não poderá ser desfeita.`
                 }
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4">
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Ação Irreversível</span>
-                </div>
-                <p className="text-sm text-red-600 dark:text-red-300 mt-1">
-                  A reprovação é uma ação definitiva. O usuário precisará submeter um novo formulário.
-                </p>
-              </div>
-              
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Motivo da reprovação <span className="text-red-500">*</span>
-                </label>
+                <Label htmlFor="observacoes" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Motivo da Reprovação *
+                </Label>
                 <Textarea
-                  placeholder="Informe o motivo da reprovação (obrigatório)..."
+                  id="observacoes"
+                  placeholder="Descreva o motivo da reprovação..."
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
                   className="mt-1"
@@ -884,17 +876,17 @@ const AssistenteSocial = () => {
               </Button>
               <Button 
                 variant="destructive"
-                onClick={confirmarReprovacao} 
+                onClick={confirmarReprovacao}
                 disabled={isProcessing || !observacoes.trim()}
               >
                 {isProcessing ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <span className="animate-spin mr-2">⏳</span>
                     Processando...
                   </>
                 ) : (
                   <>
-                    <X className="w-4 h-4 mr-2" />
+                    <ThumbsDown className="w-4 h-4 mr-2" />
                     Confirmar Reprovação
                   </>
                 )}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { updateEmailInLocalStorage } from '../utils/localStorage';
+import { useNavigate } from 'react-router-dom';
 
 interface Endereco {
     rua: string;
@@ -42,6 +43,8 @@ export interface AssistenteSocialOutput {
 }
 
 export const useAssistenteSocial = () => {
+    const navigate = useNavigate();
+
     const fetchPerfil = async (): Promise<AssistenteSocialOutput> => {
         try {
             // Pegar dados do usuário logado do localStorage
@@ -50,6 +53,8 @@ export const useAssistenteSocial = () => {
             console.log('🔍 Debug - userData:', userData);
             
             if (!userData) {
+                console.log('Usuário não está logado, redirecionando...');
+                navigate('/');
                 throw new Error('Usuário não está logado');
             }
             
@@ -61,6 +66,8 @@ export const useAssistenteSocial = () => {
             console.log('🔍 Debug - usuarioId:', usuarioId);
             
             if (!usuarioId) {
+                console.log('ID do usuário não encontrado, redirecionando...');
+                navigate('/');
                 throw new Error('ID do usuário não encontrado');
             }
 
