@@ -4,7 +4,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, ArrowLeft } from "lucide-react";
+import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, ArrowLeft, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -14,6 +14,14 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { useCep } from "@/hooks/useCep";
 import { useAssistenteSocial } from "@/hooks/useAssistenteSocial";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Função para gerar uma cor com base no nome
 const getColorFromName = (name: string) => {
@@ -141,7 +149,6 @@ export default function ProfileFormAssistenteSocial() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
-
   // Estado para o formulário
   const [formData, setFormData] = useState<AssistenteSocialFormData>(assistenteSocialDataDefault);
   // Estado para a imagem selecionada
@@ -149,6 +156,10 @@ export default function ProfileFormAssistenteSocial() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [avatarImageError, setAvatarImageError] = useState(false);
+  
+  // Estado para o modal de redirecionamento após alteração de email
+  const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
+  const [originalEmail, setOriginalEmail] = useState<string>("");
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormChanged(true);
@@ -280,20 +291,18 @@ export default function ProfileFormAssistenteSocial() {
         if (dados.fotoUrl) {
           console.log('Atualizando foto do perfil:', dados.fotoUrl);
           setProfileImage(dados.fotoUrl);
-        }
-
-        // Garantir que todos os campos obrigatórios existam, mesmo que vazios
+        }        // Garantir que todos os campos obrigatórios existam, mas priorizar dados recebidos
         const dadosCompletos = {
           ...assistenteSocialDataDefault,
           ...dados,
-          nome: dados.nome || "",
-          sobrenome: dados.sobrenome || "",
-          email: dados.email || "",
-          telefone: dados.telefone || "",
-          crp: dados.registroProfissional || "",
-          especialidade: dados.especialidade || "",
-          bio: dados.biografiaProfissional || "",
-          fotoUrl: dados.fotoUrl || "",
+          nome: dados.nome || assistenteSocialDataDefault.nome,
+          sobrenome: dados.sobrenome || assistenteSocialDataDefault.sobrenome,
+          email: dados.email || assistenteSocialDataDefault.email,
+          telefone: dados.telefone || assistenteSocialDataDefault.telefone,
+          crp: dados.crp || assistenteSocialDataDefault.crp,
+          especialidade: dados.especialidade || assistenteSocialDataDefault.especialidade,
+          bio: dados.bio || assistenteSocialDataDefault.bio,
+          fotoUrl: dados.fotoUrl || assistenteSocialDataDefault.fotoUrl,
           endereco: {
             ...assistenteSocialDataDefault.endereco,
             ...(dadosEndereco || {})
@@ -302,9 +311,11 @@ export default function ProfileFormAssistenteSocial() {
           atendimentosRealizados: 0,
           avaliacaoMedia: 0
         };
-        
-        console.log('Dados processados para o formulário:', dadosCompletos);
+          console.log('Dados processados para o formulário:', dadosCompletos);
         setFormData(dadosCompletos);
+        
+        // Armazenar o email original para detectar mudanças
+        setOriginalEmail(dados.email || "");
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
         setFormData(assistenteSocialDataDefault);
@@ -392,16 +403,19 @@ export default function ProfileFormAssistenteSocial() {
           return;
         }
       }
-      
-      // Preparar apenas os dados pessoais básicos que o endpoint /dados-pessoais aceita
+        // Preparar dados pessoais incluindo campos profissionais para assistente social
       const dadosPessoais = {
         nome: formData.nome,
         email: formData.email,
         sobrenome: formData.sobrenome,
-        telefone: formData.telefone
-      };
+        telefone: formData.telefone,
+        crp: formData.crp,
+        bio: formData.bio,
+        especialidade: formData.especialidade
+      };      console.log('Dados pessoais e profissionais para enviar:', dadosPessoais);
 
-      console.log('Dados pessoais básicos para enviar:', dadosPessoais);
+      // Verificar se o email foi alterado
+      const emailAlterado = formData.email !== originalEmail;
 
       // Usar a nova função específica para dados pessoais
       const dadosAtualizados = await atualizarDadosPessoais(dadosPessoais);
@@ -412,7 +426,10 @@ export default function ProfileFormAssistenteSocial() {
         nome: dadosAtualizados.nome || prevData.nome,
         email: dadosAtualizados.email || prevData.email,
         sobrenome: dadosAtualizados.sobrenome || prevData.sobrenome,
-        telefone: dadosAtualizados.telefone || prevData.telefone
+        telefone: dadosAtualizados.telefone || prevData.telefone,
+        crp: dadosAtualizados.crp || prevData.crp,
+        bio: dadosAtualizados.bio || prevData.bio,
+        especialidade: dadosAtualizados.especialidade || prevData.especialidade
       }));
       
       if (selectedImage && imagePreview) {
@@ -420,13 +437,18 @@ export default function ProfileFormAssistenteSocial() {
         // Aqui você pode implementar o upload da imagem se necessário
       }
       
-      setSuccessMessage("Nome e email atualizados com sucesso!");
+      setSuccessMessage("Dados pessoais e profissionais atualizados com sucesso!");
       setFormChanged(false);
       
-      toast({
-        title: "Dados básicos salvos",
-        description: "Nome e email foram atualizados. Use as outras abas para salvar dados profissionais e endereço.",
-      });
+      // Se o email foi alterado, mostrar modal de redirecionamento
+      if (emailAlterado) {
+        setShowEmailChangeModal(true);
+      } else {
+        toast({
+          title: "Dados atualizados",
+          description: "Todos os dados pessoais e profissionais foram atualizados com sucesso.",
+        });
+      }
         
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
@@ -435,11 +457,31 @@ export default function ProfileFormAssistenteSocial() {
         title: "Erro ao salvar dados pessoais",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações pessoais.",
         variant: "destructive"
-      });
-    } finally {
+      });    } finally {
       setLoading(false);
     }
   };
+
+  // Função para lidar com o redirecionamento após alteração de email
+  const handleEmailChangeRedirect = () => {
+    // Limpar dados do localStorage
+    localStorage.removeItem('userData');
+    localStorage.removeItem('authToken');
+    
+    // Redirecionar para o login
+    navigate('/login');
+  };
+
+  // Função para cancelar o redirecionamento (caso o usuário queira continuar)
+  const handleCancelRedirect = () => {
+    setShowEmailChangeModal(false);
+    
+    toast({
+      title: "Dados atualizados",
+      description: "Todos os dados pessoais e profissionais foram atualizados com sucesso.",
+    });
+  };
+
   // Função para salvar a foto de perfil
   const handleSave = async () => {
     if (selectedImage && imagePreview) {

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { updateEmailInLocalStorage } from '../utils/localStorage';
 
 interface Endereco {
     rua: string;
@@ -118,13 +119,16 @@ export const useAssistenteSocial = () => {
                     'Authorization': `Bearer ${token || ''}`
                 },
                 body: JSON.stringify(dados)
-            });
-
-            if (!response.ok) {
+            });            if (!response.ok) {
                 throw new Error('Erro ao atualizar perfil');
+            }            const result = await response.json();
+            
+            // Atualizar localStorage se o email foi alterado
+            if (result.email) {
+                updateEmailInLocalStorage(result.email);
             }
 
-            return await response.json();
+            return result;
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);
             throw error;
@@ -290,19 +294,23 @@ export const useAssistenteSocial = () => {
         } catch (error) {
             console.error('Erro ao atualizar endereço:', error);
             throw error;
-        }    };
-
-    // Função específica para atualizar apenas dados pessoais básicos
+        }    };    // Função específica para atualizar dados pessoais e profissionais
     const atualizarDadosPessoais = async (dados: { 
         nome: string; 
         email: string; 
         sobrenome: string;
         telefone: string;
+        crp?: string;
+        bio?: string;
+        especialidade?: string;
     }): Promise<{ 
         nome: string; 
         email: string; 
         sobrenome: string;
         telefone: string;
+        crp?: string;
+        bio?: string;
+        especialidade?: string;
     }> => {
         try {
             // Pegar dados do usuário logado do localStorage
@@ -332,9 +340,13 @@ export const useAssistenteSocial = () => {
                 const errorText = await response.text();
                 console.error('Erro na resposta:', errorText);
                 throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
+            }            const result = await response.json();
+            
+            // Atualizar localStorage se o email foi alterado
+            if (result.email) {
+                updateEmailInLocalStorage(result.email);
             }
-
-            const result = await response.json();
+            
             return {
                 nome: result.nome || dados.nome,
                 email: result.email || dados.email,
