@@ -226,25 +226,28 @@ const ProfileFormAssistenteSocial = () => {
           console.log('Erro ao carregar endereço (usando dados padrão):', enderecoError);
         }
         
+        // Se houver uma foto de perfil, atualizar o contexto
+        if (dados.fotoUrl) {
+          console.log('Atualizando foto do perfil:', dados.fotoUrl);
+          setProfileImage(dados.fotoUrl);
+        }
+
         // Garantir que todos os campos obrigatórios existam, mesmo que vazios
         const dadosCompletos = {
           ...assistenteSocialDataDefault,
           ...dados,
-          // Garantir que campos obrigatórios não sejam undefined
           nome: dados.nome || "",
           sobrenome: dados.sobrenome || "",
           email: dados.email || "",
           telefone: dados.telefone || "",
-          // Mapear dados profissionais do backend
           crp: dados.registroProfissional || "",
           especialidade: dados.especialidade || "",
           bio: dados.biografiaProfissional || "",
-          // Usar dados de endereço carregados separadamente
+          fotoUrl: dados.fotoUrl || "",
           endereco: {
             ...assistenteSocialDataDefault.endereco,
             ...(dadosEndereco || {})
           },
-          // Manter os campos mockados
           proximaDisponibilidade: new Date(),
           atendimentosRealizados: 0,
           avaliacaoMedia: 0
@@ -254,7 +257,6 @@ const ProfileFormAssistenteSocial = () => {
         setFormData(dadosCompletos);
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
-        // Em caso de erro, usar dados padrão para não deixar o formulário quebrado
         setFormData(assistenteSocialDataDefault);
         toast({
           title: "Erro ao carregar perfil",
@@ -381,8 +383,19 @@ const ProfileFormAssistenteSocial = () => {
     if (selectedImage && imagePreview) {
       try {
         setLoading(true);
+        
+        // Upload da foto e obter a URL
         const url = await uploadFoto(selectedImage);
-        setProfileImage(imagePreview);
+        console.log('URL da foto recebida do servidor:', url);
+
+        // Atualizar o contexto com a nova URL da imagem do servidor
+        setProfileImage(url);
+
+        // Limpar estados locais
+        setSelectedImage(null);
+        setImagePreview(null);
+        setFormChanged(false);
+        
         toast({
           title: "Foto atualizada",
           description: "Sua foto de perfil foi atualizada com sucesso!",

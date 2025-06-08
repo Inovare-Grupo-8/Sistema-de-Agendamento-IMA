@@ -53,7 +53,7 @@ export const useAssistenteSocial = () => {
             }
             
             const user = JSON.parse(userData);
-            const token = user.token; // Token está dentro do objeto user
+            const token = user.token;
             const usuarioId = user.idUsuario;
             
             console.log('🔍 Debug - token:', token ? 'Token exists' : 'No token');
@@ -65,7 +65,6 @@ export const useAssistenteSocial = () => {
 
             const url = `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`;
             console.log('🔍 Debug - URL:', url);
-            console.log('🔍 Debug - Authorization header:', `Bearer ${token || ''}`);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -75,16 +74,21 @@ export const useAssistenteSocial = () => {
                 }
             });
 
-            console.log('🔍 Debug - Response status:', response.status);
-            console.log('🔍 Debug - Response statusText:', response.statusText);
-
             if (!response.ok) {
                 const errorText = await response.text();
                 console.log('🔍 Debug - Error response:', errorText);
                 throw new Error('Erro ao buscar perfil');
             }
 
-            return await response.json();
+            const data = await response.json();
+            
+            // Se houver uma foto, adiciona a URL base
+            if (data.fotoUrl) {
+                data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
+            }
+
+            console.log('🔍 Debug - Profile data:', data);
+            return data;
         } catch (error) {
             console.error('Erro ao buscar perfil:', error);
             throw error;
@@ -448,7 +452,9 @@ export const useAssistenteSocial = () => {
             }
 
             const result = await response.json();
-            return result.url;
+            // Concatena a URL base com o caminho relativo retornado pelo servidor
+            const photoUrl = `http://localhost:8080${result.url}`;
+            return photoUrl;
         } catch (error) {
             console.error('Erro ao fazer upload da foto:', error);
             throw error;
