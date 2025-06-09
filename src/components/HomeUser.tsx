@@ -456,10 +456,10 @@ const HomeUser = () => {
     ];
     return links[Math.floor(Math.random() * links.length)];
   };
-
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
+        {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
@@ -896,9 +896,9 @@ const HomeUser = () => {
                             fontWeight: "bold",
                             cursor: "pointer"
                           }
-                        }}
-                      />
-                    </div>{selectedDate && (
+                        }}                      />                    </div>
+                    {/* Comentado: Seção de data selecionada removida para manter calendário apenas de visualização
+                    {selectedDate && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -920,7 +920,10 @@ const HomeUser = () => {
                         </div>
                       </motion.div>
                     )}
-                  </CardContent>                  <CardFooter>
+                    */}
+                  </CardContent>
+                  {/* Comentado: CardFooter removido para manter calendário apenas de visualização
+                  <CardFooter>
                     {selectedDate ? (
                       <div className="w-full space-y-2">
                         <Tooltip>
@@ -984,8 +987,8 @@ const HomeUser = () => {
                           </Button>
                         </Link>
                       </div>
-                    )}
-                  </CardFooter>
+                    )}                  </CardFooter>
+                  */}
                 </Card>
               </div>
 
