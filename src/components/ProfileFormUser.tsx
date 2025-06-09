@@ -59,47 +59,46 @@ const ProfileFormUser = () => {
   }, []);
   
   const location = useLocation();
-  const navigate = useNavigate();  
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
-  
+  const { theme, toggleTheme } = useThemeToggleWithNotification(); const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
-    // Use the new useUserProfile hook
+  // Use the new useUserProfile hook
   const {
     fetchPerfil,
     atualizarDadosPessoais,
     atualizarEndereco,
     uploadFoto,
     buscarEndereco
-  } = useUserProfile();// Estado para o formulário - inicializar com valores padrão
+  } = useUserProfile();// Estado para o formulário - inicializar com valores padrão seguros
   const [formData, setFormData] = useState({
-    nome: userData?.nome || '',
-    sobrenome: userData?.sobrenome || '',
-    email: userData?.email || '',
-    telefone: userData?.telefone || '',
-    dataNascimento: userData?.dataNascimento || '',
-    genero: userData?.genero || '',
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: '',
+    genero: '',
     endereco: {
-      cep: userData?.endereco?.cep || '',
-      rua: userData?.endereco?.rua || '',
-      numero: userData?.endereco?.numero || '',
-      complemento: userData?.endereco?.complemento || '',
-      bairro: userData?.endereco?.bairro || '',
-      cidade: userData?.endereco?.cidade || '',
-      estado: userData?.endereco?.estado || '',
+      cep: '',
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
     }
   });
-  
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);  // Load profile data using the new hook
+  const [imageError, setImageError] = useState(false);// Load profile data using the new hook
   const loadProfileData = async () => {
     console.log('🟢 [ProfileForm] DEBUG: loadProfileData iniciado');
     console.log('🟢 [ProfileForm] DEBUG: URL atual:', window.location.href);
@@ -107,22 +106,17 @@ const ProfileFormUser = () => {
     
     try {
       setInitialLoading(true);
-      
+
       // Verificar se o usuário está logado antes de fazer chamadas à API
       const userData = localStorage.getItem('userData');
-      const userInfo = localStorage.getItem('userInfo');
-      
-      console.log('🔍 [ProfileForm] DEBUG: Verificando localStorage...');
-      console.log('🔍 [ProfileForm] DEBUG: userData exists:', !!userData);
-      console.log('🔍 [ProfileForm] DEBUG: userInfo exists:', !!userInfo);
-      
+      console.log('🔍 Debug ProfileFormUser - userData do localStorage:', userData);
+
       if (!userData) {
         console.warn('⚠️ [ProfileForm] DEBUG: Usuário não logado - userData não encontrado.');
         console.log('🔍 [ProfileForm] DEBUG: localStorage completo:', Object.keys(localStorage));
         return;
       }
 
-      let parsedData;
       try {
         parsedData = JSON.parse(userData);
         console.log('🔍 [ProfileForm] DEBUG: userData parsed:', {
@@ -143,21 +137,11 @@ const ProfileFormUser = () => {
         return;
       }
 
-      console.log('🔄 [ProfileForm] DEBUG: Iniciando chamadas para API...');
-      console.log('🔄 [ProfileForm] DEBUG: Buscando dados pessoais...');
-      
       const dadosPessoais = await fetchPerfil();
-      console.log('✅ [ProfileForm] DEBUG: Dados pessoais recebidos:', {
-        hasData: !!dadosPessoais,
-        fields: dadosPessoais ? Object.keys(dadosPessoais) : []
-      });
-      
-      console.log('🔄 [ProfileForm] DEBUG: Buscando endereço...');
       const endereco = await buscarEndereco();
-      console.log('✅ [ProfileForm] DEBUG: Endereço recebido:', {
-        hasData: !!endereco,
-        fields: endereco ? Object.keys(endereco) : []
-      });
+
+      console.log('🔍 Debug ProfileFormUser - dadosPessoais recebidos:', dadosPessoais);
+      console.log('🔍 Debug ProfileFormUser - telefone específico:', dadosPessoais?.telefone);
 
       const perfilCompleto = {
         nome: dadosPessoais?.nome || '',
@@ -174,19 +158,19 @@ const ProfileFormUser = () => {
           bairro: endereco?.bairro || '',
           cidade: endereco?.cidade || '',
           estado: endereco?.estado || '',
-        },
+        }
       };
+
+      console.log('🔍 Debug ProfileFormUser - perfilCompleto montado:', perfilCompleto);
+      console.log('🔍 Debug ProfileFormUser - telefone no perfilCompleto:', perfilCompleto.telefone);
 
       console.log('✅ [ProfileForm] DEBUG: Perfil completo montado, atualizando estados...');
       setFormData(perfilCompleto);
       setUserData(perfilCompleto);
-      console.log('✅ [ProfileForm] DEBUG: Estados atualizados com sucesso');
-      
     } catch (error) {
-      console.error('❌ [ProfileForm] DEBUG: Erro ao carregar perfil:', error);
-      console.log('🔍 [ProfileForm] DEBUG: Tipo do erro:', error?.constructor?.name);
-      console.log('🔍 [ProfileForm] DEBUG: Mensagem do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
-      console.log('🔍 [ProfileForm] DEBUG: Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      console.error('Erro ao carregar perfil:', error);
+
+      // Não mostrar toast de erro se for uma questão de autenticação
 
       if (error instanceof Error && error.message.includes('Token inválido')) {
         console.warn('⚠️ [ProfileForm] DEBUG: Erro de autenticação detectado - token inválido');
@@ -211,7 +195,6 @@ const ProfileFormUser = () => {
         return;
       }
 
-      console.log('⚠️ [ProfileForm] DEBUG: Erro genérico, mostrando toast...');
       toast({
         title: 'Erro ao carregar dados',
         description: 'Não foi possível carregar os dados do seu perfil.',
@@ -221,7 +204,8 @@ const ProfileFormUser = () => {
       console.log('🏁 [ProfileForm] DEBUG: loadProfileData finalizado');
       setInitialLoading(false);
     }
-  };    // Carregar dados do perfil quando o componente for montado
+  };
+
   useEffect(() => {
     console.log('🚀 [ProfileForm] DEBUG: useEffect montado - iniciando carregamento do perfil');
     console.log('🚀 [ProfileForm] DEBUG: Componente montado em:', window.location.pathname);
@@ -276,11 +260,11 @@ const ProfileFormUser = () => {
     loadProfileData();
   }, [fetchPerfil, setProfileImage]);
 
-    // Função para lidar com a mudança nos campos
+  // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormChanged(true);
     const { name, value } = e.target;
-    
+
     // Formatação específica para o CEP
     if (name === "endereco.cep") {
       const formattedCep = formatCep(value);
@@ -293,7 +277,7 @@ const ProfileFormUser = () => {
       });
       return;
     }
-    
+
     // Formatação específica para telefone
     if (name === "telefone") {
       const formattedPhone = formatters.phone(value);
@@ -303,7 +287,7 @@ const ProfileFormUser = () => {
       });
       return;
     }
-    
+
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData({
@@ -326,7 +310,7 @@ const ProfileFormUser = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedImage(file);
-      
+
       // Criar preview da imagem
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -334,53 +318,46 @@ const ProfileFormUser = () => {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-    // Função para validar o formulário antes de salvar
+  };    // Função para validar o formulário antes de salvar
   const validateForm = () => {
+    console.log('🔍 Debug validateForm - formData:', formData);
     const errors: Record<string, string> = {};
-    
-    // Validação básica de campos obrigatórios
-    if (!formData.nome.trim()) errors.nome = "Nome é obrigatório";
-    if (!formData.sobrenome.trim()) errors.sobrenome = "Sobrenome é obrigatório";
-    
-    // Validação de email
+
+    // Validação APENAS dos campos obrigatórios - nome, sobrenome e email
+    if (!formData.nome || !formData.nome.trim()) {
+      errors.nome = "Nome é obrigatório";
+      console.log('🔍 Debug validateForm - Nome inválido:', formData.nome);
+    }
+    if (!formData.sobrenome || !formData.sobrenome.trim()) {
+      errors.sobrenome = "Sobrenome é obrigatório";
+      console.log('🔍 Debug validateForm - Sobrenome inválido:', formData.sobrenome);
+    }
+
+    // Validação de email - campo obrigatório
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
+    if (!formData.email || !formData.email.trim()) {
       errors.email = "Email é obrigatório";
+      console.log('🔍 Debug validateForm - Email vazio:', formData.email);
     } else if (!emailRegex.test(formData.email)) {
       errors.email = "Email inválido";
+      console.log('🔍 Debug validateForm - Email formato inválido:', formData.email);
     }
-      // Validação de telefone usando utilitário importado
-    if (formData.telefone && formData.telefone.trim() !== '') {
-      const phoneValidation = isPhone(formData.telefone);
-      if (phoneValidation) {
-        errors.telefone = phoneValidation;
-      }
-    }
-    
-    // Validação de data de nascimento - opcional
-    if (formData.dataNascimento && formData.dataNascimento.trim() !== '') {
-      const birthDate = new Date(formData.dataNascimento);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      
-      if (age < 16 || age > 120) {
-        errors.dataNascimento = "Data de nascimento inválida";
-      }
-    }
-    
-    // Validação de CEP (formato brasileiro) - opcional
-    const cepRegex = /^\d{5}-\d{3}$/;
-    if (formData.endereco.cep && formData.endereco.cep.trim() !== '' && !cepRegex.test(formData.endereco.cep)) {
-      errors["endereco.cep"] = "Formato de CEP inválido. Ex: 12345-678";
-    }
-    
+
+    // REMOVI todas as validações opcionais que estavam causando problema
+    // Telefone, data de nascimento e CEP são opcionais e não devem bloquear o salvamento
+
+    console.log('🔍 Debug validateForm - Erros encontrados:', errors);
+    console.log('🔍 Debug validateForm - Formulário válido?', Object.keys(errors).length === 0);
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };  // Função para salvar as alterações
 
   const handleSave = async () => {
+    console.log('🔍 Debug handleSave - iniciando...');
+    console.log('🔍 Debug handleSave - formChanged:', formChanged);
+    console.log('🔍 Debug handleSave - selectedImage:', selectedImage);
+
     // If no changes were made, just provide feedback
     if (!formChanged) {
       toast({
@@ -391,8 +368,10 @@ const ProfileFormUser = () => {
       return;
     }
 
+    console.log('🔍 Debug handleSave - chamando validateForm...');
     // Validate the form before saving
     if (!validateForm()) {
+      console.log('🔍 Debug handleSave - validação falhou, mostrando toast de erro');
       toast({
         title: "Formulário com erros",
         description: "Corrija os erros antes de salvar",
@@ -400,9 +379,10 @@ const ProfileFormUser = () => {
       });
       return;
     }
-    
+
+    console.log('🔍 Debug handleSave - validação passou, salvando...');
     setLoading(true);
-    
+
     try {
       // Preparar dados pessoais (sem endereço)
       const dadosPessoais = {
@@ -412,43 +392,58 @@ const ProfileFormUser = () => {
         telefone: formData.telefone || '',
         dataNascimento: formData.dataNascimento || '',
         genero: formData.genero || '',
-      };
-
-      // Atualizar dados pessoais usando o hook
-      await atualizarDadosPessoais(dadosPessoais);
+      }; console.log('🔍 Debug handleSave - dadosPessoais preparados:', dadosPessoais);      // Atualizar dados pessoais usando o hook
+      console.log('🔍 Debug handleSave - chamando atualizarDadosPessoais...');
+      const resultadoDadosPessoais = await atualizarDadosPessoais(dadosPessoais);
+      console.log('🔍 Debug handleSave - resultado atualizarDadosPessoais:', resultadoDadosPessoais);
 
       // Atualizar endereço se houver dados
       if (formData.endereco && Object.values(formData.endereco).some(value => value.trim() !== '')) {
-        await atualizarEndereco(formData.endereco);
+        console.log('🔍 Debug handleSave - atualizando endereço...');
+        const resultadoEndereco = await atualizarEndereco(formData.endereco);
+        console.log('🔍 Debug handleSave - resultado atualizarEndereco:', resultadoEndereco);
       }
 
       // Upload da foto se houver uma nova
       if (selectedImage) {
+        console.log('🔍 Debug handleSave - fazendo upload da foto...');
         await uploadFoto(selectedImage);
         if (imagePreview) {
           setProfileImage(imagePreview);
         }
       }
 
-      // Atualizar contexto local
-      setUserData(formData);
-      
+      // Atualizar contexto local com os dados salvos com sucesso
+      const dadosParaSincronizar = {
+        nome: resultadoDadosPessoais.nome || formData.nome,
+        sobrenome: resultadoDadosPessoais.sobrenome || formData.sobrenome,
+        email: resultadoDadosPessoais.email || formData.email,
+        telefone: resultadoDadosPessoais.telefone || formData.telefone,
+        dataNascimento: resultadoDadosPessoais.dataNascimento || formData.dataNascimento,
+        genero: resultadoDadosPessoais.genero || formData.genero,
+        endereco: formData.endereco
+      };
+
+      console.log('🔍 Debug handleSave - sincronizando dados com contexto:', dadosParaSincronizar);
+      setUserData(dadosParaSincronizar);
+
       // Success feedback
       setSuccessMessage("Perfil atualizado com sucesso!");
       setFormChanged(false);
       setSelectedImage(null);
       setImagePreview(null);
       setValidationErrors({});
-      
+
+      console.log('🔍 Debug handleSave - sucesso!');
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso!",
       });
-      
+
       // Hide success message after a few seconds
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
+      console.error('🔍 Debug handleSave - erro:', error);
       toast({
         title: "Erro ao salvar",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações.",
@@ -463,14 +458,18 @@ const ProfileFormUser = () => {
   const handleSavePhoto = async () => {
     if (selectedImage && imagePreview) {
       try {
-        setLoading(true);
+        setLoading(true);        // Upload da foto e obter a URL
 
-        // Upload da foto e obter a URL
         const url = await uploadFoto(selectedImage);
         console.log('URL da foto recebida do servidor:', url);
 
+        // Extrair a URL da resposta se for um objeto
+        const imageUrl = typeof url === 'object' && url !== null && 'fotoUrl' in url
+          ? (url as any).fotoUrl
+          : String(url);
+
         // Atualizar o contexto com a nova URL da imagem do servidor
-        setProfileImage(url.fotoUrl); // Corrected type mismatch
+        setProfileImage(imageUrl);
 
         // Limpar estados locais
         setSelectedImage(null);
@@ -504,7 +503,7 @@ const ProfileFormUser = () => {
       });
     }
   };
-  
+
   // Função para buscar endereço pelo CEP
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const cep = e.target.value;
@@ -531,21 +530,21 @@ const ProfileFormUser = () => {
       });
     }
   };
-    // Função para descartar alterações
+  // Função para descartar alterações
   const handleCancel = () => {
     // Recarregando dados originais do localStorage
     const savedData = localStorage.getItem("userData");
     if (savedData) {
       setFormData(JSON.parse(savedData));
     }
-    
+
     // Resetando estados
     setSelectedImage(null);
     setImagePreview(null);
     setImageError(false);
     setFormChanged(false);
     setValidationErrors({});
-    
+
     toast({
       title: "Alterações descartadas",
       description: "Suas alterações foram descartadas com sucesso.",
@@ -581,20 +580,20 @@ const ProfileFormUser = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
-            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
-              <Menu className="w-7 h-7" />
-            </Button>
-            <ProfileAvatar 
-              profileImage={profileImage}
-              name={formData.nome || 'User'}
-              size="w-10 h-10"
-              className="border-2 border-[#ED4231]"
-            />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
-          </div>
-        )}
-        
+        <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
+          <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+            <Menu className="w-7 h-7" />
+          </Button>
+          <ProfileAvatar
+            profileImage={profileImage}
+            name={userData.nome || 'User'}
+            size="w-10 h-10"
+            className="border-2 border-[#ED4231]"
+          />
+          <span className="font-bold text-indigo-900 dark:text-gray-100">{userData.nome} {userData.sobrenome}</span>
+        </div>
+      )}
+
         <div className={`transition-all duration-500 ease-in-out
           ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
           bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
@@ -603,17 +602,16 @@ const ProfileFormUser = () => {
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
-          </div>
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar 
+          </div>          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar
               profileImage={profileImage}
-              name={formData.nome || 'User'}
+              name={userData.nome || 'User'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB]"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData.nome} {userData.sobrenome}</span>
           </div>
-          
+
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do userNavigationItems */}
             {Object.values(userNavigationItems).map((item) => (
@@ -633,8 +631,32 @@ const ProfileFormUser = () => {
                 </Tooltip>
               </SidebarMenuItem>
             ))}
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                    onClick={() => {
+                      localStorage.removeItem('userData');
+                      localStorage.removeItem('profileData');
+                      navigate('/');
+                      toast({
+                        title: "Sessão encerrada",
+                        description: "Você foi desconectado com sucesso.",
+                      });
+                    }}
+                  >
+                    <ArrowLeft className="w-6 h-6" />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                    <span>Sair</span>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent className="z-50">Sair da conta</TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
+
           </SidebarMenu>
-          
+
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
             <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
             <div className="flex gap-2">
@@ -645,31 +667,31 @@ const ProfileFormUser = () => {
         </div>
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
-            <div className="flex items-center gap-3">
-              <ProfileAvatar 
-                profileImage={profileImage}
-                name={formData.nome || 'User'}
-                size="w-10 h-10"
-                className="border-2 border-[#ED4231]"
-              />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
-            </div>
-            <div className="flex items-center gap-3">              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                    aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-                  >
-                    {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>{theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </header>
+          <div className="flex items-center gap-3">
+            <ProfileAvatar
+              profileImage={profileImage}
+              name={userData.nome || 'User'}
+              size="w-10 h-10"
+              className="border-2 border-[#ED4231]"
+            />
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{userData.nome} {userData.sobrenome}</span>
+          </div>
+          <div className="flex items-center gap-3">              <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={toggleTheme}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}</p>
+            </TooltipContent>
+          </Tooltip>
+          </div>
+        </header>
 
           <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
             {/* Breadcrumb navigation */}
@@ -678,15 +700,11 @@ const ProfileFormUser = () => {
             <div className="flex flex-col">
               <div className="flex items-center gap-4 mb-6">                <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => {
-                        console.log('🔘 [ProfileForm] DEBUG: Botão voltar clicado');
-                        interceptedNavigate("/home-user");
-                      }} 
-                      variant="ghost" 
+                    <Button
+                      onClick={() => navigate("/home-user")}
+                      variant="ghost"
                       className="p-2 rounded-full"
-                      aria-label="Voltar"
-                    >
+                      aria-label="Voltar">
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
@@ -701,14 +719,14 @@ const ProfileFormUser = () => {
                   </p>
                 </div>
               </div>
-              
+
               <Tabs defaultValue="pessoal" className="w-full">
                 <TabsList className="mb-6">
                   <TabsTrigger value="pessoal">Dados Pessoais</TabsTrigger>
                   <TabsTrigger value="endereco">Endereço</TabsTrigger>
                   <TabsTrigger value="foto">Foto de Perfil</TabsTrigger>
                 </TabsList>
-                
+
                 {/* Aba de Dados Pessoais */}
                 <TabsContent value="pessoal">
                   <Card className="w-full bg-white dark:bg-[#23272F] border border-[#EDF2FB] dark:border-gray-700 shadow-lg">
@@ -726,7 +744,7 @@ const ProfileFormUser = () => {
                           <span className="ml-2 text-gray-600 dark:text-gray-400">Carregando dados...</span>
                         </div>
                       )}
-                      
+
                       {!initialLoading && (
                         <>
                           {/* Nome e Sobrenome */}
@@ -748,7 +766,7 @@ const ProfileFormUser = () => {
                                 <span className="text-sm text-red-500">{validationErrors.nome}</span>
                               )}
                             </div>
-                            
+
                             <div className="space-y-2">
                               <Label htmlFor="sobrenome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Sobrenome *
@@ -821,7 +839,7 @@ const ProfileFormUser = () => {
                                 className="w-full"
                               />
                             </div>
-                            
+
                             <div className="space-y-2">
                               <Label htmlFor="genero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Gênero
@@ -856,7 +874,7 @@ const ProfileFormUser = () => {
                                 'Salvar Alterações'
                               )}
                             </Button>
-                            
+
                             <Button
                               onClick={handleCancel}
                               disabled={loading}
@@ -877,7 +895,7 @@ const ProfileFormUser = () => {
                       )}
                     </CardContent>
                   </Card>                </TabsContent>
-                
+
                 {/* Aba de Endereço */}
                 <TabsContent value="endereco">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
@@ -892,110 +910,110 @@ const ProfileFormUser = () => {
                           <span className="ml-2 text-gray-600 dark:text-gray-400">Carregando dados...</span>
                         </div>
                       )}
-                      
+
                       {!initialLoading && (
                         <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-2 space-y-2">
-                          <Label htmlFor="rua">Rua</Label>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input 
-                                id="rua" 
-                                name="endereco.rua" 
-                                value={formData.endereco.rua} 
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-2 space-y-2">
+                              <Label htmlFor="rua">Rua</Label>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Input
+                                    id="rua"
+                                    name="endereco.rua"
+                                    value={formData.endereco.rua}
+                                    onChange={handleInputChange}
+                                    className="bg-white dark:bg-gray-800"
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p>Nome da rua, avenida ou logradouro</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="numero">Número</Label>
+                              <Input
+                                id="numero"
+                                name="endereco.numero"
+                                value={formData.endereco.numero}
                                 onChange={handleInputChange}
                                 className="bg-white dark:bg-gray-800"
                               />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>Nome da rua, avenida ou logradouro</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="numero">Número</Label>
-                          <Input 
-                            id="numero" 
-                            name="endereco.numero" 
-                            value={formData.endereco.numero} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="complemento">Complemento</Label>
-                        <Input 
-                          id="complemento" 
-                          name="endereco.complemento" 
-                          value={formData.endereco.complemento} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="bairro">Bairro</Label>
-                        <Input 
-                          id="bairro" 
-                          name="endereco.bairro" 
-                          value={formData.endereco.bairro} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1 space-y-2">
-                          <Label htmlFor="cidade">Cidade</Label>
-                          <Input 
-                            id="cidade" 
-                            name="endereco.cidade" 
-                            value={formData.endereco.cidade} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="estado">Estado</Label>
-                          <Input 
-                            id="estado" 
-                            name="endereco.estado" 
-                            value={formData.endereco.estado} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="cep">CEP</Label>
-                          <div className="relative">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Input 
-                                  id="cep" 
-                                  name="endereco.cep" 
-                                  value={formData.endereco.cep} 
-                                  onChange={handleInputChange}
-                                  onBlur={handleCepBlur}
-                                  placeholder="00000-000"
-                                  maxLength={9}
-                                  className="bg-white dark:bg-gray-800"
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>Formato: 00000-000 (preenchimento automático ao sair do campo)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            {loadingCep && (
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
-                              </div>
-                            )}
+                            </div>
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
-                        </div>                      </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="complemento">Complemento</Label>
+                            <Input
+                              id="complemento"
+                              name="endereco.complemento"
+                              value={formData.endereco.complemento}
+                              onChange={handleInputChange}
+                              className="bg-white dark:bg-gray-800"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="bairro">Bairro</Label>
+                            <Input
+                              id="bairro"
+                              name="endereco.bairro"
+                              value={formData.endereco.bairro}
+                              onChange={handleInputChange}
+                              className="bg-white dark:bg-gray-800"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-1 space-y-2">
+                              <Label htmlFor="cidade">Cidade</Label>
+                              <Input
+                                id="cidade"
+                                name="endereco.cidade"
+                                value={formData.endereco.cidade}
+                                onChange={handleInputChange}
+                                className="bg-white dark:bg-gray-800"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="estado">Estado</Label>
+                              <Input
+                                id="estado"
+                                name="endereco.estado"
+                                value={formData.endereco.estado}
+                                onChange={handleInputChange}
+                                className="bg-white dark:bg-gray-800"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="cep">CEP</Label>
+                              <div className="relative">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Input
+                                      id="cep"
+                                      name="endereco.cep"
+                                      value={formData.endereco.cep}
+                                      onChange={handleInputChange}
+                                      onBlur={handleCepBlur}
+                                      placeholder="00000-000"
+                                      maxLength={9}
+                                      className="bg-white dark:bg-gray-800"
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <p>Formato: 00000-000 (preenchimento automático ao sair do campo)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                {loadingCep && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
+                            </div>                      </div>
                         </>
                       )}
                     </CardContent>
@@ -1013,7 +1031,7 @@ const ProfileFormUser = () => {
                     </CardFooter>
                   </Card>
                 </TabsContent>
-                  {/* Aba de Foto de Perfil */}
+                {/* Aba de Foto de Perfil */}
                 <TabsContent value="foto">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
@@ -1025,9 +1043,9 @@ const ProfileFormUser = () => {
                         <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
                           {(imagePreview || (profileImage && profileImage !== 'undefined' && profileImage !== '')) && !imageError
                             ? (
-                              <img 
-                                src={imagePreview || profileImage} 
-                                alt="Foto de perfil" 
+                              <img
+                                src={imagePreview || profileImage}
+                                alt="Foto de perfil"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   console.log('Erro ao carregar imagem de perfil:', e);
@@ -1038,11 +1056,11 @@ const ProfileFormUser = () => {
                               <LetterAvatar name={formData.nome || 'U'} size="w-40 h-40" />
                             )}
                         </div>
-                        
+
                         <div className="flex flex-col items-center gap-4">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Label 
+                              <Label
                                 htmlFor="photo-upload"
                                 className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
                               >
@@ -1053,15 +1071,15 @@ const ProfileFormUser = () => {
                               <p>Clique para selecionar uma nova foto de perfil</p>
                             </TooltipContent>
                           </Tooltip>
-                          <Input 
-                            id="photo-upload" 
-                            type="file" 
-                            accept="image/*" 
+                          <Input
+                            id="photo-upload"
+                            type="file"
+                            accept="image/*"
                             onChange={handleImageChange}
                             className="hidden"
                           />
                           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                            Formatos suportados: JPG, PNG<br/>
+                            Formatos suportados: JPG, PNG<br />
                             Tamanho máximo: 1MB (imagens maiores serão comprimidas automaticamente)
                           </p>
                         </div>

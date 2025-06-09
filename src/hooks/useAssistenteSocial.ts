@@ -35,6 +35,8 @@ export interface AssistenteSocialOutput {
     telefone: string;
     email: string;
     bio?: string;
+    dataNascimento?: string;
+    genero?: string;
     fotoUrl?: string;
     endereco?: Endereco;
     // Dados profissionais vindos do backend
@@ -328,6 +330,8 @@ export const useAssistenteSocial = () => {
         email: string; 
         sobrenome: string;
         telefone: string;
+        dataNascimento?: string;
+        genero?: string;
         crp?: string;
         bio?: string;
         especialidade?: string;
@@ -336,6 +340,8 @@ export const useAssistenteSocial = () => {
         email: string; 
         sobrenome: string;
         telefone: string;
+        dataNascimento?: string;
+        genero?: string;
         crp?: string;
         bio?: string;
         especialidade?: string;

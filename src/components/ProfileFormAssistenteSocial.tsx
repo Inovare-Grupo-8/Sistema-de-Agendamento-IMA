@@ -42,6 +42,8 @@ interface AssistenteSocialFormData {
   telefone: string;
   email: string;
   bio: string;
+  dataNascimento?: string;
+  genero?: string;
   fotoUrl?: string;
   endereco: {
     rua: string;
@@ -67,6 +69,8 @@ const assistenteSocialDataDefault: AssistenteSocialFormData = {
   especialidade: "",
   telefone: "",
   bio: "",
+  dataNascimento: "",
+  genero: "",
   endereco: {
     rua: "",
     numero: "",
@@ -122,9 +126,10 @@ export default function ProfileFormAssistenteSocial() {
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
-  const [formChanged, setFormChanged] = useState(false);
-  // Estado para o formulário
+  const [formChanged, setFormChanged] = useState(false);  // Estado para o formulário
   const [formData, setFormData] = useState<AssistenteSocialFormData>(assistenteSocialDataDefault);
+  // Estado para dados originais (para exibição na sidebar - não muda durante edição)
+  const [originalData, setOriginalData] = useState<AssistenteSocialFormData>(assistenteSocialDataDefault);
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -273,6 +278,8 @@ export default function ProfileFormAssistenteSocial() {
           sobrenome: dados.sobrenome || assistenteSocialDataDefault.sobrenome,
           email: dados.email || assistenteSocialDataDefault.email,
           telefone: dados.telefone || assistenteSocialDataDefault.telefone,
+          dataNascimento: dados.dataNascimento || assistenteSocialDataDefault.dataNascimento,
+          genero: dados.genero || assistenteSocialDataDefault.genero,
           crp: dados.crp || assistenteSocialDataDefault.crp,
           especialidade: dados.especialidade || assistenteSocialDataDefault.especialidade,
           bio: dados.bio || assistenteSocialDataDefault.bio,
@@ -283,16 +290,17 @@ export default function ProfileFormAssistenteSocial() {
           },
           proximaDisponibilidade: new Date(),
           atendimentosRealizados: 0,
-          avaliacaoMedia: 0
-        };
+          avaliacaoMedia: 0        };
           console.log('Dados processados para o formulário:', dadosCompletos);
         setFormData(dadosCompletos);
+        setOriginalData(dadosCompletos); // Armazenar dados originais para exibição na sidebar
         
         // Armazenar o email original para detectar mudanças
         setOriginalEmail(dados.email || "");
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
         setFormData(assistenteSocialDataDefault);
+        setOriginalData(assistenteSocialDataDefault); // Também definir dados originais como padrão em caso de erro
         toast({
           title: "Erro ao carregar perfil",
           description: "Não foi possível carregar os dados do perfil. Usando dados padrão.",
@@ -376,31 +384,46 @@ export default function ProfileFormAssistenteSocial() {
           });
           return;
         }
-      }
-        // Preparar dados pessoais incluindo campos profissionais para assistente social
+      }        // Preparar dados pessoais incluindo campos profissionais para assistente social
       const dadosPessoais = {
         nome: formData.nome,
         email: formData.email,
         sobrenome: formData.sobrenome,
         telefone: formData.telefone,
+        dataNascimento: formData.dataNascimento,
+        genero: formData.genero,
         crp: formData.crp,
         bio: formData.bio,
         especialidade: formData.especialidade
-      };      console.log('Dados pessoais e profissionais para enviar:', dadosPessoais);
+      };console.log('Dados pessoais e profissionais para enviar:', dadosPessoais);
 
       // Verificar se o email foi alterado
       const emailAlterado = formData.email !== originalEmail;
 
       // Usar a nova função específica para dados pessoais
-      const dadosAtualizados = await atualizarDadosPessoais(dadosPessoais);
-      
-      // Atualizar o estado local mantendo os outros dados
+      const dadosAtualizados = await atualizarDadosPessoais(dadosPessoais);      // Atualizar o estado local mantendo os outros dados
       setFormData(prevData => ({
         ...prevData,
         nome: dadosAtualizados.nome || prevData.nome,
         email: dadosAtualizados.email || prevData.email,
         sobrenome: dadosAtualizados.sobrenome || prevData.sobrenome,
         telefone: dadosAtualizados.telefone || prevData.telefone,
+        dataNascimento: dadosAtualizados.dataNascimento || prevData.dataNascimento,
+        genero: dadosAtualizados.genero || prevData.genero,
+        crp: dadosAtualizados.crp || prevData.crp,
+        bio: dadosAtualizados.bio || prevData.bio,
+        especialidade: dadosAtualizados.especialidade || prevData.especialidade
+      }));
+      
+      // Também atualizar os dados originais para sincronizar a sidebar
+      setOriginalData(prevData => ({
+        ...prevData,
+        nome: dadosAtualizados.nome || prevData.nome,
+        email: dadosAtualizados.email || prevData.email,
+        sobrenome: dadosAtualizados.sobrenome || prevData.sobrenome,
+        telefone: dadosAtualizados.telefone || prevData.telefone,
+        dataNascimento: dadosAtualizados.dataNascimento || prevData.dataNascimento,
+        genero: dadosAtualizados.genero || prevData.genero,
         crp: dadosAtualizados.crp || prevData.crp,
         bio: dadosAtualizados.bio || prevData.bio,
         especialidade: dadosAtualizados.especialidade || prevData.especialidade
@@ -543,10 +566,16 @@ export default function ProfileFormAssistenteSocial() {
         };
 
         const resultado = await atualizarDadosProfissionais(dadosProfissionais);
-        console.log('Resposta da atualização:', resultado);
-
-        // Atualizar o estado do formulário com os dados retornados
+        console.log('Resposta da atualização:', resultado);        // Atualizar o estado do formulário com os dados retornados
         setFormData(prevData => ({
+            ...prevData,
+            crp: resultado.crp,
+            especialidade: resultado.especialidade,
+            bio: resultado.bio
+        }));
+        
+        // Também atualizar os dados originais para sincronizar a sidebar
+        setOriginalData(prevData => ({
             ...prevData,
             crp: resultado.crp,
             especialidade: resultado.especialidade,
@@ -678,18 +707,17 @@ export default function ProfileFormAssistenteSocial() {
   };
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
-        {!sidebarOpen && (
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={formData.nome || 'U'}
+              name={originalData.nome || 'U'}
               size="w-10 h-10"
               className="border-2 border-[#ED4231]"
             />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{originalData.nome} {originalData.sobrenome}</span>
           </div>
         )}
         
@@ -705,13 +733,13 @@ export default function ProfileFormAssistenteSocial() {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={formData.nome || 'U'}
+              name={originalData.nome || 'U'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB]"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{originalData.nome} {originalData.sobrenome}</span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {formData.especialidade}
+              {originalData.especialidade}
             </Badge>
           </div>
           
@@ -773,11 +801,11 @@ export default function ProfileFormAssistenteSocial() {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">          <div className="flex items-center gap-3">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={formData.nome || 'U'}
+              name={originalData.nome || 'U'}
               size="w-10 h-10"
               className="border-2 border-[#ED4231]"
             />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{formData.nome} {formData.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{originalData.nome} {originalData.sobrenome}</span>
           </div>
             <div className="flex items-center gap-3">
               <Tooltip>
@@ -932,11 +960,40 @@ export default function ProfileFormAssistenteSocial() {
                               onChange={handleInputChange}
                               className={`bg-white dark:bg-gray-800 ${validationErrors.telefone ? 'border-red-500 focus:ring-red-500' : ''}`} 
                             />
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
+                          </TooltipTrigger>                          <TooltipContent side="top">
                             <p>Formato: (XX) XXXXX-XXXX</p>
                           </TooltipContent>
                         </Tooltip>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                          <Input 
+                            id="dataNascimento" 
+                            name="dataNascimento" 
+                            type="date"
+                            value={formData.dataNascimento || ''} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="genero">Gênero</Label>
+                          <select
+                            id="genero"
+                            name="genero"
+                            value={formData.genero || ''}
+                            onChange={(e) => handleInputChange(e as any)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          >
+                            <option value="">Selecione...</option>
+                            <option value="FEMININO">Feminino</option>
+                            <option value="MASCULINO">Masculino</option>
+                            <option value="OUTRO">Prefiro não informar</option>
+                          </select>
+                        </div>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
@@ -1202,9 +1259,8 @@ export default function ProfileFormAssistenteSocial() {
                                   console.log('Erro ao carregar imagem de perfil:', e);
                                   setImageError(true);
                                 }}
-                              />
-                            ) : (
-                              <LetterAvatar name={formData.nome || 'U'} size="w-40 h-40" />
+                              />                            ) : (
+                              <LetterAvatar name={originalData.nome || 'U'} size="w-40 h-40" />
                             )}
                         </div>
                         
