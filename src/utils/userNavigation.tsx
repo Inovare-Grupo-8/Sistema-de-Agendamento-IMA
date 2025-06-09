@@ -50,7 +50,7 @@ export const userNavigationItems: Record<string, UserNavigationItem> = {
   },
   agenda: {
     path: appUrls.user.agenda,
-    label: "Meus Agendamentos",
+    label: "Minhas Consultas",
     icon: <Calendar className="w-6 h-6" color="#ED4231" />,
   },
   historico: {

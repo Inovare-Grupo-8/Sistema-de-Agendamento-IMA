@@ -123,21 +123,18 @@ const CadastroVoluntario = () => {
     try {
       setLoadingVoluntarios(true);
       const dadosApi = await VoluntarioApiService.listarVoluntarios();
-      setVoluntariosOriginal(dadosApi);
-      
-      // Converter dados da API para o formato do componente
+      setVoluntariosOriginal(dadosApi);      // Converter dados da API para o formato do componente
       const voluntariosConvertidos: Voluntario[] = dadosApi.map(vol => ({
-        id: vol.idUsuario,
+        id: vol.idUsuario.toString(),
         nome: vol.nome,
         sobrenome: vol.sobrenome,
         email: vol.email,
+        telefone: "Não informado", // Telefone não retornado pela API
         funcao: vol.funcao,
-        areaOrientacao: vol.areaOrientacao,
-        especialidade: vol.funcao || vol.areaOrientacao || "Não especificado",
+        areaOrientacao: vol.areaOrientacao,        especialidade: vol.funcao || vol.areaOrientacao || "Não especificado",
         status: VoluntarioApiService.determinarStatus(vol),
         dataRegistro: new Date(vol.dataCadastro),
-        ultimoAcesso: vol.ultimoAcesso ? new Date(vol.ultimoAcesso) : undefined,
-        telefone: vol.telefone
+        ultimoAcesso: vol.ultimoAcesso ? new Date(vol.ultimoAcesso) : undefined
       }));
       
       setVoluntarios(voluntariosConvertidos);
@@ -626,15 +623,14 @@ const CadastroVoluntario = () => {
                   </TooltipContent>
                 </Tooltip>
               </SidebarMenuItem>            ))}
-            
-            <SidebarMenuItem>
+              <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
-                    <span className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                       <span>Sair</span>
-                    </span>
+                    </div>
                   </SidebarMenuButton>
                 </TooltipTrigger>
                 <TooltipContent className="z-50">Sair da conta</TooltipContent>
@@ -1030,10 +1026,9 @@ const CadastroVoluntario = () => {
                                                   vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
                                 const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
                             return matchSearch && matchStatus;
-                          })
-                          .map((voluntario) => (
+                          })                          .map((voluntario) => (
                           <motion.div 
-                            key={voluntario.idUsuario}
+                            key={voluntario.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:shadow-md"

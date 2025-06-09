@@ -26,12 +26,12 @@ export interface ProfessionalContextType {
 }
 
 export const defaultProfessionalData: ProfessionalData = {
-  nome: "Ricardo",
-  sobrenome: "Santos",
+  nome: "",
+  sobrenome: "",
   email: "",
   telefone: "",
   dataNascimento: "",
-  especialidade: "Psicologia",
+  especialidade: "",
   crm: "",
   bio: "",
   observacoesDisponibilidade: "",

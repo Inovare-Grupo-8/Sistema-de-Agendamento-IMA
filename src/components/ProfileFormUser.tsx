@@ -18,6 +18,7 @@ import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { isPhone, formatters } from "@/utils/validation";
+import { LetterAvatar } from "@/components/ui/LetterAvatar";
 
 const ProfileFormUser = () => {
   const location = useLocation();
@@ -26,8 +27,7 @@ const ProfileFormUser = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
   
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
@@ -56,8 +56,7 @@ const ProfileFormUser = () => {
       estado: '',
     }
   });
-
-  // Estados para validação e feedback
+  
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
@@ -145,7 +144,9 @@ const ProfileFormUser = () => {
     // Carregar dados do perfil quando o componente for montado
   useEffect(() => {
     loadProfileData();
-  }, []);  // Update form data when userData changes (sync across tabs)
+  }, []);
+  // Update form data when userData changes (sync across tabs)
+
   useEffect(() => {
     if (!formChanged && userData && typeof userData === 'object') {
       // Garantir que todos os valores são strings e não null/undefined
@@ -169,47 +170,28 @@ const ProfileFormUser = () => {
       setFormData(safeUserData);
     }
   }, [userData, formChanged]);
-
-  // Novo useEffect para carregar dados do perfil do backend e sincronizar com o contexto
+  // Reset image error state when profile image or preview changes
   useEffect(() => {
-    const syncProfileWithContext = async () => {
+    if ((profileImage && profileImage !== 'undefined' && profileImage !== '') || imagePreview) {
+      setImageError(false);
+    }
+  }, [profileImage, imagePreview]);
+
+  // Load profile data including photo URL from backend
+  useEffect(() => {
+    const loadProfileData = async () => {
       try {
-        // Buscar dados do perfil do backend
-        const profileData = await fetchPerfil();
-        
-        // Sincronizar com o contexto UserData
-        const syncedData = {
-          nome: profileData.nome || '',
-          sobrenome: profileData.sobrenome || '',
-          email: profileData.email || '',
-          telefone: profileData.telefone || '',
-          dataNascimento: profileData.dataNascimento || '',
-          genero: profileData.genero || '',
-          endereco: profileData.endereco || {
-            cep: '',
-            rua: '',
-            numero: '',
-            complemento: '',
-            bairro: '',
-            cidade: '',
-            estado: '',
-          }
-        };
-        
-        // Atualizar contexto se os dados forem diferentes
-        if (JSON.stringify(userData) !== JSON.stringify(syncedData)) {
-          setUserData(syncedData);
+        const dados = await fetchPerfil();
+        if (dados && dados.fotoUrl) {
+          setProfileImage(dados.fotoUrl);
         }
       } catch (error) {
-        console.error('Erro ao sincronizar dados do perfil:', error);
+        console.error('Erro ao carregar dados do perfil:', error);
       }
     };
 
-    // Executar sincronização apenas na primeira carga
-    if (initialLoading) {
-      syncProfileWithContext();
-    }
-  }, [initialLoading]);
+    loadProfileData();
+  }, [fetchPerfil, setProfileImage]);
 
     // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,14 +284,15 @@ const ProfileFormUser = () => {
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  };// Função para salvar as alterações
+  };  // Função para salvar as alterações
+
   const handleSave = async () => {
     console.log('🔍 Debug handleSave - iniciando...');
     console.log('🔍 Debug handleSave - formChanged:', formChanged);
     console.log('🔍 Debug handleSave - selectedImage:', selectedImage);
     
     // If no changes were made, just provide feedback
-    if (!formChanged && !selectedImage) {
+    if (!formChanged) {
       toast({
         title: "Nenhuma alteração detectada",
         description: "Altere algum campo para salvar",
@@ -403,6 +386,52 @@ const ProfileFormUser = () => {
       setLoading(false);
     }
   };
+
+  // Função para salvar a foto de perfil
+  const handleSavePhoto = async () => {
+    if (selectedImage && imagePreview) {
+      try {
+        setLoading(true);
+        
+        // Upload da foto e obter a URL
+        const url = await uploadFoto(selectedImage);
+        console.log('URL da foto recebida do servidor:', url);
+
+        // Atualizar o contexto com a nova URL da imagem do servidor
+        setProfileImage(url);
+
+        // Limpar estados locais
+        setSelectedImage(null);
+        setImagePreview(null);
+        setFormChanged(false);
+          
+        toast({
+          title: "Foto atualizada",
+          description: "Sua foto de perfil foi atualizada com sucesso!",
+        });
+
+        // Recarregar a página após sucesso para atualizar todas as referências da imagem
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } catch (error) {
+        console.error('Erro ao fazer upload da foto:', error);
+        toast({
+          title: "Erro ao atualizar foto",
+          description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar sua foto de perfil.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      toast({
+        title: "Nenhuma foto selecionada",
+        description: "Selecione uma foto para atualizar",
+        variant: "default"
+      });
+    }
+  };
   
   // Função para buscar endereço pelo CEP
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
@@ -430,8 +459,7 @@ const ProfileFormUser = () => {
       });
     }
   };
-  
-  // Função para descartar alterações
+    // Função para descartar alterações
   const handleCancel = () => {
     // Recarregando dados originais do localStorage
     const savedData = localStorage.getItem("userData");
@@ -442,6 +470,7 @@ const ProfileFormUser = () => {
     // Resetando estados
     setSelectedImage(null);
     setImagePreview(null);
+    setImageError(false);
     setFormChanged(false);
     setValidationErrors({});
     
@@ -522,6 +551,7 @@ const ProfileFormUser = () => {
                     }}
                   >
                     <ArrowLeft className="w-6 h-6" />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                     <span>Sair</span>
                   </SidebarMenuButton>
                 </TooltipTrigger>
@@ -906,8 +936,7 @@ const ProfileFormUser = () => {
                     </CardFooter>
                   </Card>
                 </TabsContent>
-                
-                {/* Aba de Foto de Perfil */}
+                  {/* Aba de Foto de Perfil */}
                 <TabsContent value="foto">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
@@ -917,11 +946,20 @@ const ProfileFormUser = () => {
                     <CardContent>
                       <div className="flex flex-col items-center gap-6">
                         <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
-                          <img 
-                            src={imagePreview || profileImage} 
-                            alt="Foto de perfil" 
-                            className="w-full h-full object-cover"
-                          />
+                          {(imagePreview || (profileImage && profileImage !== 'undefined' && profileImage !== '')) && !imageError
+                            ? (
+                              <img 
+                                src={imagePreview || profileImage} 
+                                alt="Foto de perfil" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.log('Erro ao carregar imagem de perfil:', e);
+                                  setImageError(true);
+                                }}
+                              />
+                            ) : (
+                              <LetterAvatar name={formData.nome || 'U'} size="w-40 h-40" />
+                            )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-4">
@@ -946,8 +984,8 @@ const ProfileFormUser = () => {
                             className="hidden"
                           />
                           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                            Formatos suportados: JPG, PNG, GIF<br/>
-                            Tamanho máximo: 5MB
+                            Formatos suportados: JPG, PNG<br/>
+                            Tamanho máximo: 1MB (imagens maiores serão comprimidas automaticamente)
                           </p>
                         </div>
                       </div>
@@ -955,8 +993,8 @@ const ProfileFormUser = () => {
                     <CardFooter>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                            {loading ? "Salvando..." : "Salvar Alterações"}
+                          <Button onClick={handleSavePhoto} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                            {loading ? "Salvando..." : "Salvar Foto"}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top">

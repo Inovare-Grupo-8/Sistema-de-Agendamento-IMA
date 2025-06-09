@@ -40,36 +40,8 @@ interface ServiceItem {
   category: string;
 }
 
-// Dados simulados dos serviços - agora será carregado dinamicamente
-const DEFAULT_SERVICES: ServiceItem[] = [
-  {
-    id: "1",
-    name: "Consulta Psicológica Individual",
-    description: "Atendimento psicológico personalizado",
-    price: 120.00,
-    duration: "50 min",
-    professional: "Dra. Maria Silva",
-    category: "Psicologia"
-  },
-  {
-    id: "2", 
-    name: "Atendimento Social",
-    description: "Orientação e suporte social",
-    price: 80.00,
-    duration: "45 min",
-    professional: "João Santos",
-    category: "Serviço Social"
-  },
-  {
-    id: "3",
-    name: "Terapia em Grupo",
-    description: "Sessão de terapia coletiva",
-    price: 60.00,
-    duration: "90 min",
-    professional: "Dr. Carlos Lima",
-    category: "Psicologia"
-  }
-];
+// Dados dos serviços - serão carregados via API quando disponível
+const DEFAULT_SERVICES: ServiceItem[] = [];
 
 const PagamentoUser = () => {
   const location = useLocation();
@@ -325,15 +297,16 @@ const PagamentoUser = () => {
       setLoadingState({ type: '', message: '' });
     }
   };
-
-  // Gerar chave PIX simulada
+  // Gerar chave PIX baseada nos dados reais do usuário
   const generatePixKey = () => {
-    const keys = [
-      userData?.email || "usuario@email.com",
-      userData?.telefone || "+55 11 99999-9999",
-      "123.456.789-01"
-    ];
-    return keys[Math.floor(Math.random() * keys.length)];
+    if (userData?.email) {
+      return userData.email;
+    }
+    if (userData?.telefone) {
+      return userData.telefone;
+    }
+    // Se não houver dados do usuário, retornar uma chave PIX genérica da instituição
+    return "ima@instituicao.org.br";
   };
   if (loading) {
     return (
