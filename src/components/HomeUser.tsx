@@ -30,8 +30,8 @@ import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 interface ConsultaSummary {
   total: number;
   proxima: Date | null;
-  canceladas: number;
-  semana: number; // Adicionar campo para consultas da semana
+  mes: number; // Consultas do mês
+  semana: number; // Consultas da semana
 }
 
 interface AtendimentoSummary {
@@ -90,12 +90,11 @@ const HomeUser = () => {
     if (selectedDate) {
       localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
     }  }, [selectedDate]);
-
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
     proxima: null,
-    canceladas: 0,
+    mes: 0,
     semana: 0
   });
 
@@ -156,11 +155,10 @@ const HomeUser = () => {
       try {
         // Buscar dados de consultas da API
         const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');        // Para o usuário assistido, mapear os dados corretamente
-        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
-          setConsultasSummary({
+        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);        setConsultasSummary({
           total: consultaStats.hoje, // Consultas de hoje (card azul)
           proxima: proximaData, // Próxima consulta agendada
-          canceladas: consultaStats.mes, // Consultas do mês (card vermelho)
+          mes: consultaStats.mes, // Consultas do mês (card vermelho)
           semana: consultaStats.semana // Consultas da semana (card verde)
         });
         
@@ -187,13 +185,12 @@ const HomeUser = () => {
         
       } catch (err: any) {
         console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");
-          // Manter dados zerados em caso de erro
+        setError(err.message || "Erro ao carregar dados das consultas");        // Manter dados zerados em caso de erro
         const proximaData = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
           proxima: proximaData,
-          canceladas: 0,
+          mes: 0,
           semana: 0
         });
       } finally {
@@ -386,12 +383,18 @@ const HomeUser = () => {
             : consulta
         )
       );
-      
-      // Atualizar contadores
-      setConsultasSummary(prev => ({
-        ...prev,
-        canceladas: prev.canceladas + 1
-      }));
+        // Atualizar contadores - recarregar dados da API para ter dados precisos
+      try {
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
+        setConsultasSummary(prev => ({
+          ...prev,
+          total: consultaStats.hoje,
+          mes: consultaStats.mes,
+          semana: consultaStats.semana
+        }));
+      } catch (error) {
+        console.error('Erro ao recarregar estatísticas:', error);
+      }
       
       setAtendimentosSummary(prev => ({
         ...prev,
@@ -603,15 +606,13 @@ const HomeUser = () => {
                               <TooltipContent>
                                 <p>Consultas agendadas para esta semana</p>
                               </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
+                            </Tooltip>                            <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div 
                                   whileHover={{ scale: 1.05 }}
                                   className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-md cursor-help"
                                 >
-                                  <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.canceladas}</span>
+                                  <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.mes}</span>
                                   <span className="text-xs text-gray-600 dark:text-gray-400">Mês</span>
                                 </motion.div>
                               </TooltipTrigger>                              <TooltipContent>
