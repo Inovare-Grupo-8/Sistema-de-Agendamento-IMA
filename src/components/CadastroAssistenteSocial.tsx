@@ -343,7 +343,7 @@ export default function CadastroAssistenteSocial() {
             };            // Get the token from userData if available
             const token = userData?.token;
             
-            const response = await fetch('http://localhost:8080/auth/cadastrar/assistente-social', {
+            const response = await fetch('http://localhost:8080/assistentes-sociais', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

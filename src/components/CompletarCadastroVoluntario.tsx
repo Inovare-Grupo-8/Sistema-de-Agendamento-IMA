@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, CheckCircle2, X, Save, User, MapPin, Heart, Star, Sparkles, GraduationCap } from "lucide-react";
+import { Check, CheckCircle2, X, Save, User, MapPin, Heart, Star, Sparkles, GraduationCap, Loader2 } from "lucide-react";
+import InputMask from "react-input-mask";
 
 // Constants and Types
 const SALARIO_MINIMO = 1518.00;
@@ -154,6 +155,7 @@ export function CompletarCadastroVoluntario() {
   const [fieldStates, setFieldStates] = useState<Record<string, FieldState>>({});
   const [readOnlyFields, setReadOnlyFields] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [changedFields, setChangedFields] = useState<Set<string>>(new Set());
@@ -450,26 +452,55 @@ export function CompletarCadastroVoluntario() {
         .finally(() => setFetchingUser(false));
     }
   }, [formData.email, idUsuario, fieldStates.email]);
-
   // Busca endereço por CEP
   const fetchAddressByCep = async (cep: string) => {
     try {
+      setIsLoading(prev => ({ ...prev, cep: true }));
       const cleanCep = cep.replace(/\D/g, '');
+
       if (cleanCep.length === 8) {
         const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
         const data = await response.json();
+
         if (!data.erro) {
           setFormData(prev => ({
             ...prev,
+            logradouro: data.logradouro || "",
+            bairro: data.bairro || "",
+            cidade: data.localidade || "",
+            estado: data.uf || "",
             complemento: data.complemento || prev.complemento,
-          }));        } else {
+          }));
+
+          // Limpar erros de endereço e marcar como válidos
+          setErrors(prev => ({
+            ...prev,
+            cep: "",
+            logradouro: "",
+            bairro: "",
+            cidade: "",
+            estado: "",
+          }));
+
+          setFieldStates(prev => ({
+            ...prev,
+            cep: 'valid',
+            logradouro: data.logradouro ? 'valid' : 'default',
+            bairro: data.bairro ? 'valid' : 'default',
+            cidade: data.localidade ? 'valid' : 'default',
+            estado: data.uf ? 'valid' : 'default',
+          }));
+        } else {
           setErrors(prev => ({ ...prev, cep: "CEP não encontrado" }));
           setFieldStates(prev => ({ ...prev, cep: 'invalid' }));
         }
       }
-    } catch {
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error);
       setErrors(prev => ({ ...prev, cep: "Erro ao buscar CEP" }));
       setFieldStates(prev => ({ ...prev, cep: 'invalid' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, cep: false }));
     }
   };
 
@@ -882,11 +913,31 @@ export function CompletarCadastroVoluntario() {
                       <MapPin className="w-6 h-6" />
                       Endereço
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {renderFieldWithState('cep', (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                      {renderFieldWithState('cep', (
                         <div>
                           <label className="block text-sm font-medium mb-1">CEP *</label>
-                          <input type="text" className="input" value={formData.cep} onChange={e => { handleFieldChange('cep', e.target.value); if (e.target.value.replace(/\D/g, '').length === 8) fetchAddressByCep(e.target.value); }} maxLength={9} placeholder="00000-000" />
+                          <div className="relative">
+                            <InputMask
+                              mask="99999-999"
+                              type="text" 
+                              className={`input ${isLoading.cep ? 'pr-10' : ''}`} 
+                              value={formData.cep} 
+                              onChange={e => { 
+                                const value = e.target.value;
+                                handleFieldChange('cep', value); 
+                                const cleanCep = value.replace(/\D/g, '');
+                                if (cleanCep.length === 8) {
+                                  fetchAddressByCep(value); 
+                                }
+                              }} 
+                              placeholder="00000-000" 
+                            />
+                            {isLoading.cep && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                              </div>
+                            )}
+                          </div>
                           {errors.cep && <span className="text-red-500 text-xs">{errors.cep}</span>}
                         </div>
                       ))}
@@ -900,32 +951,105 @@ export function CompletarCadastroVoluntario() {
                       <div>
                         <label className="block text-sm font-medium mb-1">Complemento</label>
                         <input type="text" className="input" value={formData.complemento} onChange={e => handleFieldChange('complemento', e.target.value)} />
-                      </div>
-                      {renderFieldWithState('logradouro', (
+                      </div>                      {renderFieldWithState('logradouro', (
                         <div>
-                          <label className="block text-sm font-medium mb-1">Logradouro *</label>
-                          <input type="text" className="input" value={formData.logradouro} onChange={e => handleFieldChange('logradouro', e.target.value)} />
+                          <label className="block text-sm font-medium mb-1">
+                            Logradouro *
+                            {fieldStates.logradouro === 'valid' && (
+                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              className="input" 
+                              value={formData.logradouro} 
+                              onChange={e => handleFieldChange('logradouro', e.target.value)} 
+                              placeholder="Rua, Avenida, etc."
+                            />
+                            {fieldStates.logradouro === 'valid' && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              </div>
+                            )}
+                          </div>
                           {errors.logradouro && <span className="text-red-500 text-xs">{errors.logradouro}</span>}
                         </div>
                       ))}
                       {renderFieldWithState('bairro', (
                         <div>
-                          <label className="block text-sm font-medium mb-1">Bairro *</label>
-                          <input type="text" className="input" value={formData.bairro} onChange={e => handleFieldChange('bairro', e.target.value)} />
+                          <label className="block text-sm font-medium mb-1">
+                            Bairro *
+                            {fieldStates.bairro === 'valid' && (
+                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              className="input" 
+                              value={formData.bairro} 
+                              onChange={e => handleFieldChange('bairro', e.target.value)} 
+                              placeholder="Centro, Vila Nova, etc."
+                            />
+                            {fieldStates.bairro === 'valid' && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              </div>
+                            )}
+                          </div>
                           {errors.bairro && <span className="text-red-500 text-xs">{errors.bairro}</span>}
                         </div>
                       ))}
                       {renderFieldWithState('cidade', (
                         <div>
-                          <label className="block text-sm font-medium mb-1">Cidade *</label>
-                          <input type="text" className="input" value={formData.cidade} onChange={e => handleFieldChange('cidade', e.target.value)} />
+                          <label className="block text-sm font-medium mb-1">
+                            Cidade *
+                            {fieldStates.cidade === 'valid' && (
+                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              className="input" 
+                              value={formData.cidade} 
+                              onChange={e => handleFieldChange('cidade', e.target.value)} 
+                              placeholder="São Paulo, Rio de Janeiro, etc."
+                            />
+                            {fieldStates.cidade === 'valid' && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              </div>
+                            )}
+                          </div>
                           {errors.cidade && <span className="text-red-500 text-xs">{errors.cidade}</span>}
                         </div>
                       ))}
                       {renderFieldWithState('estado', (
                         <div>
-                          <label className="block text-sm font-medium mb-1">Estado *</label>
-                          <input type="text" className="input" value={formData.estado} onChange={e => handleFieldChange('estado', e.target.value)} />
+                          <label className="block text-sm font-medium mb-1">
+                            Estado *
+                            {fieldStates.estado === 'valid' && (
+                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              className="input" 
+                              value={formData.estado} 
+                              onChange={e => handleFieldChange('estado', e.target.value)} 
+                              placeholder="SP, RJ, MG, etc."
+                              maxLength={2}
+                              style={{ textTransform: 'uppercase' }}
+                            />
+                            {fieldStates.estado === 'valid' && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              </div>
+                            )}
+                          </div>
                           {errors.estado && <span className="text-red-500 text-xs">{errors.estado}</span>}
                         </div>
                       ))}
