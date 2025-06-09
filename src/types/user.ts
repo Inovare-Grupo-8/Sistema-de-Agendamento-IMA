@@ -23,8 +23,8 @@ export interface UserContextType {
 }
 
 export const defaultUserData: UserData = {
-  nome: "João",
-  sobrenome: "Silva", 
+  nome: "",
+  sobrenome: "",
   email: "",
   telefone: "",
   dataNascimento: "",

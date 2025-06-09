@@ -22,39 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
-// Dados simulados para consultas - substitua por fonte de dados real posteriormente
-const mockConsultations = [
-  {
-    id: 1,
-    doctor: "Dr. Ana Silva",
-    specialty: "Cardiologia",
-    date: "2023-11-28",
-    time: "14:30",
-    status: "Agendada",
-    location: "Clínica Central - Sala 302",
-    notes: "Trazer exames anteriores"
-  },
-  {
-    id: 2,
-    doctor: "Dr. Carlos Mendes",
-    specialty: "Oftalmologia",
-    date: "2023-12-05",
-    time: "10:15",
-    status: "Agendada",
-    location: "Hospital São Lucas - Ala B",
-    notes: "Consulta de retorno"
-  },
-  {
-    id: 3,
-    doctor: "Dra. Mariana Costa",
-    specialty: "Dermatologia",
-    date: "2023-12-15",
-    time: "09:00",
-    status: "Agendada",
-    location: "Centro Médico Vida - 5º andar",
-    notes: ""
-  }
-];
+// Removed mock consultation data - using only real API data
 
 const HomeUser = () => {
   const location = useLocation();
@@ -69,7 +37,7 @@ const HomeUser = () => {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
-  const [consultations, setConsultations] = useState(mockConsultations);
+  const [consultations, setConsultations] = useState([]);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const { toast } = useToast();
