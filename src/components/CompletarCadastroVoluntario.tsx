@@ -54,15 +54,22 @@ const Button: React.FC<ButtonProps> = ({ className, children, ...props }) => (
 );
 
 // Helper functions
-const convertFaixaSalarialToNumber = (faixa: string): number => {
+const convertFaixaSalarialToNumber = (faixa: string): { rendaMinima: number; rendaMaxima: number } => {
   switch (faixa) {
-    case 'ate-1-salario': return SALARIO_MINIMO;
-    case '1-a-2-salarios': return SALARIO_MINIMO * 2;
-    case '2-a-3-salarios': return SALARIO_MINIMO * 3;
-    case '3-a-5-salarios': return SALARIO_MINIMO * 5;
-    case '5-a-10-salarios': return SALARIO_MINIMO * 10;
-    case 'acima-10-salarios': return SALARIO_MINIMO * 11;
-    default: return SALARIO_MINIMO;
+    case 'ate-1-salario': 
+      return { rendaMinima: 0, rendaMaxima: SALARIO_MINIMO };
+    case '1-a-2-salarios': 
+      return { rendaMinima: SALARIO_MINIMO, rendaMaxima: SALARIO_MINIMO * 2 };
+    case '2-a-3-salarios': 
+      return { rendaMinima: SALARIO_MINIMO * 2, rendaMaxima: SALARIO_MINIMO * 3 };
+    case '3-a-5-salarios': 
+      return { rendaMinima: SALARIO_MINIMO * 3, rendaMaxima: SALARIO_MINIMO * 5 };
+    case '5-a-10-salarios': 
+      return { rendaMinima: SALARIO_MINIMO * 5, rendaMaxima: SALARIO_MINIMO * 10 };
+    case 'acima-10-salarios': 
+      return { rendaMinima: SALARIO_MINIMO * 10, rendaMaxima: SALARIO_MINIMO * 20 };
+    default: 
+      return { rendaMinima: 0, rendaMaxima: SALARIO_MINIMO };
   }
 };
 
@@ -498,12 +505,13 @@ export function CompletarCadastroVoluntario() {
         whatsapp: true
       };
     }
+      const salaryData = convertFaixaSalarialToNumber(formData.faixaSalarial);
     
-    const payload: any = {
-      // CPF is not included here since it comes from first phase
+    const payload: any = {      // CPF is not included here since it comes from first phase
       dataNascimento: formData.dataNascimento,
       genero: formData.genero,
-      renda: convertFaixaSalarialToNumber(formData.faixaSalarial),
+      rendaMinima: salaryData.rendaMinima,
+      rendaMaxima: salaryData.rendaMaxima,
       tipo: "VOLUNTARIO",
       endereco: {
         cep: cleanCep,

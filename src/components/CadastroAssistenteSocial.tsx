@@ -17,13 +17,11 @@ import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
 interface NovoAssistenteSocialData {
     nome: string;
-    sobrenome: string;
-    email: string;
+    sobrenome: string;    email: string;
     senha: string;
     cpf: string;
     dataNascimento: string;
     genero: string;
-    renda: number;
     tipo: 'ADMINISTRADOR' | 'USUARIO' | 'VOLUNTARIO';
     funcao: 'ASSISTENCIA_SOCIAL';
     profissao: string;
@@ -149,9 +147,7 @@ export default function CadastroAssistenteSocial() {
         email: '',
         senha: '',        confirmarSenha: '',
         cpf: '',
-        dataNascimento: '',
-        genero: '',
-        renda: 0,        
+        dataNascimento: '',        genero: '',
         tipo: 'ADMINISTRADOR', 
         funcao: 'ASSISTENCIA_SOCIAL',
         profissao: '',
@@ -326,15 +322,13 @@ export default function CadastroAssistenteSocial() {
         }
 
         setLoading(true);        try {
-            const dadosParaEnviar = {
-                nome: formData.nome,
+            const dadosParaEnviar = {                nome: formData.nome,
                 sobrenome: formData.sobrenome,
                 email: formData.email,
                 senha: formData.senha,
                 cpf: formData.cpf.replace(/\D/g, ''), // Remove formatting from CPF
                 dataNascimento: formData.dataNascimento,
                 genero: formData.genero,
-                renda: formData.renda,
                 tipo: formData.tipo,
                 funcao: formData.funcao,
                 profissao: formData.profissao,
