@@ -42,6 +42,8 @@ interface AssistenteSocialFormData {
   telefone: string;
   email: string;
   bio: string;
+  dataNascimento?: string;
+  genero?: string;
   fotoUrl?: string;
   endereco: {
     rua: string;
@@ -67,6 +69,8 @@ const assistenteSocialDataDefault: AssistenteSocialFormData = {
   especialidade: "",
   telefone: "",
   bio: "",
+  dataNascimento: "",
+  genero: "",
   endereco: {
     rua: "",
     numero: "",
@@ -273,6 +277,8 @@ export default function ProfileFormAssistenteSocial() {
           sobrenome: dados.sobrenome || assistenteSocialDataDefault.sobrenome,
           email: dados.email || assistenteSocialDataDefault.email,
           telefone: dados.telefone || assistenteSocialDataDefault.telefone,
+          dataNascimento: dados.dataNascimento || assistenteSocialDataDefault.dataNascimento,
+          genero: dados.genero || assistenteSocialDataDefault.genero,
           crp: dados.crp || assistenteSocialDataDefault.crp,
           especialidade: dados.especialidade || assistenteSocialDataDefault.especialidade,
           bio: dados.bio || assistenteSocialDataDefault.bio,
@@ -376,31 +382,33 @@ export default function ProfileFormAssistenteSocial() {
           });
           return;
         }
-      }
-        // Preparar dados pessoais incluindo campos profissionais para assistente social
+      }        // Preparar dados pessoais incluindo campos profissionais para assistente social
       const dadosPessoais = {
         nome: formData.nome,
         email: formData.email,
         sobrenome: formData.sobrenome,
         telefone: formData.telefone,
+        dataNascimento: formData.dataNascimento,
+        genero: formData.genero,
         crp: formData.crp,
         bio: formData.bio,
         especialidade: formData.especialidade
-      };      console.log('Dados pessoais e profissionais para enviar:', dadosPessoais);
+      };console.log('Dados pessoais e profissionais para enviar:', dadosPessoais);
 
       // Verificar se o email foi alterado
       const emailAlterado = formData.email !== originalEmail;
 
       // Usar a nova função específica para dados pessoais
       const dadosAtualizados = await atualizarDadosPessoais(dadosPessoais);
-      
-      // Atualizar o estado local mantendo os outros dados
+        // Atualizar o estado local mantendo os outros dados
       setFormData(prevData => ({
         ...prevData,
         nome: dadosAtualizados.nome || prevData.nome,
         email: dadosAtualizados.email || prevData.email,
         sobrenome: dadosAtualizados.sobrenome || prevData.sobrenome,
         telefone: dadosAtualizados.telefone || prevData.telefone,
+        dataNascimento: dadosAtualizados.dataNascimento || prevData.dataNascimento,
+        genero: dadosAtualizados.genero || prevData.genero,
         crp: dadosAtualizados.crp || prevData.crp,
         bio: dadosAtualizados.bio || prevData.bio,
         especialidade: dadosAtualizados.especialidade || prevData.especialidade
@@ -940,11 +948,40 @@ export default function ProfileFormAssistenteSocial() {
                               onChange={handleInputChange}
                               className={`bg-white dark:bg-gray-800 ${validationErrors.telefone ? 'border-red-500 focus:ring-red-500' : ''}`} 
                             />
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
+                          </TooltipTrigger>                          <TooltipContent side="top">
                             <p>Formato: (XX) XXXXX-XXXX</p>
                           </TooltipContent>
                         </Tooltip>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                          <Input 
+                            id="dataNascimento" 
+                            name="dataNascimento" 
+                            type="date"
+                            value={formData.dataNascimento || ''} 
+                            onChange={handleInputChange}
+                            className="bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="genero">Gênero</Label>
+                          <select
+                            id="genero"
+                            name="genero"
+                            value={formData.genero || ''}
+                            onChange={(e) => handleInputChange(e as any)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          >
+                            <option value="">Selecione...</option>
+                            <option value="FEMININO">Feminino</option>
+                            <option value="MASCULINO">Masculino</option>
+                            <option value="OUTRO">Prefiro não informar</option>
+                          </select>
+                        </div>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">

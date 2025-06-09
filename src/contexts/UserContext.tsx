@@ -5,13 +5,15 @@ export const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userData, setUserDataState] = useState<UserData>(() => {
-    const savedData = localStorage.getItem("userData");
+    // Usar uma chave diferente para evitar conflito com o sistema de auth
+    const savedData = localStorage.getItem("userProfileData");
     return savedData ? { ...defaultUserData, ...JSON.parse(savedData) } : defaultUserData;
   });
 
   const setUserData = (data: UserData) => {
     setUserDataState(data);
-    localStorage.setItem("userData", JSON.stringify(data));
+    // Salvar com chave diferente para evitar conflito
+    localStorage.setItem("userProfileData", JSON.stringify(data));
   };
 
   const updateUserData = (updates: Partial<UserData>) => {
@@ -20,7 +22,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    localStorage.setItem("userData", JSON.stringify(userData));
+    // Salvar com chave diferente para evitar conflito
+    localStorage.setItem("userProfileData", JSON.stringify(userData));
   }, [userData]);
 
   return (

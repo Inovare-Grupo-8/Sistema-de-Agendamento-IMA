@@ -34,9 +34,7 @@ export interface UserProfileOutput {
 }
 
 export const useUserProfile = () => {
-    const navigate = useNavigate();
-
-    // Função utilitária para buscar dados de autenticação do localStorage
+    const navigate = useNavigate();    // Função utilitária para buscar dados de autenticação do localStorage
     const getUserAuthData = () => {
         const userData = localStorage.getItem('userData');
         const userInfo = localStorage.getItem('userInfo');
@@ -44,25 +42,41 @@ export const useUserProfile = () => {
         let user: any = {};
         let token: string | undefined;
         let usuarioId: number | undefined;
+        let tipoUsuario: string | undefined;
         
         // Tentar buscar do userData primeiro
         if (userData) {
             user = JSON.parse(userData);
             token = user.token;
             usuarioId = user.idUsuario;
+            tipoUsuario = user.tipo;
         }
         
         // Se não encontrou idUsuario no userData, buscar no userInfo
         if (!usuarioId && userInfo) {
             const info = JSON.parse(userInfo);
             usuarioId = info.id;
+            tipoUsuario = info.tipo;
         }
         
         if (!usuarioId) {
             throw new Error('ID do usuário não encontrado');
         }
         
-        return { user, token, usuarioId };
+        // Mapear tipo do usuário para o formato esperado pelo backend
+        let tipoFormatado = 'assistido'; // default
+        if (tipoUsuario) {
+            const tipo = tipoUsuario.toUpperCase();
+            if (tipo === 'VOLUNTARIO') {
+                tipoFormatado = 'voluntario';
+            } else if (tipo === 'ADMINISTRADOR') {
+                tipoFormatado = 'assistente-social';
+            } else if (tipo === 'VALOR_SOCIAL' || tipo === 'GRATUIDADE') {
+                tipoFormatado = 'assistido';
+            }
+        }
+        
+        return { user, token, usuarioId, tipoUsuario: tipoFormatado };
     };
 
     const atualizarUltimoAcesso = async (usuarioId: number, token: string) => {
@@ -83,20 +97,24 @@ export const useUserProfile = () => {
         }
     };    const fetchPerfil = async (): Promise<UserProfileOutput> => {
         try {
-            const { user, token, usuarioId } = getUserAuthData();
+            const { user, token, usuarioId, tipoUsuario } = getUserAuthData();
             
             console.log('🔍 Debug - usuarioId final:', usuarioId);
+            console.log('🔍 Debug - tipoUsuario:', tipoUsuario);
             console.log('🔍 Debug - token:', token ? 'Token exists' : 'No token');
 
             // Atualizar último acesso do usuário
             if (token) {
                 await atualizarUltimoAcesso(usuarioId, token);
-            }
+            }            // Usar endpoint específico para assistente social
+            const endpoint = tipoUsuario === 'assistente-social' 
+                ? `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`
+                : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
+            
+            console.log('🔍 Debug - URL:', endpoint);
+            console.log('🔍 Debug - Usando endpoint específico para assistente social:', tipoUsuario === 'assistente-social');
 
-            const url = `http://localhost:8080/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`;
-            console.log('🔍 Debug - URL:', url);
-
-            const response = await fetch(url, {
+            const response = await fetch(endpoint, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -167,9 +185,19 @@ export const useUserProfile = () => {
         dataNascimento?: string;
         genero?: string;    }> => {
         try {
-            const { token, usuarioId } = getUserAuthData();
+            const { token, usuarioId, tipoUsuario } = getUserAuthData();            console.log('🔍 Debug PATCH - dados enviados:', dados);
+            console.log('🔍 Debug PATCH - tipoUsuario:', tipoUsuario);
+            console.log('🔍 Debug PATCH - usuarioId:', usuarioId);
 
-            const response = await fetch(`http://localhost:8080/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`, {
+            // Usar endpoint específico para assistente social
+            const endpoint = tipoUsuario === 'assistente-social' 
+                ? `http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
+                : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
+
+            console.log('🔍 Debug PATCH - endpoint:', endpoint);
+            console.log('🔍 Debug PATCH - Usando endpoint específico para assistente social:', tipoUsuario === 'assistente-social');
+
+            const response = await fetch(endpoint, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

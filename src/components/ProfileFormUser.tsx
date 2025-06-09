@@ -38,22 +38,22 @@ const ProfileFormUser = () => {
     atualizarEndereco,
     uploadFoto,
     buscarEndereco
-  } = useUserProfile();// Estado para o formulário - inicializar com valores padrão
+  } = useUserProfile();// Estado para o formulário - inicializar com valores padrão seguros
   const [formData, setFormData] = useState({
-    nome: userData?.nome || '',
-    sobrenome: userData?.sobrenome || '',
-    email: userData?.email || '',
-    telefone: userData?.telefone || '',
-    dataNascimento: userData?.dataNascimento || '',
-    genero: userData?.genero || '',
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: '',
+    genero: '',
     endereco: {
-      cep: userData?.endereco?.cep || '',
-      rua: userData?.endereco?.rua || '',
-      numero: userData?.endereco?.numero || '',
-      complemento: userData?.endereco?.complemento || '',
-      bairro: userData?.endereco?.bairro || '',
-      cidade: userData?.endereco?.cidade || '',
-      estado: userData?.endereco?.estado || '',
+      cep: '',
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
     }
   });
 
@@ -145,8 +145,7 @@ const ProfileFormUser = () => {
     // Carregar dados do perfil quando o componente for montado
   useEffect(() => {
     loadProfileData();
-  }, []);
-  // Update form data when userData changes (sync across tabs)
+  }, []);  // Update form data when userData changes (sync across tabs)
   useEffect(() => {
     if (!formChanged && userData && typeof userData === 'object') {
       // Garantir que todos os valores são strings e não null/undefined
@@ -170,6 +169,47 @@ const ProfileFormUser = () => {
       setFormData(safeUserData);
     }
   }, [userData, formChanged]);
+
+  // Novo useEffect para carregar dados do perfil do backend e sincronizar com o contexto
+  useEffect(() => {
+    const syncProfileWithContext = async () => {
+      try {
+        // Buscar dados do perfil do backend
+        const profileData = await fetchPerfil();
+        
+        // Sincronizar com o contexto UserData
+        const syncedData = {
+          nome: profileData.nome || '',
+          sobrenome: profileData.sobrenome || '',
+          email: profileData.email || '',
+          telefone: profileData.telefone || '',
+          dataNascimento: profileData.dataNascimento || '',
+          genero: profileData.genero || '',
+          endereco: profileData.endereco || {
+            cep: '',
+            rua: '',
+            numero: '',
+            complemento: '',
+            bairro: '',
+            cidade: '',
+            estado: '',
+          }
+        };
+        
+        // Atualizar contexto se os dados forem diferentes
+        if (JSON.stringify(userData) !== JSON.stringify(syncedData)) {
+          setUserData(syncedData);
+        }
+      } catch (error) {
+        console.error('Erro ao sincronizar dados do perfil:', error);
+      }
+    };
+
+    // Executar sincronização apenas na primeira carga
+    if (initialLoading) {
+      syncProfileWithContext();
+    }
+  }, [initialLoading]);
 
     // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,52 +269,45 @@ const ProfileFormUser = () => {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-    // Função para validar o formulário antes de salvar
+  };    // Função para validar o formulário antes de salvar
   const validateForm = () => {
+    console.log('🔍 Debug validateForm - formData:', formData);
     const errors: Record<string, string> = {};
     
-    // Validação básica de campos obrigatórios
-    if (!formData.nome.trim()) errors.nome = "Nome é obrigatório";
-    if (!formData.sobrenome.trim()) errors.sobrenome = "Sobrenome é obrigatório";
+    // Validação APENAS dos campos obrigatórios - nome, sobrenome e email
+    if (!formData.nome || !formData.nome.trim()) {
+      errors.nome = "Nome é obrigatório";
+      console.log('🔍 Debug validateForm - Nome inválido:', formData.nome);
+    }
+    if (!formData.sobrenome || !formData.sobrenome.trim()) {
+      errors.sobrenome = "Sobrenome é obrigatório";
+      console.log('🔍 Debug validateForm - Sobrenome inválido:', formData.sobrenome);
+    }
     
-    // Validação de email
+    // Validação de email - campo obrigatório
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
+    if (!formData.email || !formData.email.trim()) {
       errors.email = "Email é obrigatório";
+      console.log('🔍 Debug validateForm - Email vazio:', formData.email);
     } else if (!emailRegex.test(formData.email)) {
       errors.email = "Email inválido";
-    }
-      // Validação de telefone usando utilitário importado
-    if (formData.telefone && formData.telefone.trim() !== '') {
-      const phoneValidation = isPhone(formData.telefone);
-      if (phoneValidation) {
-        errors.telefone = phoneValidation;
-      }
+      console.log('🔍 Debug validateForm - Email formato inválido:', formData.email);
     }
     
-    // Validação de data de nascimento - opcional
-    if (formData.dataNascimento && formData.dataNascimento.trim() !== '') {
-      const birthDate = new Date(formData.dataNascimento);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      
-      if (age < 16 || age > 120) {
-        errors.dataNascimento = "Data de nascimento inválida";
-      }
-    }
+    // REMOVI todas as validações opcionais que estavam causando problema
+    // Telefone, data de nascimento e CEP são opcionais e não devem bloquear o salvamento
     
-    // Validação de CEP (formato brasileiro) - opcional
-    const cepRegex = /^\d{5}-\d{3}$/;
-    if (formData.endereco.cep && formData.endereco.cep.trim() !== '' && !cepRegex.test(formData.endereco.cep)) {
-      errors["endereco.cep"] = "Formato de CEP inválido. Ex: 12345-678";
-    }
+    console.log('🔍 Debug validateForm - Erros encontrados:', errors);
+    console.log('🔍 Debug validateForm - Formulário válido?', Object.keys(errors).length === 0);
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  };  // Função para salvar as alterações
+  };// Função para salvar as alterações
   const handleSave = async () => {
+    console.log('🔍 Debug handleSave - iniciando...');
+    console.log('🔍 Debug handleSave - formChanged:', formChanged);
+    console.log('🔍 Debug handleSave - selectedImage:', selectedImage);
+    
     // If no changes were made, just provide feedback
     if (!formChanged && !selectedImage) {
       toast({
@@ -285,8 +318,10 @@ const ProfileFormUser = () => {
       return;
     }
 
+    console.log('🔍 Debug handleSave - chamando validateForm...');
     // Validate the form before saving
     if (!validateForm()) {
+      console.log('🔍 Debug handleSave - validação falhou, mostrando toast de erro');
       toast({
         title: "Formulário com erros",
         description: "Corrija os erros antes de salvar",
@@ -295,6 +330,7 @@ const ProfileFormUser = () => {
       return;
     }
     
+    console.log('🔍 Debug handleSave - validação passou, salvando...');
     setLoading(true);
     
     try {
@@ -306,26 +342,40 @@ const ProfileFormUser = () => {
         telefone: formData.telefone || '',
         dataNascimento: formData.dataNascimento || '',
         genero: formData.genero || '',
-      };
-
-      // Atualizar dados pessoais usando o hook
-      await atualizarDadosPessoais(dadosPessoais);
+      };      console.log('🔍 Debug handleSave - dadosPessoais preparados:', dadosPessoais);      // Atualizar dados pessoais usando o hook
+      console.log('🔍 Debug handleSave - chamando atualizarDadosPessoais...');
+      const resultadoDadosPessoais = await atualizarDadosPessoais(dadosPessoais);
+      console.log('🔍 Debug handleSave - resultado atualizarDadosPessoais:', resultadoDadosPessoais);
 
       // Atualizar endereço se houver dados
       if (formData.endereco && Object.values(formData.endereco).some(value => value.trim() !== '')) {
-        await atualizarEndereco(formData.endereco);
+        console.log('🔍 Debug handleSave - atualizando endereço...');
+        const resultadoEndereco = await atualizarEndereco(formData.endereco);
+        console.log('🔍 Debug handleSave - resultado atualizarEndereco:', resultadoEndereco);
       }
 
       // Upload da foto se houver uma nova
       if (selectedImage) {
+        console.log('🔍 Debug handleSave - fazendo upload da foto...');
         await uploadFoto(selectedImage);
         if (imagePreview) {
           setProfileImage(imagePreview);
         }
       }
 
-      // Atualizar contexto local
-      setUserData(formData);
+      // Atualizar contexto local com os dados salvos com sucesso
+      const dadosParaSincronizar = {
+        nome: resultadoDadosPessoais.nome || formData.nome,
+        sobrenome: resultadoDadosPessoais.sobrenome || formData.sobrenome,
+        email: resultadoDadosPessoais.email || formData.email,
+        telefone: resultadoDadosPessoais.telefone || formData.telefone,
+        dataNascimento: resultadoDadosPessoais.dataNascimento || formData.dataNascimento,
+        genero: resultadoDadosPessoais.genero || formData.genero,
+        endereco: formData.endereco
+      };
+      
+      console.log('🔍 Debug handleSave - sincronizando dados com contexto:', dadosParaSincronizar);
+      setUserData(dadosParaSincronizar);
       
       // Success feedback
       setSuccessMessage("Perfil atualizado com sucesso!");
@@ -334,6 +384,7 @@ const ProfileFormUser = () => {
       setImagePreview(null);
       setValidationErrors({});
       
+      console.log('🔍 Debug handleSave - sucesso!');
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso!",
@@ -342,7 +393,7 @@ const ProfileFormUser = () => {
       // Hide success message after a few seconds
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
+      console.error('🔍 Debug handleSave - erro:', error);
       toast({
         title: "Erro ao salvar",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações.",
