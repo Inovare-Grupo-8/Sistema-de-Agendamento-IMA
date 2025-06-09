@@ -827,18 +827,29 @@ const AgendaUser = () => {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowCancelModal(false)}>
               Manter Consulta
-            </Button>
-            <Button 
+            </Button>            <Button 
               variant="destructive" 
-              onClick={() => {
-                // Here you would call the API to cancel the consultation
-                toast({
-                  title: "Consulta cancelada",
-                  description: "Sua consulta foi cancelada com sucesso.",
-                  variant: "destructive"
-                });
-                setShowCancelModal(false);
-                loadTodasConsultas(); // Reload consultations
+              onClick={async () => {
+                if (!consultaCancelamento) return;
+                
+                try {
+                  await ConsultaApiService.cancelarConsulta(consultaCancelamento.id);
+                  toast({
+                    title: "Consulta cancelada",
+                    description: "Sua consulta foi cancelada com sucesso.",
+                    variant: "destructive"
+                  });
+                  setShowCancelModal(false);
+                  setConsultaCancelamento(null);
+                  loadTodasConsultas(); // Reload consultations to reflect the change
+                } catch (error) {
+                  console.error('Erro ao cancelar consulta:', error);
+                  toast({
+                    title: "Erro ao cancelar consulta",
+                    description: "Ocorreu um erro ao cancelar sua consulta. Tente novamente.",
+                    variant: "destructive"
+                  });
+                }
               }}
             >
               Confirmar Cancelamento
