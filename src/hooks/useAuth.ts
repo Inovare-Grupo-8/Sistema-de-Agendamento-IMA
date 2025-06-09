@@ -48,7 +48,6 @@ export function useAuth() {
   const isPublicRoute = useCallback((path: string) => {
     return PUBLIC_ROUTES.some(route => path.startsWith(route));
   }, []);
-
   // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
     const checkAuth = async () => {
@@ -57,14 +56,32 @@ export function useAuth() {
       const storedUser = localStorage.getItem(USER_KEY);
       const storedToken = localStorage.getItem(TOKEN_KEY);
 
-      if ((storedUser && storedToken) || userData) {
+      // Priorizar o novo sistema de autenticação (userData)
+      if (userData) {
         try {
-          if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
+          const parsedUserData = JSON.parse(userData);          // Converter dados do novo formato para o formato esperado pelo hook
+          if (parsedUserData.idUsuario && parsedUserData.token) {
+            const userForHook = {
+              id: parsedUserData.idUsuario.toString(),
+              nome: parsedUserData.nome || '',
+              email: parsedUserData.email || '',
+              tipo: (parsedUserData.tipo === 'USUARIO' ? 'paciente' : 'profissional') as 'profissional' | 'paciente',
+              token: parsedUserData.token
+            };
+            setUser(userForHook);
           }
         } catch (e) {
-          console.error('Error loading user data:', e);
+          console.error('Error loading userData:', e);
+          // Clear invalid data
+          localStorage.removeItem('userData');
+        }
+      } else if (storedUser && storedToken) {
+        // Fallback para o sistema antigo
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (e) {
+          console.error('Error loading legacy user data:', e);
           // Clear invalid data
           localStorage.removeItem(USER_KEY);
           localStorage.removeItem(TOKEN_KEY);
@@ -83,13 +100,12 @@ export function useAuth() {
 
     checkAuth();
   }, [navigate, location.pathname, isPublicRoute]);
-
   const login = useCallback(async (credentials: LoginCredentials) => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:8080/auth/login', {
+      const response = await fetch('http://localhost:8080/usuarios/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +156,6 @@ export function useAuth() {
     setUser(null);
     navigate('/login', { replace: true });
   }, [navigate]);
-
   // Check if user is authenticated based on both old and new auth mechanisms
   const isAuthenticated = !!user || !!localStorage.getItem('userData');
   const userType = user?.tipo;

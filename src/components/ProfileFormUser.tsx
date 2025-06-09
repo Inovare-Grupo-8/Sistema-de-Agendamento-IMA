@@ -16,37 +16,158 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
-import { useUser } from "@/hooks/useUser";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { isPhone, formatters } from "@/utils/validation";
 import { LetterAvatar } from "@/components/ui/LetterAvatar";
 
 const ProfileFormUser = () => {
   const location = useLocation();
   const navigate = useNavigate();  
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
   
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
-    // Get upload function from user hook
-  const { uploadFoto, fetchPerfil } = useUser();
+    // Use the new useUserProfile hook
+  const {
+    fetchPerfil,
+    atualizarDadosPessoais,
+    atualizarEndereco,
+    uploadFoto,
+    buscarEndereco
+  } = useUserProfile();// Estado para o formulário - inicializar com valores padrão
+  const [formData, setFormData] = useState({
+    nome: userData?.nome || '',
+    sobrenome: userData?.sobrenome || '',
+    email: userData?.email || '',
+    telefone: userData?.telefone || '',
+    dataNascimento: userData?.dataNascimento || '',
+    genero: userData?.genero || '',
+    endereco: {
+      cep: userData?.endereco?.cep || '',
+      rua: userData?.endereco?.rua || '',
+      numero: userData?.endereco?.numero || '',
+      complemento: userData?.endereco?.complemento || '',
+      bairro: userData?.endereco?.bairro || '',
+      cidade: userData?.endereco?.cidade || '',
+      estado: userData?.endereco?.estado || '',
+    }
+  });
   
-  // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
-
-  // Estado para o formulário
-  const [formData, setFormData] = useState(userData);
-  // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
-    // Update form data when userData changes (sync across tabs)
+  const [imagePreview, setImagePreview] = useState<string | null>(null);  // Load profile data using the new hook
+  const loadProfileData = async () => {
+    try {
+      setInitialLoading(true);
+      
+      // Verificar se o usuário está logado antes de fazer chamadas à API
+      const userData = localStorage.getItem('userData');
+      console.log('🔍 Debug ProfileFormUser - userData do localStorage:', userData);
+      
+      if (!userData) {
+        console.log('Usuário não logado, não é possível carregar perfil');
+        navigate('/login');
+        return;
+      }
+      
+      try {
+        const parsedData = JSON.parse(userData);
+        console.log('🔍 Debug ProfileFormUser - dados parseados:', parsedData);
+        console.log('🔍 Debug ProfileFormUser - idUsuario presente?', !!parsedData.idUsuario);
+        console.log('🔍 Debug ProfileFormUser - token presente?', !!parsedData.token);
+      } catch (parseError) {
+        console.error('🔍 Debug ProfileFormUser - erro ao fazer parse:', parseError);
+      }
+      
+      const dadosPessoais = await fetchPerfil();
+      const endereco = await buscarEndereco();
+      
+      console.log('🔍 Debug ProfileFormUser - dadosPessoais recebidos:', dadosPessoais);
+      console.log('🔍 Debug ProfileFormUser - telefone específico:', dadosPessoais?.telefone);
+      
+      const perfilCompleto = {
+        nome: dadosPessoais?.nome || '',
+        sobrenome: dadosPessoais?.sobrenome || '',
+        email: dadosPessoais?.email || '',
+        telefone: dadosPessoais?.telefone || '',
+        dataNascimento: dadosPessoais?.dataNascimento || '',
+        genero: dadosPessoais?.genero || '',
+        endereco: {
+          cep: endereco?.cep || '',
+          rua: endereco?.rua || '',
+          numero: endereco?.numero || '',
+          complemento: endereco?.complemento || '',
+          bairro: endereco?.bairro || '',
+          cidade: endereco?.cidade || '',
+          estado: endereco?.estado || '',
+        }      };
+
+      console.log('🔍 Debug ProfileFormUser - perfilCompleto montado:', perfilCompleto);
+      console.log('🔍 Debug ProfileFormUser - telefone no perfilCompleto:', perfilCompleto.telefone);
+
+      setFormData(perfilCompleto);
+      setUserData(perfilCompleto);
+        } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      
+      // Não mostrar toast de erro se for uma questão de autenticação
+      if (error instanceof Error && error.message.includes('Token inválido')) {
+        console.log('Erro de autenticação - usuário será redirecionado');
+        return;
+      }
+      
+      // Se for erro de rede, mostrar uma mensagem diferente
+      if (error instanceof Error && error.message.includes('conexão')) {
+        toast({
+          title: "Erro de conexão",
+          description: "Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar os dados do seu perfil.",
+        variant: "destructive"
+      });
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+    // Carregar dados do perfil quando o componente for montado
   useEffect(() => {
-    if (!formChanged) {
-      setFormData(userData);
+    loadProfileData();
+  }, []);
+  // Update form data when userData changes (sync across tabs)
+
+  useEffect(() => {
+    if (!formChanged && userData && typeof userData === 'object') {
+      // Garantir que todos os valores são strings e não null/undefined
+      const safeUserData = {
+        nome: userData.nome || '',
+        sobrenome: userData.sobrenome || '',
+        email: userData.email || '',
+        telefone: userData.telefone || '',
+        dataNascimento: userData.dataNascimento || '',
+        genero: userData.genero || '',
+        endereco: {
+          cep: userData.endereco?.cep || '',
+          rua: userData.endereco?.rua || '',
+          numero: userData.endereco?.numero || '',
+          complemento: userData.endereco?.complemento || '',
+          bairro: userData.endereco?.bairro || '',
+          cidade: userData.endereco?.cidade || '',
+          estado: userData.endereco?.estado || '',
+        }
+      };
+      setFormData(safeUserData);
     }
   }, [userData, formChanged]);
   // Reset image error state when profile image or preview changes
@@ -72,7 +193,7 @@ const ProfileFormUser = () => {
     loadProfileData();
   }, [fetchPerfil, setProfileImage]);
 
-  // Função para lidar com a mudança nos campos
+    // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormChanged(true);
     const { name, value } = e.target;
@@ -86,6 +207,16 @@ const ProfileFormUser = () => {
           ...formData.endereco,
           cep: formattedCep
         }
+      });
+      return;
+    }
+    
+    // Formatação específica para telefone
+    if (name === "telefone") {
+      const formattedPhone = formatters.phone(value);
+      setFormData({
+        ...formData,
+        telefone: formattedPhone
       });
       return;
     }
@@ -122,7 +253,7 @@ const ProfileFormUser = () => {
     }
   };
 
-  // Função para validar o formulário antes de salvar
+    // Função para validar o formulário antes de salvar
   const validateForm = () => {
     const errors: Record<string, string> = {};
     
@@ -137,22 +268,35 @@ const ProfileFormUser = () => {
     } else if (!emailRegex.test(formData.email)) {
       errors.email = "Email inválido";
     }
-    
-    // Validação de telefone (formato brasileiro)
-    const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
-    if (formData.telefone && !phoneRegex.test(formData.telefone)) {
-      errors.telefone = "Formato de telefone inválido. Ex: (11) 98765-4321";
+      // Validação de telefone usando utilitário importado
+    if (formData.telefone && formData.telefone.trim() !== '') {
+      const phoneValidation = isPhone(formData.telefone);
+      if (phoneValidation) {
+        errors.telefone = phoneValidation;
+      }
     }
     
-    // Validação de CEP (formato brasileiro)
+    // Validação de data de nascimento - opcional
+    if (formData.dataNascimento && formData.dataNascimento.trim() !== '') {
+      const birthDate = new Date(formData.dataNascimento);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      
+      if (age < 16 || age > 120) {
+        errors.dataNascimento = "Data de nascimento inválida";
+      }
+    }
+    
+    // Validação de CEP (formato brasileiro) - opcional
     const cepRegex = /^\d{5}-\d{3}$/;
-    if (formData.endereco.cep && !cepRegex.test(formData.endereco.cep)) {
+    if (formData.endereco.cep && formData.endereco.cep.trim() !== '' && !cepRegex.test(formData.endereco.cep)) {
       errors["endereco.cep"] = "Formato de CEP inválido. Ex: 12345-678";
     }
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  };  // Função para salvar as alterações dos dados pessoais
+  };  // Função para salvar as alterações
+
   const handleSave = async () => {
     // If no changes were made, just provide feedback
     if (!formChanged) {
@@ -163,7 +307,7 @@ const ProfileFormUser = () => {
       });
       return;
     }
-    
+
     // Validate the form before saving
     if (!validateForm()) {
       toast({
@@ -173,28 +317,45 @@ const ProfileFormUser = () => {
       });
       return;
     }
-      setLoading(true);
+    
+    setLoading(true);
     
     try {
-      // Real API call to update user profile
-      const response = await fetch('http://localhost:8080/perfil/usuario', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+      // Preparar dados pessoais (sem endereço)
+      const dadosPessoais = {
+        nome: formData.nome || '',
+        sobrenome: formData.sobrenome || '',
+        email: formData.email || '',
+        telefone: formData.telefone || '',
+        dataNascimento: formData.dataNascimento || '',
+        genero: formData.genero || '',
+      };
 
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar perfil');
+      // Atualizar dados pessoais usando o hook
+      await atualizarDadosPessoais(dadosPessoais);
+
+      // Atualizar endereço se houver dados
+      if (formData.endereco && Object.values(formData.endereco).some(value => value.trim() !== '')) {
+        await atualizarEndereco(formData.endereco);
       }
 
-      // Use the setUserData function from the hook instead of directly setting localStorage
+      // Upload da foto se houver uma nova
+      if (selectedImage) {
+        await uploadFoto(selectedImage);
+        if (imagePreview) {
+          setProfileImage(imagePreview);
+        }
+      }
+
+      // Atualizar contexto local
       setUserData(formData);
       
       // Success feedback
       setSuccessMessage("Perfil atualizado com sucesso!");
       setFormChanged(false);
+      setSelectedImage(null);
+      setImagePreview(null);
+      setValidationErrors({});
       
       toast({
         title: "Perfil atualizado",
@@ -204,9 +365,10 @@ const ProfileFormUser = () => {
       // Hide success message after a few seconds
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
       toast({
         title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar suas informações.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações.",
         variant: "destructive"
       });
     } finally {
@@ -377,6 +539,7 @@ const ProfileFormUser = () => {
                       });
                     }}
                   >
+                    <ArrowLeft className="w-6 h-6" />
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                     <span>Sair</span>
                   </SidebarMenuButton>
@@ -460,201 +623,172 @@ const ProfileFormUser = () => {
                 
                 {/* Aba de Dados Pessoais */}
                 <TabsContent value="pessoal">
-                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
+                  <Card className="w-full bg-white dark:bg-[#23272F] border border-[#EDF2FB] dark:border-gray-700 shadow-lg">
                     <CardHeader>
-                      <CardTitle>Dados Pessoais</CardTitle>
-                      <CardDescription>Atualize suas informações pessoais</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {successMessage && (
-                        <div className="bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 p-3 rounded-md mb-4">
-                          {successMessage}
+                      <CardTitle className="text-xl font-semibold text-indigo-900 dark:text-gray-100">
+                        Dados Pessoais
+                      </CardTitle>
+                      <CardDescription className="text-gray-600 dark:text-gray-400">
+                        Atualize suas informações pessoais
+                      </CardDescription>
+                    </CardHeader>                    <CardContent className="space-y-6">
+                      {initialLoading && (
+                        <div className="flex items-center justify-center p-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
+                          <span className="ml-2 text-gray-600 dark:text-gray-400">Carregando dados...</span>
                         </div>
                       )}
-                    
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="nome" className="flex items-center justify-between">
-                            Nome
-                            {validationErrors.nome && (
-                              <span className="text-xs text-red-500">{validationErrors.nome}</span>
-                            )}
-                          </Label>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input 
-                                id="nome" 
-                                name="nome" 
-                                value={formData.nome} 
-                                onChange={handleInputChange} 
-                                className={`bg-white dark:bg-gray-800 ${validationErrors.nome ? 'border-red-500 focus:ring-red-500' : ''}`}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>Digite seu primeiro nome</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sobrenome" className="flex items-center justify-between">
-                            Sobrenome
-                            {validationErrors.sobrenome && (
-                              <span className="text-xs text-red-500">{validationErrors.sobrenome}</span>
-                            )}
-                          </Label>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input 
-                                id="sobrenome" 
-                                name="sobrenome" 
-                                value={formData.sobrenome} 
+                      
+                      {!initialLoading && (
+                        <>
+                          {/* Nome e Sobrenome */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="nome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Nome *
+                              </Label>
+                              <Input
+                                id="nome"
+                                name="nome"
+                                type="text"
+                                value={formData.nome}
                                 onChange={handleInputChange}
-                                className={`bg-white dark:bg-gray-800 ${validationErrors.sobrenome ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                                className={`w-full ${validationErrors.nome ? 'border-red-500' : ''}`}
+                                placeholder="Digite seu nome"
                               />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>Digite seu sobrenome</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="flex items-center justify-between">
-                          Email
-                          {validationErrors.email && (
-                            <span className="text-xs text-red-500">{validationErrors.email}</span>
-                          )}
-                        </Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Input 
-                              id="email" 
-                              name="email" 
-                              type="email" 
-                              value={formData.email} 
+                              {validationErrors.nome && (
+                                <span className="text-sm text-red-500">{validationErrors.nome}</span>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="sobrenome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Sobrenome *
+                              </Label>
+                              <Input
+                                id="sobrenome"
+                                name="sobrenome"
+                                type="text"
+                                value={formData.sobrenome}
+                                onChange={handleInputChange}
+                                className={`w-full ${validationErrors.sobrenome ? 'border-red-500' : ''}`}
+                                placeholder="Digite seu sobrenome"
+                              />
+                              {validationErrors.sobrenome && (
+                                <span className="text-sm text-red-500">{validationErrors.sobrenome}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Email */}
+                          <div className="space-y-2">
+                            <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              E-mail *
+                            </Label>
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              value={formData.email}
                               onChange={handleInputChange}
-                              className={`bg-white dark:bg-gray-800 ${validationErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                              className={`w-full ${validationErrors.email ? 'border-red-500' : ''}`}
+                              placeholder="Digite seu e-mail"
                             />
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p>Insira seu e-mail principal para contato</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="telefone" className="flex items-center justify-between">
-                            Telefone
+                            {validationErrors.email && (
+                              <span className="text-sm text-red-500">{validationErrors.email}</span>
+                            )}
+                          </div>
+
+                          {/* Telefone */}
+                          <div className="space-y-2">
+                            <Label htmlFor="telefone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Telefone
+                            </Label>
+                            <Input
+                              id="telefone"
+                              name="telefone"
+                              type="tel"
+                              value={formData.telefone}
+                              onChange={handleInputChange}
+                              className={`w-full ${validationErrors.telefone ? 'border-red-500' : ''}`}
+                              placeholder="(11) 98765-4321"
+                            />
                             {validationErrors.telefone && (
-                              <span className="text-xs text-red-500">{validationErrors.telefone}</span>
+                              <span className="text-sm text-red-500">{validationErrors.telefone}</span>
                             )}
-                          </Label>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input 
-                                id="telefone" 
-                                name="telefone" 
-                                value={formData.telefone} 
+                          </div>
+
+                          {/* Data de Nascimento e Gênero */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Data de Nascimento
+                              </Label>
+                              <Input
+                                id="dataNascimento"
+                                name="dataNascimento"
+                                type="date"
+                                value={formData.dataNascimento}
                                 onChange={handleInputChange}
-                                className={`bg-white dark:bg-gray-800 ${validationErrors.telefone ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                                className="w-full"
                               />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>Formato: (XX) XXXXX-XXXX</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dataNascimento" className="flex items-center justify-between">
-                            Data de Nascimento
-                            {validationErrors.dataNascimento && (
-                              <span className="text-xs text-red-500">{validationErrors.dataNascimento}</span>
-                            )}
-                          </Label>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input 
-                                id="dataNascimento" 
-                                name="dataNascimento" 
-                                type="date" 
-                                value={formData.dataNascimento} 
-                                onChange={handleInputChange}
-                                className={`bg-white dark:bg-gray-800 ${validationErrors.dataNascimento ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>Selecione sua data de nascimento</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="genero" className="flex items-center justify-between">
-                          Gênero
-                          {validationErrors.genero && (
-                            <span className="text-xs text-red-500">{validationErrors.genero}</span>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="genero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Gênero
+                              </Label>
+                              <select
+                                id="genero"
+                                name="genero"
+                                value={formData.genero}
+                                onChange={(e) => handleInputChange(e as any)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-[#23272F] text-gray-900 dark:text-gray-100"
+                              >
+                                <option value="OUTRO">Prefiro não informar</option>
+                                <option value="FEMININO">Feminino</option>
+                                <option value="MASCULINO">Masculino</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Botões de ação */}
+                          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                            <Button
+                              onClick={handleSave}
+                              disabled={loading}
+                              className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                            >
+                              {loading ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Salvando...
+                                </>
+                              ) : (
+                                'Salvar Alterações'
+                              )}
+                            </Button>
+                            
+                            <Button
+                              onClick={handleCancel}
+                              disabled={loading}
+                              variant="outline"
+                              className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+
+                          {/* Mensagem de sucesso */}
+                          {successMessage && (
+                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                              {successMessage}
+                            </div>
                           )}
-                        </Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Input 
-                              id="genero" 
-                              name="genero" 
-                              value={formData.genero} 
-                              onChange={handleInputChange}
-                              className={`bg-white dark:bg-gray-800 ${validationErrors.genero ? 'border-red-500 focus:ring-red-500' : ''}`} 
-                            />
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p>Informe como você se identifica</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
+                        </>
+                      )}
                     </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            onClick={handleCancel} 
-                            disabled={loading || (!formChanged && !selectedImage)}
-                            className="border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          >
-                            Cancelar
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>Descartar alterações feitas no perfil</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            onClick={handleSave} 
-                            disabled={loading || (!formChanged && !selectedImage)} 
-                            className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]"
-                          >
-                            {loading ? (
-                              <div className="flex items-center">
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Salvando...
-                              </div>
-                            ) : "Salvar Alterações"}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>Salvar todas as alterações feitas no perfil</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </CardFooter>
-                  </Card>
-                </TabsContent>
+                  </Card>                </TabsContent>
                 
                 {/* Aba de Endereço */}
                 <TabsContent value="endereco">
@@ -664,6 +798,15 @@ const ProfileFormUser = () => {
                       <CardDescription>Atualize seu endereço</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {initialLoading && (
+                        <div className="flex items-center justify-center p-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
+                          <span className="ml-2 text-gray-600 dark:text-gray-400">Carregando dados...</span>
+                        </div>
+                      )}
+                      
+                      {!initialLoading && (
+                        <>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-2">
                           <Label htmlFor="rua">Rua</Label>
@@ -764,8 +907,9 @@ const ProfileFormUser = () => {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
-                        </div>
-                      </div>
+                        </div>                      </div>
+                        </>
+                      )}
                     </CardContent>
                     <CardFooter>
                       <Tooltip>
