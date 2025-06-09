@@ -30,8 +30,8 @@ import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 interface ConsultaSummary {
   total: number;
   proxima: Date | null;
-  canceladas: number;
-  semana: number; // Adicionar campo para consultas da semana
+  mes: number; // Consultas do mês
+  semana: number; // Consultas da semana
 }
 
 interface AtendimentoSummary {
@@ -90,12 +90,11 @@ const HomeUser = () => {
     if (selectedDate) {
       localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
     }  }, [selectedDate]);
-
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
     proxima: null,
-    canceladas: 0,
+    mes: 0,
     semana: 0
   });
 
@@ -113,28 +112,8 @@ const HomeUser = () => {
     proximos: 0,
     ultimaAvaliacao: null
   });
-
-  // Dados de exemplo para as próximas consultas
-  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>(
-    [
-      {
-        id: 1,
-        profissional: "Dr. Ricardo Santos",
-        especialidade: "Psicologia",
-        data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
-        tipo: "Consulta Online",
-        status: "agendada"
-      },
-      {
-        id: 2,
-        profissional: "Dra. Ana Costa",
-        especialidade: "Nutrição",
-        data: new Date(2025, 4, 20, 14, 30), // 20 de maio de 2025, 14:30
-        tipo: "Consulta Presencial",
-        status: "agendada"
-      }
-    ]
-  );
+  // Estado para as próximas consultas - carregado via API
+  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
 
   //Proxima consulta do usuario
    const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
@@ -165,38 +144,8 @@ const HomeUser = () => {
 
     loadProximaConsulta();
   }, []);
-
-  // Dados de exemplo para o histórico recente
-  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>(
-    [
-      {
-        id: 1,
-        profissional: "Dr. Carlos Pereira",
-        especialidade: "Psicologia",
-        data: new Date(2025, 4, 10, 11, 0), // 10 de maio de 2025, 11:00
-        tipo: "Consulta Online",
-        status: "realizada",
-        avaliacao: 5
-      },
-      {
-        id: 2,
-        profissional: "Dra. Lucia Ferreira",
-        especialidade: "Nutrição",
-        data: new Date(2025, 4, 12, 15, 0), // 12 de maio de 2025, 15:00
-        tipo: "Consulta Presencial",
-        status: "realizada",
-        avaliacao: 4
-      },
-      {
-        id: 3,
-        profissional: "Dr. Ricardo Santos",
-        especialidade: "Psicologia",
-        data: new Date(2025, 4, 8, 17, 30), // 8 de maio de 2025, 17:30
-        tipo: "Consulta Online",
-        status: "cancelada"
-      }
-    ]
-  );
+  // Estado para histórico recente - carregado via API
+  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
   // Carregar dados das consultas via API
   useEffect(() => {
     const loadConsultaData = async () => {
@@ -206,11 +155,10 @@ const HomeUser = () => {
       try {
         // Buscar dados de consultas da API
         const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');        // Para o usuário assistido, mapear os dados corretamente
-        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
-          setConsultasSummary({
+        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);        setConsultasSummary({
           total: consultaStats.hoje, // Consultas de hoje (card azul)
           proxima: proximaData, // Próxima consulta agendada
-          canceladas: consultaStats.mes, // Consultas do mês (card vermelho)
+          mes: consultaStats.mes, // Consultas do mês (card vermelho)
           semana: consultaStats.semana // Consultas da semana (card verde)
         });
         
@@ -228,22 +176,21 @@ const HomeUser = () => {
               status: proximaConsulta.status
             });
           }
-        }          // Atualizar dados dos atendimentos com dados da API
+        }        // Atualizar dados dos atendimentos com dados zerados até API estar completa
         setAtendimentosSummary({
-          realizados: consultaStats.semana || 8,
-          proximos: consultaStats.semana || 2, // Usar dados da semana para o card verde
-          ultimaAvaliacao: 5
+          realizados: 0,
+          proximos: 0,
+          ultimaAvaliacao: null
         });
         
       } catch (err: any) {
         console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");
-          // Fallback para dados simulados em caso de erro
+        setError(err.message || "Erro ao carregar dados das consultas");        // Manter dados zerados em caso de erro
         const proximaData = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
           proxima: proximaData,
-          canceladas: 0,
+          mes: 0,
           semana: 0
         });
       } finally {
@@ -253,6 +200,49 @@ const HomeUser = () => {
 
     loadConsultaData();
   }, [proximasConsultas]);
+
+  // Load all consultations when component mounts
+  useEffect(() => {
+    loadTodasConsultas();
+  }, []);
+
+  // Function to load all consultations and order them by date
+  const loadTodasConsultas = async () => {
+    try {
+      const consultasData = await ConsultaApiService.getTodasConsultas();
+      
+      // Convert ConsultaDto to Consulta format for compatibility with existing component
+      const consultasConvertidas: Consulta[] = consultasData.map(consultaDto => ({
+        id: consultaDto.idConsulta,
+        profissional: consultaDto.nomeVoluntario || "Profissional não informado",
+        especialidade: consultaDto.nomeEspecialidade || "Especialidade não informada",
+        data: new Date(consultaDto.horario),
+        tipo: consultaDto.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
+        status: consultaDto.status.toLowerCase()
+      }));
+      
+      // Filter upcoming consultations (future dates only) and sort by date (nearest first)
+      const agora = new Date();
+      const consultasFuturas = consultasConvertidas
+        .filter(consulta => consulta.data > agora)
+        .sort((a, b) => a.data.getTime() - b.data.getTime());
+      
+      setProximasConsultas(consultasFuturas);
+      
+      toast({
+        title: "Consultas carregadas",
+        description: `${consultasFuturas.length} próximas consultas encontradas`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Erro ao carregar todas as consultas:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as consultas",
+        variant: "destructive"
+      });
+    }
+  };
 
   const statusColors: Record<string, string> = {
     agendada: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -393,12 +383,18 @@ const HomeUser = () => {
             : consulta
         )
       );
-      
-      // Atualizar contadores
-      setConsultasSummary(prev => ({
-        ...prev,
-        canceladas: prev.canceladas + 1
-      }));
+        // Atualizar contadores - recarregar dados da API para ter dados precisos
+      try {
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
+        setConsultasSummary(prev => ({
+          ...prev,
+          total: consultaStats.hoje,
+          mes: consultaStats.mes,
+          semana: consultaStats.semana
+        }));
+      } catch (error) {
+        console.error('Erro ao recarregar estatísticas:', error);
+      }
       
       setAtendimentosSummary(prev => ({
         ...prev,
@@ -463,10 +459,10 @@ const HomeUser = () => {
     ];
     return links[Math.floor(Math.random() * links.length)];
   };
-
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
+        {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
@@ -610,15 +606,13 @@ const HomeUser = () => {
                               <TooltipContent>
                                 <p>Consultas agendadas para esta semana</p>
                               </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
+                            </Tooltip>                            <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div 
                                   whileHover={{ scale: 1.05 }}
                                   className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-md cursor-help"
                                 >
-                                  <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.canceladas}</span>
+                                  <span className="text-lg font-bold text-red-700 dark:text-red-300">{consultasSummary.mes}</span>
                                   <span className="text-xs text-gray-600 dark:text-gray-400">Mês</span>
                                 </motion.div>
                               </TooltipTrigger>                              <TooltipContent>
@@ -646,8 +640,7 @@ const HomeUser = () => {
                                     </span>
                                   </div>
                                 )}
-                              </div>
-                              {proximaConsulta ? (
+                              </div>                              {proximaConsulta && proximaConsultaData ? (
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
@@ -674,8 +667,7 @@ const HomeUser = () => {
                                         <Button 
                                           size="sm" 
                                           variant="outline" 
-                                          className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
-                                          onClick={() => abrirModalCancelamento({
+                                          className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"                                          onClick={() => proximaConsultaData && abrirModalCancelamento({
                                             id: proximasConsultas.find(c => 
                                               c.data.toDateString() === consultasSummary.proxima?.toDateString()
                                             )?.id || 1,
@@ -699,8 +691,7 @@ const HomeUser = () => {
                                         <Button 
                                           size="sm" 
                                           variant="outline" 
-                                          className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
-                                          onClick={() => abrirModalDetalhes({
+                                          className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"                                          onClick={() => proximaConsultaData && abrirModalDetalhes({
                                             id: proximasConsultas.find(c => 
                                               c.data.toDateString() === consultasSummary.proxima?.toDateString()
                                             )?.id || 1,
@@ -841,47 +832,57 @@ const HomeUser = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <CalendarIcon className="w-5 h-5 text-[#ED4231] cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Selecione uma data no calendário para agendar uma nova consulta</p>
+                        </TooltipTrigger>                        <TooltipContent>
+                          <p>Calendário somente leitura - clique em datas com consultas para ver detalhes</p>
                         </TooltipContent>
                       </Tooltip>
                       Calendário
                     </CardTitle>
-                    <CardDescription>Selecione uma data para agendar</CardDescription>
+                    <CardDescription>Clique em datas com consultas para ver detalhes</CardDescription>
                   </CardHeader>
-                  <CardContent>                    
-                    <div className="flex justify-center">
+                  <CardContent>                      <div className="flex justify-center">
                       <Calendar
                         mode="single"
-                        selected={selectedDate}
+                        selected={undefined} // Removido para tornar apenas leitura
                         onSelect={(date) => {
-                          setSelectedDate(date);
                           if (date) {
                             // Verificar se há consultas nesta data
                             const consultasNaData = proximasConsultas.filter(
                               consulta => consulta.data.toDateString() === date.toDateString()
                             );
                             
+                            // Só permitir interação se houver consultas na data
                             if (consultasNaData.length > 0) {
+                              // Mostrar detalhes da primeira consulta na data
+                              const consulta = consultasNaData[0];
+                              abrirModalDetalhes(consulta);
+                              
                               toast({
                                 title: `${consultasNaData.length} consulta${consultasNaData.length > 1 ? 's' : ''} nesta data`,
-                                description: "Você já possui consultas agendadas para esta data.",
+                                description: "Clique para ver detalhes da consulta.",
                                 variant: "default",
                                 duration: 3000,
                               });
                             } else {
                               toast({
-                                title: "Data selecionada",
-                                description: `Você selecionou ${format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
+                                title: "Nenhuma consulta nesta data",
+                                description: "Você pode agendar uma nova consulta clicando no botão de agendamento.",
+                                variant: "default",
                                 duration: 3000,
                               });
                             }
                           }
                         }}
-                        className="rounded-md border border-[#EDF2FB] dark:border-[#444857]"
+                        className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
                         locale={ptBR}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) => {
+                          // Desabilitar datas passadas e datas sem consultas
+                          const isPastDate = date < new Date(new Date().setHours(0, 0, 0, 0));
+                          const hasConsultation = proximasConsultas.some(
+                            consulta => consulta.data.toDateString() === date.toDateString()
+                          );
+                          return isPastDate || !hasConsultation;
+                        }}
                         initialFocus
                         modifiers={{
                           booked: (date) => proximasConsultas.some(
@@ -894,10 +895,11 @@ const HomeUser = () => {
                             borderColor: "rgba(237, 66, 49, 0.5)",
                             color: "#ED4231",
                             fontWeight: "bold",
+                            cursor: "pointer"
                           }
-                        }}
-                      />
-                    </div>{selectedDate && (
+                        }}                      />                    </div>
+                    {/* Comentado: Seção de data selecionada removida para manter calendário apenas de visualização
+                    {selectedDate && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -919,7 +921,10 @@ const HomeUser = () => {
                         </div>
                       </motion.div>
                     )}
-                  </CardContent>                  <CardFooter>
+                    */}
+                  </CardContent>
+                  {/* Comentado: CardFooter removido para manter calendário apenas de visualização
+                  <CardFooter>
                     {selectedDate ? (
                       <div className="w-full space-y-2">
                         <Tooltip>
@@ -983,8 +988,8 @@ const HomeUser = () => {
                           </Button>
                         </Link>
                       </div>
-                    )}
-                  </CardFooter>
+                    )}                  </CardFooter>
+                  */}
                 </Card>
               </div>
 
@@ -1327,7 +1332,7 @@ const HomeUser = () => {
             <DialogHeader className="space-y-3">
               <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
                 <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                     <path d="M12 9v4" />
                     <path d="m12 17 .01 0" />
@@ -1383,7 +1388,7 @@ const HomeUser = () => {
                         <Clock className="w-4 h-4 text-gray-500" />
                         <span className="text-gray-600 dark:text-gray-400">Data e Hora:</span>
                       </div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{formatarData(consultaParaCancelar.data)}</p>
+                                           <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{formatarData(consultaParaCancelar.data)}</p>
                     </div>
                     
                     <div className="space-y-2">
@@ -1447,7 +1452,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />

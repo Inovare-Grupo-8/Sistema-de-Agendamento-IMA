@@ -143,24 +143,22 @@ export interface ProximaConsulta {
 
 // API service class for consultation endpoints
 export class ConsultaApiService {
-  
-  /**
+    /**
    * Get consultations count for today
    * @param userType - "voluntario" for professionals or "assistido" for users
    * @returns Promise with consultation count
    */
   static async getConsultasDia(userType: 'voluntario' | 'assistido'): Promise<number> {
     try {
-      const response = await apiClient.get<ConsultaCount>(`/consulta/consultas/dia`, {
+      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/dia`, {
         params: { user: userType }
       });
-      return response.data.count;
+      return response.data.length;
     } catch (error) {
       console.error('Error fetching consultas dia:', error);
       throw this.handleApiError(error);
     }
   }
-
   /**
    * Get consultations count for current week
    * @param userType - "voluntario" for professionals or "assistido" for users
@@ -168,16 +166,15 @@ export class ConsultaApiService {
    */
   static async getConsultasSemana(userType: 'voluntario' | 'assistido'): Promise<number> {
     try {
-      const response = await apiClient.get<ConsultaCount>(`/consulta/consultas/semana`, {
+      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/semana`, {
         params: { user: userType }
       });
-      return response.data.count;
+      return response.data.length;
     } catch (error) {
       console.error('Error fetching consultas semana:', error);
       throw this.handleApiError(error);
     }
   }
-
   /**
    * Get consultations count for current month
    * @param userType - "voluntario" for professionals or "assistido" for users
@@ -185,10 +182,10 @@ export class ConsultaApiService {
    */
   static async getConsultasMes(userType: 'voluntario' | 'assistido'): Promise<number> {
     try {
-      const response = await apiClient.get<ConsultaCount>(`/consulta/consultas/mes`, {
+      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/mes`, {
         params: { user: userType }
       });
-      return response.data.count;
+      return response.data.length;
     } catch (error) {
       console.error('Error fetching consultas mes:', error);
       throw this.handleApiError(error);
@@ -428,6 +425,21 @@ export class ConsultaApiService {
       throw this.handleApiError(error);
     }
   }
+
+  /**
+   * Get all consultations in the system
+   * @returns Promise with array of all consultations
+   */
+  static async getTodasConsultas(): Promise<ConsultaDto[]> {
+    try {
+      const response = await apiClient.get<ConsultaDto[]>('/consulta/consultas/todas');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching todas consultas:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
   /**
    * Get specialization ID by name
    * @param nome - Name of the specialization

@@ -169,19 +169,19 @@ const Home = () => {
         });
         
         console.log('Estado atualizado com sucesso');
-        
-        // Manter dados simulados para outras seções que ainda não têm API
+          // Buscar dados de atendimentos via API (quando disponível)
+        // Por enquanto manter zerados até implementação da API
         setAtendimentosSummary({
-          realizados: 42,
-          cancelados: 5,
-          remarcados: 3,
-          avaliacaoMedia: 4.7
+          realizados: 0,
+          cancelados: 0,
+          remarcados: 0,
+          avaliacaoMedia: 0
         });
         
         setHorariosSummary({
-          disponiveis: 12,
-          ocupados: 6,
-          proximoDisponivel: new Date(2025, 4, 18, 10, 0) // 18 de maio de 2025, 10:00
+          disponiveis: 0,
+          ocupados: 0,
+          proximoDisponivel: new Date() // Data atual como padrão
         });
         
       } catch (err: any) {
@@ -193,15 +193,12 @@ const Home = () => {
         });
         
         setError(err.message || "Erro ao carregar dados das consultas");
-        
-        // Fallback para dados simulados em caso de erro
+          // Manter dados zerados em caso de erro
         setConsultasSummary({
-          hoje: 5,   // Dados simulados para debug
-          semana: 12,
-          mes: 38
+          hoje: 0,
+          semana: 0,
+          mes: 0
         });
-        
-        console.log('Usando dados simulados devido ao erro');
       } finally {
         setLoading(false);
       }
