@@ -681,6 +681,17 @@ const HomeUser = () => {
     loadUserData();
   }, []);
 
+  const [voluntarioProfile, setVoluntarioProfile] = useState<{ nome: string; sobrenome: string; funcao: string; profileImage: string | null }>({ nome: '', sobrenome: '', funcao: '', profileImage: null });
+
+  useEffect(() => {
+    const data = localStorage.getItem('voluntarioProfileData');
+    if (data) {
+      try {
+        setVoluntarioProfile(JSON.parse(data));
+      } catch {}
+    }
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
@@ -688,9 +699,15 @@ const HomeUser = () => {
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
-            </Button>
-            <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+            </Button>            <ProfileAvatar
+  profileImage={voluntarioProfile.profileImage}
+  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+  size="w-10 h-10"
+  className="border-2 border-[#ED4231] shadow"
+/>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">
+              {`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+            </span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -703,7 +720,12 @@ const HomeUser = () => {
               <Menu className="w-7 h-7" />
             </Button>
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-16 h-16" className="border-4 border-[#EDF2FB] shadow" />
+            <ProfileAvatar
+  profileImage={voluntarioProfile.profileImage}
+  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+  size="w-16 h-16"
+  className="border-4 border-[#EDF2FB] shadow"
+/>
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -730,7 +752,7 @@ const HomeUser = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                     <span>Sair</span>
                   </SidebarMenuButton>
                 </TooltipTrigger>
@@ -749,7 +771,12 @@ const HomeUser = () => {
 
         <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
             <div className="flex items-center gap-3">
-              <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+              <ProfileAvatar
+  profileImage={voluntarioProfile.profileImage}
+  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+  size="w-10 h-10"
+  className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
+/>
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -1226,7 +1253,7 @@ const HomeUser = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800 cursor-help">
-                            {atendimentosSummary.consultasEsteMes} agendadas
+                            {proximasConsultas.length} agendadas
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -1316,9 +1343,17 @@ const HomeUser = () => {
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        onClick={() => abrirModalDetalhes(consulta)}
+                                        className="text-gray-500 h-auto p-0"
+                                        onClick={() => {
+                                          abrirModalDetalhes(consulta);
+                                          toast({
+                                            title: "Detalhes da consulta",
+                                            description: "As informações detalhadas da consulta foram carregadas.",
+                                            duration: 3000,
+                                          });
+                                        }}
                                       >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M10 11h2v5" /><circle cx="12" cy="7" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                         Detalhes
                                       </Button>
                                     </TooltipTrigger>
@@ -1332,9 +1367,13 @@ const HomeUser = () => {
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="text-red-500 h-auto p-0"
                                         onClick={() => abrirModalCancelamento(consulta)}
-                                      >
+                                      >                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                                          <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
+                                          <path d="m10 11 4 4m0-4-4 4" />
+                                          <path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                                        </svg>
                                         Cancelar
                                       </Button>
                                     </TooltipTrigger>

@@ -310,6 +310,29 @@ export function CompletarCadastroVoluntario() {
     setTimeout(() => validateField(fieldName, formattedValue), 300);
   };
 
+  // Função utilitária para salvar dados do perfil do voluntário no localStorage
+  const saveVoluntarioProfileData = (formData: FormVoluntarioData, primeiraFaseData?: PrimeiraFaseData) => {
+    // Extrai nome e sobrenome do nomeCompleto
+    let nome = "";
+    let sobrenome = "";
+    if (formData.nomeCompleto) {
+      const partes = formData.nomeCompleto.trim().split(" ");
+      nome = partes[0] || "";
+      sobrenome = partes.slice(1).join(" ") || "";
+    }
+    // Se primeiraFaseData existir, prioriza nome/sobrenome dela
+    if (primeiraFaseData) {
+      nome = primeiraFaseData.nome || nome;
+      sobrenome = primeiraFaseData.sobrenome || sobrenome;
+    }
+    // Função do voluntário
+    const funcao = formData.funcao || "";
+    // Foto de perfil (futuro: buscar de backend se existir)
+    const profileImage = null; // Pode ser atualizado se houver upload futuramente
+    const profileData = { nome, sobrenome, funcao, profileImage };
+    localStorage.setItem('voluntarioProfileData', JSON.stringify(profileData));
+  };
+
   // Auto-save
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -318,10 +341,12 @@ export function CompletarCadastroVoluntario() {
         localStorage.setItem('voluntario_form_timestamp', new Date().toISOString());
         setLastSaved(new Date());
         setChangedFields(new Set());
+        // Salva dados do perfil simplificado
+        saveVoluntarioProfileData(formData, primeiraFaseData);
       }
     }, 2000);
     return () => clearTimeout(timeoutId);
-  }, [changedFields, formData]);  // Buscar dados do usuário quando o ID está disponível
+  }, [changedFields, formData, primeiraFaseData]);  // Buscar dados do usuário quando o ID está disponível
   useEffect(() => {
     if (!idUsuario) {
       console.log("idUsuario não encontrado na URL.");
@@ -645,6 +670,8 @@ export function CompletarCadastroVoluntario() {
       // Limpar dados do localStorage
       localStorage.removeItem('voluntario_form_data');
       localStorage.removeItem('voluntario_form_timestamp');
+      // Salvar dados do perfil simplificado para uso global
+      saveVoluntarioProfileData(formData, primeiraFaseData);
       
       // Mostrar modal de sucesso
       setShowSuccessModal(true);
@@ -1705,6 +1732,7 @@ export function CompletarCadastroVoluntario() {
 
                       {errors.estado && (
                         <motion.p
+
                           id="estado-error"
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
