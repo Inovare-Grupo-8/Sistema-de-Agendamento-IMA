@@ -24,6 +24,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { userNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
+import { useUserData } from "@/hooks/useUserData";
+import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
 interface ConsultaSummary {
   total: number;
@@ -65,7 +67,7 @@ const HomeUser = () => {
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { userData } = useUserData();
   
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -77,15 +79,6 @@ const HomeUser = () => {
   // Estado para o modal de detalhes
   const [detalhesModalOpen, setDetalhesModalOpen] = useState(false);
   const [consultaDetalhes, setConsultaDetalhes] = useState<Consulta | null>(null);
-
-  const [userData, setUserData] = useState(() => {
-    const savedData = localStorage.getItem("userData");
-    return savedData ? JSON.parse(savedData) : {
-      nome: "Maria",
-      sobrenome: "Silva",
-      email: "maria.silva@email.com"
-    };
-  });
     // Estado para o calendário
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
     const savedDate = localStorage.getItem("selectedDateForBooking");
@@ -473,13 +466,12 @@ const HomeUser = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
-        {!sidebarOpen && (
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>
-            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
+            <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow" />
             <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
           </div>
         )}
@@ -492,9 +484,8 @@ const HomeUser = () => {
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
-          </div>
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
+          </div>          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-16 h-16" className="border-4 border-[#EDF2FB] shadow" />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -538,10 +529,9 @@ const HomeUser = () => {
           </div>
         </div>
 
-        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
+        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
             <div className="flex items-center gap-3">
-              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+              <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">

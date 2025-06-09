@@ -201,6 +201,33 @@ export class VoluntarioApiService {
       return 'Data inválida';
     }
   }
+
+  /**
+   * Lista todos os voluntários para seleção em agendamentos
+   * Retorna apenas voluntários ativos com informações simplificadas
+   */
+  static async listarVoluntariosParaAgendamento(): Promise<{
+    id: number;
+    nome: string;
+    especialidade: string;
+  }[]> {
+    try {
+      const voluntarios = await this.listarVoluntarios();
+      
+      // Filtrar apenas voluntários ativos e mapear para formato simplificado
+      return voluntarios
+        .filter(voluntario => this.determinarStatus(voluntario) === 'ativo')
+        .map(voluntario => ({
+          id: voluntario.idUsuario,
+          nome: voluntario.nomeCompleto || `${voluntario.nome} ${voluntario.sobrenome}`.trim(),
+          especialidade: voluntario.areaOrientacao || voluntario.funcao || 'Consulta Geral'
+        }));
+      
+    } catch (error) {
+      console.error('Erro ao listar voluntários para agendamento:', error);
+      throw new Error('Falha ao carregar especialistas disponíveis');
+    }
+  }
 }
 
 export default VoluntarioApiService;

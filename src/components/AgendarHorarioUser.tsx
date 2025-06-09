@@ -23,24 +23,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getUserNavigationPath } from "@/utils/userNavigation";
+import { useUserData } from "@/hooks/useUserData";
+import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { VoluntarioApiService } from "@/services/voluntarioApi";
+import { ConsultaApiService } from "@/services/consultaApi";
 
-const especialistas = [
-  { id: 1, nome: "Dr. Ricardo Santos", especialidade: "Psicologia" },
-  { id: 2, nome: "Dra. Ana Costa", especialidade: "Nutrição" },
-  { id: 3, nome: "Dr. Carlos Pereira", especialidade: "Fisioterapia" },
-  { id: 4, nome: "Dra. Juliana Silva", especialidade: "Psicologia" },
-  { id: 5, nome: "Dr. Felipe Oliveira", especialidade: "Nutrição" },
+const tiposConsulta = [
+  { valor: "ONLINE", label: "Consulta Online" },
+  { valor: "PRESENCIAL", label: "Consulta Presencial" }
 ];
-
-const horariosDisponiveis = [
-  { data: parseISO(new Date(2024, 6, 15).toISOString().split('T')[0] + 'T00:00:00'), horarios: ["09:00", "10:00", "14:00", "15:00"] },
-  { data: parseISO(new Date(2024, 6, 16).toISOString().split('T')[0] + 'T00:00:00'), horarios: ["08:00", "11:00", "13:00", "16:00"] },
-  { data: parseISO(new Date(2024, 6, 17).toISOString().split('T')[0] + 'T00:00:00'), horarios: ["08:30", "10:30", "14:30", "16:30"] },
-  { data: new Date(2024, 6, 18), horarios: ["09:00", "11:00", "15:00", "17:00"] },
-  { data: new Date(2024, 6, 19), horarios: ["10:00", "13:00", "15:00", "16:00"] },
-];
-
-const tiposConsulta = ["Consulta Online", "Consulta Presencial"];
 
 const AgendarHorarioUser = () => {
   const location = useLocation();
@@ -49,8 +40,16 @@ const AgendarHorarioUser = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
+  const { userData } = useUserData();
+  
   // Add state for logout dialog
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  
+  // Dynamic data from API
+  const [especialistas, setEspecialistas] = useState<Array<{id: number, nome: string, especialidade: string}>>([]);
+  const [datasDisponiveis, setDatasDisponiveis] = useState<Date[]>([]);
+  const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
   
   // Handle logout function
   const handleLogout = () => {
@@ -63,31 +62,82 @@ const AgendarHorarioUser = () => {
     });
   };
 
-  const [userData, setUserData] = useState(() => {
-    const savedData = localStorage.getItem("userData");
-    return savedData ? JSON.parse(savedData) : {
-      nome: "Maria",
-      sobrenome: "Silva",
-      email: "maria.silva@email.com"
-    };
-  });
-
   // Estado do formulário
   const [especialistaSelecionado, setEspecialistaSelecionado] = useState<number | null>(null);
   const [dataSelecionada, setDataSelecionada] = useState<Date | null>(null);
   const [horarioSelecionado, setHorarioSelecionado] = useState<string | null>(null);
   const [tipoConsulta, setTipoConsulta] = useState<string | null>(null);
-  const [step, setStep] = useState(1); // 1: Especialista, 2: Data, 3: Horário, 4: Tipo, 5: Confirmação
+  const [observacoes, setObservacoes] = useState<string>('');
+  const [step, setStep] = useState(1); // 1: Especialista, 2: Data, 3: Horário, 4: Tipo, 5: Observações, 6: Confirmação
 
-  // Filtra horários disponíveis baseado na data selecionada
-  const horariosParaDataSelecionada = dataSelecionada
-    ? horariosDisponiveis.find(h => 
-        h.data.getDate() === dataSelecionada.getDate() && 
-        h.data.getMonth() === dataSelecionada.getMonth() && 
-        h.data.getFullYear() === dataSelecionada.getFullYear()
-      )?.horarios || []
-    : [];
-  // Função para avançar no formulário
+  // Load specialists when component mounts
+  useEffect(() => {
+    const carregarEspecialistas = async () => {
+      setLoadingData(true);
+      try {
+        const especialistasData = await VoluntarioApiService.listarVoluntariosParaAgendamento();
+        setEspecialistas(especialistasData);
+      } catch (error) {
+        toast({
+          title: "Erro ao carregar especialistas",
+          description: "Não foi possível carregar a lista de especialistas disponíveis.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    carregarEspecialistas();
+  }, []);
+
+  // Load available dates when specialist is selected
+  useEffect(() => {
+    if (especialistaSelecionado) {
+      // Generate next 30 days as available dates (simplified approach)
+      // In a real implementation, you would fetch this from the backend
+      const dates = [];
+      const today = new Date();
+      for (let i = 1; i <= 30; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        // Skip weekends (simple business logic)
+        if (date.getDay() !== 0 && date.getDay() !== 6) {
+          dates.push(date);
+        }
+      }
+      setDatasDisponiveis(dates);
+    } else {
+      setDatasDisponiveis([]);
+    }
+  }, [especialistaSelecionado]);
+
+  // Load available times when date is selected
+  useEffect(() => {
+    const carregarHorarios = async () => {
+      if (dataSelecionada && especialistaSelecionado) {
+        setLoadingData(true);
+        try {
+          const dateStr = dataSelecionada.toISOString().split('T')[0];
+          const horarios = await ConsultaApiService.getHorariosDisponiveis(dateStr, especialistaSelecionado);
+          setHorariosDisponiveis(horarios);
+        } catch (error) {
+          toast({
+            title: "Erro ao carregar horários",
+            description: "Não foi possível carregar os horários disponíveis para esta data.",
+            variant: "destructive",
+          });
+          setHorariosDisponiveis([]);
+        } finally {
+          setLoadingData(false);
+        }
+      } else {
+        setHorariosDisponiveis([]);
+      }
+    };
+    
+    carregarHorarios();
+  }, [dataSelecionada, especialistaSelecionado]);  // Função para avançar no formulário
   const handleNext = async () => {
     if (step === 1 && !especialistaSelecionado) {
       toast({
@@ -125,29 +175,25 @@ const AgendarHorarioUser = () => {
       return;
     }
     
-    if (step < 5) {
+    if (step < 6) {
       setStep(step + 1);
     } else {
-      // Enviar formulário      setLoading(true);
+      // Enviar formulário
+      setLoading(true);
       
       try {
-        // Agendar consulta via API
-        const response = await fetch('/api/consultas/agendar', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            profissionalId: selectedProfessional?.id,
-            data: selectedDate,
-            horario: selectedTime,
-            tipo: selectedType,
-          }),
-        });
+        const especialistaAtual = especialistas.find(e => e.id === especialistaSelecionado);
+        
+        const consultaData = {
+          idVoluntario: especialistaSelecionado!,
+          data: dataSelecionada!.toISOString().split('T')[0],
+          horario: horarioSelecionado!,
+          modalidade: tipoConsulta as 'ONLINE' | 'PRESENCIAL',
+          observacoes: observacoes,
+          especialidade: especialistaAtual?.especialidade
+        };
 
-        if (!response.ok) {
-          throw new Error('Erro ao agendar consulta');
-        }
+        await ConsultaApiService.criarConsulta(consultaData);
 
         setLoading(false);
         toast({
@@ -157,7 +203,7 @@ const AgendarHorarioUser = () => {
         
         // Redirecionamento para a página de agenda do usuário
         setTimeout(() => {
-          window.location.href = "/agenda-user";
+          navigate("/agenda-user");
         }, 2000);
       } catch (error) {
         setLoading(false);
@@ -182,13 +228,17 @@ const AgendarHorarioUser = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
-        {!sidebarOpen && (
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>
-            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
+            <ProfileAvatar 
+              profileImage={profileImage}
+              name={userData?.nome || 'User'}
+              size="w-10 h-10"
+              className="border-2 border-[#ED4231] shadow"
+            />
             <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
           </div>
         )}
@@ -201,9 +251,13 @@ const AgendarHorarioUser = () => {
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
-          </div>
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
+          </div>          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar 
+              profileImage={profileImage}
+              name={userData?.nome || 'User'}
+              size="w-16 h-16"
+              className="border-4 border-[#EDF2FB] shadow"
+            />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -248,10 +302,9 @@ const AgendarHorarioUser = () => {
           </div>
         </div>
 
-        <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
+        <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
             <div className="flex items-center gap-3">
-              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+              <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">              <Button
@@ -273,95 +326,121 @@ const AgendarHorarioUser = () => {
               <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
                 Siga os passos abaixo para agendar uma nova consulta
               </p>
-              
-              {/* Indicador de progresso */}
+                {/* Indicador de progresso */}
               <div className="w-full flex items-center mb-8">
-                {[1, 2, 3, 4, 5].map((stepNum) => (
+                {[1, 2, 3, 4, 5, 6].map((stepNum) => (
                   <div key={stepNum} className="flex-1 flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= stepNum ? 'bg-[#ED4231] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
                       {stepNum}
                     </div>
-                    {stepNum < 5 && (
+                    {stepNum < 6 && (
                       <div className={`h-1 flex-grow mx-2 ${step > stepNum ? 'bg-[#ED4231]' : 'bg-gray-200 dark:bg-gray-700'}`}></div>
                     )}
                   </div>
                 ))}
               </div>
               
-              <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
-                <CardHeader>
+              <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">                <CardHeader>
                   <CardTitle>
                     {step === 1 && "Escolha um especialista"}
                     {step === 2 && "Escolha uma data"}
                     {step === 3 && "Escolha um horário"}
                     {step === 4 && "Escolha o tipo de consulta"}
-                    {step === 5 && "Confirme sua consulta"}
+                    {step === 5 && "Observações (opcional)"}
+                    {step === 6 && "Confirme sua consulta"}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  {/* Passo 1: Escolher Especialista */}
+                <CardContent>                  {/* Passo 1: Escolher Especialista */}
                   {step === 1 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Selecione o especialista para a sua consulta:</p>
-                      <RadioGroup value={especialistaSelecionado?.toString()} onValueChange={(val) => setEspecialistaSelecionado(Number(val))}>
-                        {especialistas.map(especialista => (
-                          <div key={especialista.id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-                            <RadioGroupItem value={especialista.id.toString()} id={`especialista-${especialista.id}`} />
-                            <Label htmlFor={`especialista-${especialista.id}`} className="flex flex-col">
-                              <span className="font-medium">{especialista.nome}</span>
-                              <span className="text-sm text-gray-500 dark:text-gray-400">{especialista.especialidade}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
+                      {loadingData ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
+                          <span className="ml-2">Carregando especialistas...</span>
+                        </div>
+                      ) : especialistas.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>Nenhum especialista disponível no momento.</p>
+                          <p className="text-sm">Tente novamente mais tarde.</p>
+                        </div>
+                      ) : (
+                        <RadioGroup value={especialistaSelecionado?.toString()} onValueChange={(val) => setEspecialistaSelecionado(Number(val))}>
+                          {especialistas.map(especialista => (
+                            <div key={especialista.id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+                              <RadioGroupItem value={especialista.id.toString()} id={`especialista-${especialista.id}`} />
+                              <Label htmlFor={`especialista-${especialista.id}`} className="flex flex-col">
+                                <span className="font-medium">{especialista.nome}</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">{especialista.especialidade}</span>
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
                     </div>
                   )}
-                  
-                  {/* Passo 2: Escolher Data */}
+                    {/* Passo 2: Escolher Data */}
                   {step === 2 && (
                     <div className="space-y-4">
-                      <p className="text-gray-600 dark:text-gray-400">Selecione uma data para a consulta com {especialistaAtual?.nome}:</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {horariosDisponiveis.map((dia, index) => (                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                key={index}
-                                variant={dataSelecionada === dia.data ? "default" : "outline"}
-                                onClick={() => setDataSelecionada(dia.data)}
-                                className={`flex flex-col p-4 h-auto ${dataSelecionada === dia.data ? 'bg-[#ED4231]' : ''}`}
-                              >
-                                <span className="font-medium">{format(dia.data, "eeee", { locale: ptBR })}</span>
-                                <span>{format(dia.data, "dd/MM/yyyy")}</span>
-                                <span className="text-xs mt-1">{dia.horarios.length} horários disponíveis</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>Selecionar {format(dia.data, "eeee, dd 'de' MMMM", { locale: ptBR })}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ))}
-                      </div>
+                      <p className="text-gray-600 dark:text-gray-400">Selecione uma data para a consulta com {especialistas.find(e => e.id === especialistaSelecionado)?.nome}:</p>
+                      {datasDisponiveis.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>Nenhuma data disponível.</p>
+                          <p className="text-sm">Selecione outro especialista.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {datasDisponiveis.slice(0, 15).map((dia, index) => (
+                            <Tooltip key={index}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={dataSelecionada?.getTime() === dia.getTime() ? "default" : "outline"}
+                                  onClick={() => setDataSelecionada(dia)}
+                                  className={`flex flex-col p-4 h-auto ${dataSelecionada?.getTime() === dia.getTime() ? 'bg-[#ED4231]' : ''}`}
+                                >
+                                  <span className="font-medium">{format(dia, "eeee", { locale: ptBR })}</span>
+                                  <span>{format(dia, "dd/MM/yyyy")}</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p>Selecionar {format(dia, "eeee, dd 'de' MMMM", { locale: ptBR })}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                  
-                  {/* Passo 3: Escolher Horário */}
+                    {/* Passo 3: Escolher Horário */}
                   {step === 3 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">
                         Selecione um horário disponível para {dataSelecionada && format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}:
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {horariosParaDataSelecionada.map((horario, index) => (
-                          <Button
-                            key={index}
-                            variant={horarioSelecionado === horario ? "default" : "outline"}
-                            onClick={() => setHorarioSelecionado(horario)}
-                            className={horarioSelecionado === horario ? 'bg-[#ED4231]' : ''}
-                          >
-                            {horario}
-                          </Button>
-                        ))}
-                      </div>
+                      {loadingData ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
+                          <span className="ml-2">Carregando horários...</span>
+                        </div>
+                      ) : horariosDisponiveis.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>Nenhum horário disponível para esta data.</p>
+                          <p className="text-sm">Tente selecionar outra data.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {horariosDisponiveis.map((horario, index) => (
+                            <Button
+                              key={index}
+                              variant={horarioSelecionado === horario ? "default" : "outline"}
+                              onClick={() => setHorarioSelecionado(horario)}
+                              className={horarioSelecionado === horario ? 'bg-[#ED4231]' : ''}
+                            >
+                              {horario}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -373,11 +452,11 @@ const AgendarHorarioUser = () => {
                         {tiposConsulta.map((tipo, index) => (
                           <Button
                             key={index}
-                            variant={tipoConsulta === tipo ? "default" : "outline"}
-                            onClick={() => setTipoConsulta(tipo)}
-                            className={`flex items-center justify-start p-6 h-auto ${tipoConsulta === tipo ? 'bg-[#ED4231]' : ''}`}
+                            variant={tipoConsulta === tipo.valor ? "default" : "outline"}
+                            onClick={() => setTipoConsulta(tipo.valor)}
+                            className={`flex items-center justify-start p-6 h-auto ${tipoConsulta === tipo.valor ? 'bg-[#ED4231]' : ''}`}
                           >
-                            {tipo === "Consulta Online" ? (
+                            {tipo.valor === "ONLINE" ? (
                               <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
@@ -387,15 +466,38 @@ const AgendarHorarioUser = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 005.25 3h13.5A2.25 2.25 0 0021 5.25z" />
                               </svg>
                             )}
-                            {tipo}
+                            {tipo.label}
                           </Button>
                         ))}
                       </div>
                     </div>
+                  )}                  
+                  {/* Passo 5: Observações */}
+                  {step === 5 && (
+                    <div className="space-y-4">
+                      <p className="text-gray-600 dark:text-gray-400">Adicione observações para a consulta (opcional):</p>
+                      <div className="space-y-2">
+                        <label htmlFor="observacoes" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Observações:
+                        </label>
+                        <textarea
+                          id="observacoes"
+                          value={observacoes}
+                          onChange={(e) => setObservacoes(e.target.value)}
+                          placeholder="Digite aqui qualquer informação adicional que possa ser relevante para a consulta..."
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-[#ED4231] focus:border-transparent dark:bg-gray-800 dark:text-white resize-none"
+                          rows={4}
+                          maxLength={500}
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {observacoes.length}/500 caracteres
+                        </p>
+                      </div>
+                    </div>
                   )}
                   
-                  {/* Passo 5: Confirmação */}
-                  {step === 5 && (
+                  {/* Passo 6: Confirmação */}
+                  {step === 6 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Confira os dados da sua consulta:</p>
                       <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
@@ -411,17 +513,24 @@ const AgendarHorarioUser = () => {
                               {dataSelecionada && format(dataSelecionada, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                             </p>
                             <p className="text-sm">às {horarioSelecionado}</p>
-                          </div>
-                          <div>
+                          </div>                          <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Tipo de Consulta:</p>
-                            <p className="font-medium">{tipoConsulta}</p>
-                          </div>
-                          <div>
+                            <p className="font-medium">
+                              {tipoConsulta === 'ONLINE' ? 'Consulta Online' : 'Consulta Presencial'}
+                            </p>
+                          </div>                          <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Paciente:</p>
                             <p className="font-medium">{userData?.nome} {userData?.sobrenome}</p>
                             <p className="text-sm">{userData?.email}</p>
                           </div>
                         </div>
+                        
+                        {observacoes && (
+                          <div className="mt-4 pt-4 border-t dark:border-gray-700">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Observações:</p>
+                            <p className="text-sm mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded">{observacoes}</p>
+                          </div>
+                        )}
                         
                         <div className="mt-4 pt-4 border-t dark:border-gray-700">
                           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -456,8 +565,7 @@ const AgendarHorarioUser = () => {
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                               </svg>
                               Processando...
-                            </div>
-                          ) : step === 5 ? (
+                            </div>                          ) : step === 6 ? (
                             "Confirmar Agendamento"
                           ) : (
                             <span className="flex items-center">
@@ -467,7 +575,7 @@ const AgendarHorarioUser = () => {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        <p>{step === 5 ? "Finalizar e agendar a consulta" : "Avançar para o próximo passo"}</p>
+                        <p>{step === 6 ? "Finalizar e agendar a consulta" : "Avançar para o próximo passo"}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
