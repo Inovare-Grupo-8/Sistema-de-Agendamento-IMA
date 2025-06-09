@@ -831,47 +831,57 @@ const HomeUser = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <CalendarIcon className="w-5 h-5 text-[#ED4231] cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Selecione uma data no calendário para agendar uma nova consulta</p>
+                        </TooltipTrigger>                        <TooltipContent>
+                          <p>Calendário somente leitura - clique em datas com consultas para ver detalhes</p>
                         </TooltipContent>
                       </Tooltip>
                       Calendário
                     </CardTitle>
-                    <CardDescription>Selecione uma data para agendar</CardDescription>
+                    <CardDescription>Clique em datas com consultas para ver detalhes</CardDescription>
                   </CardHeader>
-                  <CardContent>                    
-                    <div className="flex justify-center">
+                  <CardContent>                      <div className="flex justify-center">
                       <Calendar
                         mode="single"
-                        selected={selectedDate}
+                        selected={undefined} // Removido para tornar apenas leitura
                         onSelect={(date) => {
-                          setSelectedDate(date);
                           if (date) {
                             // Verificar se há consultas nesta data
                             const consultasNaData = proximasConsultas.filter(
                               consulta => consulta.data.toDateString() === date.toDateString()
                             );
                             
+                            // Só permitir interação se houver consultas na data
                             if (consultasNaData.length > 0) {
+                              // Mostrar detalhes da primeira consulta na data
+                              const consulta = consultasNaData[0];
+                              abrirModalDetalhes(consulta);
+                              
                               toast({
                                 title: `${consultasNaData.length} consulta${consultasNaData.length > 1 ? 's' : ''} nesta data`,
-                                description: "Você já possui consultas agendadas para esta data.",
+                                description: "Clique para ver detalhes da consulta.",
                                 variant: "default",
                                 duration: 3000,
                               });
                             } else {
                               toast({
-                                title: "Data selecionada",
-                                description: `Você selecionou ${format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
+                                title: "Nenhuma consulta nesta data",
+                                description: "Você pode agendar uma nova consulta clicando no botão de agendamento.",
+                                variant: "default",
                                 duration: 3000,
                               });
                             }
                           }
                         }}
-                        className="rounded-md border border-[#EDF2FB] dark:border-[#444857]"
+                        className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
                         locale={ptBR}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) => {
+                          // Desabilitar datas passadas e datas sem consultas
+                          const isPastDate = date < new Date(new Date().setHours(0, 0, 0, 0));
+                          const hasConsultation = proximasConsultas.some(
+                            consulta => consulta.data.toDateString() === date.toDateString()
+                          );
+                          return isPastDate || !hasConsultation;
+                        }}
                         initialFocus
                         modifiers={{
                           booked: (date) => proximasConsultas.some(
@@ -884,6 +894,7 @@ const HomeUser = () => {
                             borderColor: "rgba(237, 66, 49, 0.5)",
                             color: "#ED4231",
                             fontWeight: "bold",
+                            cursor: "pointer"
                           }
                         }}
                       />
