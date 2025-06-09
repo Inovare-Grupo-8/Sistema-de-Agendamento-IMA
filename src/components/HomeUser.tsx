@@ -66,8 +66,9 @@ const HomeUser = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { userData } = useUserData();
+  const { profileImage, setProfileImage } = useProfileImage();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { userData, setUserData } = useUserData();
+  const { fetchPerfil } = useUserData();
   
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -114,31 +115,28 @@ const HomeUser = () => {
   });
   // Estado para as próximas consultas - carregado via API
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
-
   //Proxima consulta do usuario
    const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
- // Adicionar useEffect para carregar a próxima consulta
+  
+  // Adicionar useEffect para carregar a próxima consulta
   useEffect(() => {
     const loadProximaConsulta = async () => {
       try {
         const userData = localStorage.getItem("userData");
         if (!userData) {
-          console.log("User data not found");
+          console.log("User data not found - continuing without data");
           return;
         }
 
         const user = JSON.parse(userData);
-        const idUsuario = user.idUsuario; // Note que aqui usamos idUsuario conforme o backend
+        const idUsuario = user.idUsuario; 
 
         const consulta = await ConsultaApiService.getProximaConsulta(idUsuario);
         setProximaConsulta(consulta);
       } catch (error) {
         console.error("Erro ao carregar próxima consulta:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar sua próxima consulta",
-          variant: "destructive"
-        });
+        // Apenas log do erro, sem redirecionamento
+        console.log("Continuando sem dados da próxima consulta");
       }
     };
 
@@ -152,10 +150,13 @@ const HomeUser = () => {
       setLoading(true);
       setError("");
       
-      try {
-        // Buscar dados de consultas da API
-        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');        // Para o usuário assistido, mapear os dados corretamente
-        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);        setConsultasSummary({
+      try {        // Buscar dados de consultas da API
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
+        
+        // Para o usuário assistido, mapear os dados corretamente
+        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
+        
+        setConsultasSummary({
           total: consultaStats.hoje, // Consultas de hoje (card azul)
           proxima: proximaData, // Próxima consulta agendada
           mes: consultaStats.mes, // Consultas do mês (card vermelho)
@@ -174,18 +175,20 @@ const HomeUser = () => {
               especialidade: proximaConsulta.especialidade,
               tipo: proximaConsulta.tipo,
               status: proximaConsulta.status
-            });
-          }
-        }        // Atualizar dados dos atendimentos com dados zerados até API estar completa
+            });          }
+        }
+        
+        // Atualizar dados dos atendimentos com dados zerados até API estar completa
         setAtendimentosSummary({
           realizados: 0,
           proximos: 0,
           ultimaAvaliacao: null
         });
         
-      } catch (err: any) {
-        console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");        // Manter dados zerados em caso de erro
+      } catch (err: any) {        console.error('Erro ao carregar dados das consultas:', err);
+        setError(err.message || "Erro ao carregar dados das consultas");
+        
+        // Manter dados zerados em caso de erro
         const proximaData = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
@@ -459,6 +462,45 @@ const HomeUser = () => {
     ];
     return links[Math.floor(Math.random() * links.length)];
   };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+          const parsedUserData = JSON.parse(userData);
+          setUserData(parsedUserData);
+          if (parsedUserData.fotoUrl) {
+            setProfileImage(parsedUserData.fotoUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        toast({
+          title: 'Erro ao carregar dados',
+          description: 'Não foi possível carregar os dados do usuário.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    loadUserData();
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
@@ -728,15 +770,8 @@ const HomeUser = () => {
                               className="mt-2 text-center py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg"
                             >
                               <span className="text-sm text-gray-500 dark:text-gray-400">
-                                Você não tem consultas agendadas
+                                Você não tem nenhuma consulta agendada para os próximos dias.
                               </span>
-                              <div className="mt-2">
-                                <Link to="/agendar-horario-user">
-                                  <Button size="sm" variant="outline" className="text-xs border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10">
-                                    Agendar Consulta
-                                  </Button>
-                                </Link>
-                              </div>
                             </motion.div>
                           )}
                         </div>
@@ -1403,6 +1438,7 @@ const HomeUser = () => {
                   </div>
                 </div>
 
+               
                 {/* Seleção de Motivo */}
                 <div className="space-y-3">
                   <Label htmlFor="motivo" className="text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -1452,7 +1488,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />
@@ -1479,7 +1515,7 @@ const HomeUser = () => {
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                         <path d="m12 17 .01 0" />
@@ -1731,7 +1767,7 @@ const HomeUser = () => {
                 {consultaDetalhes.status === 'agendada' && (
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                       Lembrete
                     </h4>
                     <div className="text-sm text-green-700 dark:text-green-300">

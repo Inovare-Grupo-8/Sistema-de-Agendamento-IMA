@@ -64,7 +64,7 @@ const HistoricoUser = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Use the userData hook to get synchronized user data
-  const { userData } = useUserData();
+  const { userData, fetchPerfil } = useUserData();
 
   const location = useLocation();  
   const [loading, setLoading] = useState(false);
@@ -107,6 +107,20 @@ const HistoricoUser = () => {
     };
     
     loadHistorico();
+  }, []);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    loadUserData();
   }, []);
 
   const handleAddFeedback = (consulta: HistoricoConsulta, rating: number, comment?: string) => {

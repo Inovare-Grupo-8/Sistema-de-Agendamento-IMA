@@ -21,6 +21,43 @@ import { isPhone, formatters } from "@/utils/validation";
 import { LetterAvatar } from "@/components/ui/LetterAvatar";
 
 const ProfileFormUser = () => {
+  console.log('🚀 [ProfileForm] DEBUG: Componente ProfileFormUser renderizado');
+  console.log('🚀 [ProfileForm] DEBUG: Timestamp:', new Date().toISOString());
+  console.log('🚀 [ProfileForm] DEBUG: URL atual:', window.location.href);
+  
+  // Interceptar mudanças de location para detectar redirecionamentos
+  useEffect(() => {
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+      console.log('🌍 [ProfileForm] DEBUG: history.pushState chamado:', args);
+      console.log('🌍 [ProfileForm] DEBUG: Stack trace:', new Error().stack);
+      return originalPushState.apply(this, args);
+    };
+    
+    window.history.replaceState = function(...args) {
+      console.log('🌍 [ProfileForm] DEBUG: history.replaceState chamado:', args);
+      console.log('🌍 [ProfileForm] DEBUG: Stack trace:', new Error().stack);
+      return originalReplaceState.apply(this, args);
+    };
+    
+    // Interceptar popstate (botão voltar/avançar)
+    const handlePopState = (event: PopStateEvent) => {
+      console.log('🔙 [ProfileForm] DEBUG: popstate event detectado:', event);
+      console.log('🔙 [ProfileForm] DEBUG: Nova URL:', window.location.href);
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    // Cleanup
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+  
   const location = useLocation();
   const navigate = useNavigate();  
   const [loading, setLoading] = useState(false);
@@ -61,36 +98,67 @@ const ProfileFormUser = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);  // Load profile data using the new hook
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);  // Load profile data using the new hook
   const loadProfileData = async () => {
+    console.log('🟢 [ProfileForm] DEBUG: loadProfileData iniciado');
+    console.log('🟢 [ProfileForm] DEBUG: URL atual:', window.location.href);
+    console.log('🟢 [ProfileForm] DEBUG: Timestamp:', new Date().toISOString());
+    
     try {
       setInitialLoading(true);
       
       // Verificar se o usuário está logado antes de fazer chamadas à API
       const userData = localStorage.getItem('userData');
-      console.log('🔍 Debug ProfileFormUser - userData do localStorage:', userData);
+      const userInfo = localStorage.getItem('userInfo');
+      
+      console.log('🔍 [ProfileForm] DEBUG: Verificando localStorage...');
+      console.log('🔍 [ProfileForm] DEBUG: userData exists:', !!userData);
+      console.log('🔍 [ProfileForm] DEBUG: userInfo exists:', !!userInfo);
       
       if (!userData) {
-        console.log('Usuário não logado, não é possível carregar perfil');
-        navigate('/login');
+        console.warn('⚠️ [ProfileForm] DEBUG: Usuário não logado - userData não encontrado.');
+        console.log('🔍 [ProfileForm] DEBUG: localStorage completo:', Object.keys(localStorage));
         return;
       }
-      
+
+      let parsedData;
       try {
-        const parsedData = JSON.parse(userData);
-        console.log('🔍 Debug ProfileFormUser - dados parseados:', parsedData);
-        console.log('🔍 Debug ProfileFormUser - idUsuario presente?', !!parsedData.idUsuario);
-        console.log('🔍 Debug ProfileFormUser - token presente?', !!parsedData.token);
+        parsedData = JSON.parse(userData);
+        console.log('🔍 [ProfileForm] DEBUG: userData parsed:', {
+          hasIdUsuario: !!parsedData.idUsuario,
+          hasToken: !!parsedData.token,
+          tokenLength: parsedData.token?.length || 0,
+          idUsuario: parsedData.idUsuario
+        });
+        
+        if (!parsedData.idUsuario || !parsedData.token) {
+          console.warn('⚠️ [ProfileForm] DEBUG: Dados do usuário incompletos.');
+          console.log('🔍 [ProfileForm] DEBUG: parsedData structure:', Object.keys(parsedData));
+          return;
+        }
       } catch (parseError) {
-        console.error('🔍 Debug ProfileFormUser - erro ao fazer parse:', parseError);
+        console.error('❌ [ProfileForm] DEBUG: Erro ao fazer parse do userData:', parseError);
+        console.log('🔍 [ProfileForm] DEBUG: userData raw:', userData);
+        return;
       }
+
+      console.log('🔄 [ProfileForm] DEBUG: Iniciando chamadas para API...');
+      console.log('🔄 [ProfileForm] DEBUG: Buscando dados pessoais...');
       
       const dadosPessoais = await fetchPerfil();
+      console.log('✅ [ProfileForm] DEBUG: Dados pessoais recebidos:', {
+        hasData: !!dadosPessoais,
+        fields: dadosPessoais ? Object.keys(dadosPessoais) : []
+      });
+      
+      console.log('🔄 [ProfileForm] DEBUG: Buscando endereço...');
       const endereco = await buscarEndereco();
-      
-      console.log('🔍 Debug ProfileFormUser - dadosPessoais recebidos:', dadosPessoais);
-      console.log('🔍 Debug ProfileFormUser - telefone específico:', dadosPessoais?.telefone);
-      
+      console.log('✅ [ProfileForm] DEBUG: Endereço recebido:', {
+        hasData: !!endereco,
+        fields: endereco ? Object.keys(endereco) : []
+      });
+
       const perfilCompleto = {
         nome: dadosPessoais?.nome || '',
         sobrenome: dadosPessoais?.sobrenome || '',
@@ -106,43 +174,58 @@ const ProfileFormUser = () => {
           bairro: endereco?.bairro || '',
           cidade: endereco?.cidade || '',
           estado: endereco?.estado || '',
-        }      };
+        },
+      };
 
-      console.log('🔍 Debug ProfileFormUser - perfilCompleto montado:', perfilCompleto);
-      console.log('🔍 Debug ProfileFormUser - telefone no perfilCompleto:', perfilCompleto.telefone);
-
+      console.log('✅ [ProfileForm] DEBUG: Perfil completo montado, atualizando estados...');
       setFormData(perfilCompleto);
       setUserData(perfilCompleto);
-        } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
+      console.log('✅ [ProfileForm] DEBUG: Estados atualizados com sucesso');
       
-      // Não mostrar toast de erro se for uma questão de autenticação
+    } catch (error) {
+      console.error('❌ [ProfileForm] DEBUG: Erro ao carregar perfil:', error);
+      console.log('🔍 [ProfileForm] DEBUG: Tipo do erro:', error?.constructor?.name);
+      console.log('🔍 [ProfileForm] DEBUG: Mensagem do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
+      console.log('🔍 [ProfileForm] DEBUG: Stack trace:', error instanceof Error ? error.stack : 'N/A');
+
       if (error instanceof Error && error.message.includes('Token inválido')) {
-        console.log('Erro de autenticação - usuário será redirecionado');
+        console.warn('⚠️ [ProfileForm] DEBUG: Erro de autenticação detectado - token inválido');
+        console.log('🔍 [ProfileForm] DEBUG: Verificando se deve redirecionar...');
+        console.log('🔍 [ProfileForm] DEBUG: URL atual antes do erro:', window.location.pathname);
+        
+        // Verificar se já estamos sendo redirecionados
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login') {
+          console.log('🚨 [ProfileForm] DEBUG: POSSÍVEL REDIRECIONAMENTO AQUI - token inválido na página:', currentPath);
+        }
         return;
       }
-      
-      // Se for erro de rede, mostrar uma mensagem diferente
+
       if (error instanceof Error && error.message.includes('conexão')) {
+        console.warn('⚠️ [ProfileForm] DEBUG: Erro de conexão detectado');
         toast({
-          title: "Erro de conexão",
-          description: "Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde.",
-          variant: "destructive"
+          title: 'Erro de conexão',
+          description: 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde.',
+          variant: 'destructive',
         });
         return;
       }
-      
+
+      console.log('⚠️ [ProfileForm] DEBUG: Erro genérico, mostrando toast...');
       toast({
-        title: "Erro ao carregar dados",
-        description: "Não foi possível carregar os dados do seu perfil.",
-        variant: "destructive"
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar os dados do seu perfil.',
+        variant: 'destructive',
       });
     } finally {
+      console.log('🏁 [ProfileForm] DEBUG: loadProfileData finalizado');
       setInitialLoading(false);
     }
-  };
-    // Carregar dados do perfil quando o componente for montado
+  };    // Carregar dados do perfil quando o componente for montado
   useEffect(() => {
+    console.log('🚀 [ProfileForm] DEBUG: useEffect montado - iniciando carregamento do perfil');
+    console.log('🚀 [ProfileForm] DEBUG: Componente montado em:', window.location.pathname);
+    console.log('🚀 [ProfileForm] DEBUG: User agent:', navigator.userAgent);
     loadProfileData();
   }, []);
   // Update form data when userData changes (sync across tabs)
@@ -381,19 +464,19 @@ const ProfileFormUser = () => {
     if (selectedImage && imagePreview) {
       try {
         setLoading(true);
-        
+
         // Upload da foto e obter a URL
         const url = await uploadFoto(selectedImage);
         console.log('URL da foto recebida do servidor:', url);
 
         // Atualizar o contexto com a nova URL da imagem do servidor
-        setProfileImage(url);
+        setProfileImage(url.fotoUrl); // Corrected type mismatch
 
         // Limpar estados locais
         setSelectedImage(null);
         setImagePreview(null);
         setFormChanged(false);
-          
+
         toast({
           title: "Foto atualizada",
           description: "Sua foto de perfil foi atualizada com sucesso!",
@@ -408,7 +491,7 @@ const ProfileFormUser = () => {
         toast({
           title: "Erro ao atualizar foto",
           description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar sua foto de perfil.",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -417,7 +500,7 @@ const ProfileFormUser = () => {
       toast({
         title: "Nenhuma foto selecionada",
         description: "Selecione uma foto para atualizar",
-        variant: "default"
+        variant: "default",
       });
     }
   };
@@ -426,22 +509,22 @@ const ProfileFormUser = () => {
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const cep = e.target.value;
     if (!cep || cep.length < 8) return;
-    
+
     const endereco = await fetchAddressByCep(cep);
     if (endereco) {
       setFormData(prev => ({
         ...prev,
         endereco: {
           ...prev.endereco,
-          rua: endereco.logradouro,
+          rua: endereco.rua, // Corrected property access
           bairro: endereco.bairro,
-          cidade: endereco.localidade,
-          estado: endereco.uf,
+          cidade: endereco.cidade, // Corrected property access
+          estado: endereco.estado, // Corrected property access
           cep: endereco.cep
         }
       }));
       setFormChanged(true);
-      
+
       toast({
         title: "Endereço encontrado",
         description: "Os campos foram preenchidos automaticamente.",
@@ -467,6 +550,32 @@ const ProfileFormUser = () => {
       title: "Alterações descartadas",
       description: "Suas alterações foram descartadas com sucesso.",
     });
+  };
+
+  // Monitorar mudanças de localização
+  useEffect(() => {
+    console.log('🔄 [ProfileForm] DEBUG: Localização mudou para:', location.pathname);
+    console.log('🔄 [ProfileForm] DEBUG: Location state:', location.state);
+  }, [location]);
+
+  // Monitor de desmontagem do componente
+  useEffect(() => {
+    return () => {
+      console.log('🔴 [ProfileForm] DEBUG: Componente ProfileFormUser sendo desmontado');
+      console.log('🔴 [ProfileForm] DEBUG: Timestamp da desmontagem:', new Date().toISOString());
+      console.log('🔴 [ProfileForm] DEBUG: URL no momento da desmontagem:', window.location.href);
+    };
+  }, []);
+  // Interceptador para monitorar todas as tentativas de navegação
+  const interceptedNavigate = (to: string | number, options?: any) => {
+    console.log('🚨 [ProfileForm] DEBUG: TENTATIVA DE NAVEGAÇÃO DETECTADA!');
+    console.log('🚨 [ProfileForm] DEBUG: Destino:', to);
+    console.log('🚨 [ProfileForm] DEBUG: Opções:', options);
+    console.log('🚨 [ProfileForm] DEBUG: URL atual antes da navegação:', window.location.href);
+    console.log('🚨 [ProfileForm] DEBUG: Stack trace da navegação:', new Error().stack);
+    
+    // Chamar o navigate original
+    return navigate(to, options);
   };
 
   return (
@@ -524,29 +633,6 @@ const ProfileFormUser = () => {
                 </Tooltip>
               </SidebarMenuItem>
             ))}
-              <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton 
-                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
-                    onClick={() => {
-                      localStorage.removeItem('userData');
-                      localStorage.removeItem('profileData');
-                      navigate('/');
-                      toast({
-                        title: "Sessão encerrada",
-                        description: "Você foi desconectado com sucesso.",
-                      });
-                    }}
-                  >
-                    <ArrowLeft className="w-6 h-6" />
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
-                    <span>Sair</span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">Sair da conta</TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
           </SidebarMenu>
           
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
@@ -590,11 +676,13 @@ const ProfileFormUser = () => {
             {getUserNavigationPath(location.pathname)}
 
             <div className="flex flex-col">
-              <div className="flex items-center gap-4 mb-6">
-                <Tooltip>
+              <div className="flex items-center gap-4 mb-6">                <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      onClick={() => navigate("/home-user")} 
+                      onClick={() => {
+                        console.log('🔘 [ProfileForm] DEBUG: Botão voltar clicado');
+                        interceptedNavigate("/home-user");
+                      }} 
                       variant="ghost" 
                       className="p-2 rounded-full"
                       aria-label="Voltar"

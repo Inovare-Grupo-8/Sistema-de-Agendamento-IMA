@@ -96,54 +96,54 @@ const Home = () => {
 
   // Dados de exemplo para as próximas consultas
   const [proximasConsultas, setProximasConsultas] = useState([
-    {
-      id: 1,
-      paciente: "João Silva",
-      data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
-      tipo: "Consulta Online",
-      status: "agendada"
-    },
-    {
-      id: 2,
-      paciente: "Maria Oliveira",
-      data: new Date(2025, 4, 18, 14, 30), // 18 de maio de 2025, 14:30
-      tipo: "Consulta Presencial",
-      status: "agendada"
-    },
-    {
-      id: 3,
-      paciente: "Pedro Santos",
-      data: new Date(2025, 4, 19, 9, 0), // 19 de maio de 2025, 09:00
-      tipo: "Consulta Online",
-      status: "agendada"
-    }
+    // {
+    //   id: 1,
+    //   paciente: "João Silva",
+    //   data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
+    //   tipo: "Consulta Online",
+    //   status: "agendada"
+    // },
+    // {
+    //   id: 2,
+    //   paciente: "Maria Oliveira",
+    //   data: new Date(2025, 4, 18, 14, 30), // 18 de maio de 2025, 14:30
+    //   tipo: "Consulta Presencial",
+    //   status: "agendada"
+    // },
+    // {
+    //   id: 3,
+    //   paciente: "Pedro Santos",
+    //   data: new Date(2025, 4, 19, 9, 0), // 19 de maio de 2025, 09:00
+    //   tipo: "Consulta Online",
+    //   status: "agendada"
+    // }
   ]);
 
   // Dados de exemplo para o histórico recente
   const [historicoRecente, setHistoricoRecente] = useState([
-    {
-      id: 1,
-      paciente: "Ana Costa",
-      data: new Date(2025, 4, 15, 11, 0), // 15 de maio de 2025, 11:00
-      tipo: "Consulta Online",
-      status: "realizada",
-      avaliacao: 5
-    },
-    {
-      id: 2,
-      paciente: "Carlos Pereira",
-      data: new Date(2025, 4, 16, 15, 0), // 16 de maio de 2025, 15:00
-      tipo: "Consulta Presencial",
-      status: "realizada",
-      avaliacao: 4
-    },
-    {
-      id: 3,
-      paciente: "Lucia Ferreira",
-      data: new Date(2025, 4, 16, 17, 30), // 16 de maio de 2025, 17:30
-      tipo: "Consulta Online",
-      status: "cancelada"
-    }
+    // {
+    //   id: 1,
+    //   paciente: "Ana Costa",
+    //   data: new Date(2025, 4, 15, 11, 0), // 15 de maio de 2025, 11:00
+    //   tipo: "Consulta Online",
+    //   status: "realizada",
+    //   avaliacao: 5
+    // },
+    // {
+    //   id: 2,
+    //   paciente: "Carlos Pereira",
+    //   data: new Date(2025, 4, 16, 15, 0), // 16 de maio de 2025, 15:00
+    //   tipo: "Consulta Presencial",
+    //   status: "realizada",
+    //   avaliacao: 4
+    // },
+    // {
+    //   id: 3,
+    //   paciente: "Lucia Ferreira",
+    //   data: new Date(2025, 4, 16, 17, 30), // 16 de maio de 2025, 17:30
+    //   tipo: "Consulta Online",
+    //   status: "cancelada"
+    // }
   ]);  // Carregar dados das consultas via API
   useEffect(() => {
     const loadConsultaData = async () => {

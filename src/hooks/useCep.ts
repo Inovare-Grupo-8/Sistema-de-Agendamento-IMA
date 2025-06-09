@@ -2,17 +2,13 @@ import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 
 interface EnderecoViaCep {
-  cep: string;
-  logradouro: string;
-  complemento: string;
+  rua: string;
+  numero: string;
+  complemento: string; // Changed from optional to required
   bairro: string;
-  localidade: string;
-  uf: string;
-  ibge: string;
-  gia: string;
-  ddd: string;
-  siafi: string;
-  erro?: boolean;
+  cidade: string;
+  estado: string;
+  cep: string;
 }
 
 export function useCep() {

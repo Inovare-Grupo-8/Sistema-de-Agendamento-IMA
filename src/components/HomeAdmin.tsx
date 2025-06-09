@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar, User, Clock, Menu, History, Sun, Moon, Home, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { useUserData } from "@/hooks/useUserData";
@@ -18,7 +18,21 @@ const HomeAdmin = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { userData } = useUserData();
+  const { userData, fetchPerfil } = useUserData();
+  
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
   
   const handleLogout = () => {
     localStorage.removeItem('userData');
