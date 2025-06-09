@@ -34,7 +34,9 @@ export interface UserProfileOutput {
 }
 
 export const useUserProfile = () => {
-    const navigate = useNavigate();    // Função utilitária para buscar dados de autenticação do localStorage
+    const navigate = useNavigate();
+
+    // Função utilitária para buscar dados de autenticação do localStorage
     const getUserAuthData = () => {
         const userData = localStorage.getItem('userData');
         const userInfo = localStorage.getItem('userInfo');
@@ -64,106 +66,97 @@ export const useUserProfile = () => {
         }
         
         // Mapear tipo do usuário para o formato esperado pelo backend
-        let tipoFormatado = 'assistido'; // default
+        let tipoFormatado = 'usuario'; // default
+        
         if (tipoUsuario) {
             const tipo = tipoUsuario.toUpperCase();
+            
             if (tipo === 'VOLUNTARIO') {
                 tipoFormatado = 'voluntario';
             } else if (tipo === 'ADMINISTRADOR') {
                 tipoFormatado = 'assistente-social';
             } else if (tipo === 'VALOR_SOCIAL' || tipo === 'GRATUIDADE') {
                 tipoFormatado = 'assistido';
+            } else if (tipo === 'NAO_CLASSIFICADO' || tipo === 'USUARIO') {
+                tipoFormatado = 'usuario';
             }
         }
         
         return { user, token, usuarioId, tipoUsuario: tipoFormatado };
     };
 
-    const atualizarUltimoAcesso = async (usuarioId: number, token: string) => {
-        try {
-            const response = await fetch(`http://localhost:8080/usuarios/${usuarioId}/ultimo-acesso`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+    // Função para criar dados de perfil offline (quando backend não estiver disponível)
+    const createOfflineProfile = (userAuthData: any): UserProfileOutput => {
+        const { user, usuarioId } = userAuthData;
+        
+        // Buscar dados salvos localmente
+        const savedProfile = localStorage.getItem('savedProfile');
+        const localProfile = savedProfile ? JSON.parse(savedProfile) : {};
+        
+        return {
+            idUsuario: usuarioId,
+            nome: localProfile.nome || user.nome || '',
+            sobrenome: localProfile.sobrenome || user.sobrenome || '',
+            telefone: localProfile.telefone || user.telefone || '',
+            email: localProfile.email || user.email || '',
+            dataNascimento: localProfile.dataNascimento || '',
+            genero: localProfile.genero || '',
+            fotoUrl: localProfile.fotoUrl || ''
+        };
+    };
 
-            if (!response.ok) {
-                console.error('Erro ao atualizar último acesso:', response.status);
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar último acesso:', error);
-        }
-    };    const fetchPerfil = async (): Promise<UserProfileOutput> => {
+    const fetchPerfil = async (): Promise<UserProfileOutput> => {
         try {
-            const { user, token, usuarioId, tipoUsuario } = getUserAuthData();
-            
-            console.log('🔍 Debug - usuarioId final:', usuarioId);
-            console.log('🔍 Debug - tipoUsuario:', tipoUsuario);
-            console.log('🔍 Debug - token:', token ? 'Token exists' : 'No token');
+            const authData = getUserAuthData();
+            const { token, usuarioId, tipoUsuario } = authData;
 
-            // Atualizar último acesso do usuário
-            if (token) {
-                await atualizarUltimoAcesso(usuarioId, token);
-            }            // Usar endpoint específico para assistente social
+            // Tentar buscar do backend
             const endpoint = tipoUsuario === 'assistente-social' 
                 ? `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`
                 : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
             
-            console.log('🔍 Debug - URL:', endpoint);
-            console.log('🔍 Debug - Usando endpoint específico para assistente social:', tipoUsuario === 'assistente-social');
-
             const response = await fetch(endpoint, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token || ''}`
                 }
-            });            if (!response.ok) {
-                const errorText = await response.text();
-                console.log('🔍 Debug - Error response:', errorText);
-                
-                // Se for erro de autenticação (401), mas apenas redirecionar se não estivermos em uma rota pública
+            });
+
+            if (!response.ok) {
+                // Se for erro de autenticação, só redirecionar se estivermos em página protegida
                 if (response.status === 401) {
-                    console.log('Token inválido ou expirado');
-                    // Verificar se o usuário está realmente em uma página que requer autenticação
                     const currentPath = window.location.pathname;
                     const publicRoutes = ['/login', '/cadastro', '/completar-cadastro-usuario', '/completar-cadastro-voluntario'];
                     
                     if (!publicRoutes.some(route => currentPath.startsWith(route))) {
-                        console.log('Redirecionando para login devido a token inválido...');
                         localStorage.removeItem('userData');
                         navigate('/login');
                     }
                     throw new Error('Token inválido ou expirado');
                 }
                 
-                // Se for erro de conexão (500, network error, etc), não redirecionar
-                if (response.status >= 500) {
-                    console.log('Erro do servidor - não redirecionando');
-                    throw new Error('Erro do servidor - tente novamente mais tarde');
-                }
-                
-                throw new Error('Erro ao buscar perfil');
+                // Para outros erros (500, etc), usar dados offline
+                console.warn(`Erro ${response.status} no backend, usando dados offline`);
+                return createOfflineProfile(authData);
             }
 
             const data = await response.json();
             
-            // Se houver uma foto, adiciona a URL base
+            // Se houver uma foto, adicionar a URL base
             if (data.fotoUrl) {
                 data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
             }
 
-            console.log('🔍 Debug - Profile data:', data);
+            // Salvar no localStorage para usar offline
+            localStorage.setItem('savedProfile', JSON.stringify(data));
+            
             return data;
         } catch (error) {
-            console.error('Erro ao buscar perfil:', error);
-            
-            // Se for erro de rede (fetch failed), não redirecionar
+            // Se for erro de rede, usar dados offline
             if (error instanceof TypeError && error.message.includes('fetch')) {
-                console.log('Erro de rede - backend pode estar offline');
-                throw new Error('Erro de conexão - verifique se o servidor está funcionando');
+                console.warn('Backend indisponível, usando dados offline');
+                return createOfflineProfile(getUserAuthData());
             }
             
             throw error;
@@ -183,55 +176,71 @@ export const useUserProfile = () => {
         telefone: string;
         email: string;
         dataNascimento?: string;
-        genero?: string;    }> => {
+        genero?: string;
+    }> => {
         try {
-            const { token, usuarioId, tipoUsuario } = getUserAuthData();            console.log('🔍 Debug PATCH - dados enviados:', dados);
-            console.log('🔍 Debug PATCH - tipoUsuario:', tipoUsuario);
-            console.log('🔍 Debug PATCH - usuarioId:', usuarioId);
+            const { token, usuarioId, tipoUsuario } = getUserAuthData();
 
-            // Usar endpoint específico para assistente social
-            const endpoint = tipoUsuario === 'assistente-social' 
-                ? `http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
-                : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
+            // Sempre salvar localmente primeiro
+            const currentProfile = localStorage.getItem('savedProfile');
+            const profile = currentProfile ? JSON.parse(currentProfile) : {};
+            const updatedProfile = { ...profile, ...dados };
+            localStorage.setItem('savedProfile', JSON.stringify(updatedProfile));
 
-            console.log('🔍 Debug PATCH - endpoint:', endpoint);
-            console.log('🔍 Debug PATCH - Usando endpoint específico para assistente social:', tipoUsuario === 'assistente-social');
+            // Tentar enviar para o backend
+            try {
+                const endpoint = tipoUsuario === 'assistente-social' 
+                    ? `http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
+                    : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
 
-            const response = await fetch(endpoint, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: JSON.stringify(dados)
-            });
+                const response = await fetch(endpoint, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token || ''}`
+                    },
+                    body: JSON.stringify(dados)
+                });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro na resposta:', errorText);
-                throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Atualizar localStorage se o email foi alterado
+                    if (result.email) {
+                        updateEmailInLocalStorage(result.email);
+                    }
+                    
+                    // Salvar resultado do backend
+                    localStorage.setItem('savedProfile', JSON.stringify({ ...updatedProfile, ...result }));
+                    
+                    return {
+                        nome: result.nome || dados.nome,
+                        sobrenome: result.sobrenome || dados.sobrenome,
+                        telefone: result.telefone || dados.telefone,
+                        email: result.email || dados.email,
+                        dataNascimento: result.dataNascimento || dados.dataNascimento,
+                        genero: result.genero || dados.genero
+                    };
+                } else {
+                    console.warn('Erro no backend, dados salvos localmente');
+                }
+            } catch (networkError) {
+                console.warn('Backend indisponível, dados salvos localmente');
             }
 
-            const result = await response.json();
-            
-            // Atualizar localStorage se o email foi alterado
-            if (result.email) {
-                updateEmailInLocalStorage(result.email);
+            // Se chegou aqui, usar dados locais
+            if (dados.email) {
+                updateEmailInLocalStorage(dados.email);
             }
             
-            return {
-                nome: result.nome || dados.nome,
-                sobrenome: result.sobrenome || dados.sobrenome,
-                telefone: result.telefone || dados.telefone,
-                email: result.email || dados.email,
-                dataNascimento: result.dataNascimento || dados.dataNascimento,
-                genero: result.genero || dados.genero
-            };
+            return dados;
         } catch (error) {
             console.error('Erro ao atualizar dados pessoais:', error);
             throw error;
         }
-    };    const buscarEndereco = async (): Promise<Endereco | null> => {
+    };
+
+    const buscarEndereco = async (): Promise<Endereco | null> => {
         try {
             const { token, usuarioId } = getUserAuthData();
 
@@ -247,13 +256,21 @@ export const useUserProfile = () => {
                 if (response.status === 404) {
                     return null; // Endereço não encontrado
                 }
-                throw new Error('Erro ao buscar endereço');
+                
+                // Buscar endereço salvo localmente
+                const savedProfile = localStorage.getItem('savedProfile');
+                if (savedProfile) {
+                    const profile = JSON.parse(savedProfile);
+                    return profile.endereco || null;
+                }
+                
+                return null;
             }
 
             const enderecoOutput = await response.json();
             
             // Converter EnderecoOutput para Endereco
-            return {
+            const endereco = {
                 rua: enderecoOutput.logradouro || '',
                 numero: enderecoOutput.numero || '',
                 complemento: enderecoOutput.complemento || '',
@@ -262,11 +279,29 @@ export const useUserProfile = () => {
                 estado: enderecoOutput.uf || '',
                 cep: enderecoOutput.cep || ''
             };
+
+            // Salvar localmente
+            const savedProfile = localStorage.getItem('savedProfile');
+            const profile = savedProfile ? JSON.parse(savedProfile) : {};
+            profile.endereco = endereco;
+            localStorage.setItem('savedProfile', JSON.stringify(profile));
+
+            return endereco;
         } catch (error) {
-            console.error('Erro ao buscar endereço:', error);
-            throw error;
+            console.warn('Erro ao buscar endereço do backend, usando dados locais');
+            
+            // Buscar endereço salvo localmente
+            const savedProfile = localStorage.getItem('savedProfile');
+            if (savedProfile) {
+                const profile = JSON.parse(savedProfile);
+                return profile.endereco || null;
+            }
+            
+            return null;
         }
-    };    const atualizarEndereco = async (endereco: {
+    };
+
+    const atualizarEndereco = async (endereco: {
         cep: string;
         numero: string;
         complemento?: string;
@@ -274,7 +309,13 @@ export const useUserProfile = () => {
         try {
             const { token, usuarioId } = getUserAuthData();
 
-            // Preparar dados para envio no formato esperado pelo backend
+            // Salvar localmente primeiro
+            const savedProfile = localStorage.getItem('savedProfile');
+            const profile = savedProfile ? JSON.parse(savedProfile) : {};
+            profile.endereco = { ...profile.endereco, ...endereco };
+            localStorage.setItem('savedProfile', JSON.stringify(profile));
+
+            // Tentar enviar para o backend
             const enderecoInput = {
                 cep: endereco.cep,
                 numero: endereco.numero,
@@ -291,13 +332,14 @@ export const useUserProfile = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao atualizar endereço');
+                console.warn('Erro no backend, endereço salvo localmente');
             }
         } catch (error) {
-            console.error('Erro ao atualizar endereço:', error);
-            throw error;
+            console.warn('Backend indisponível, endereço salvo localmente');
         }
-    };    const uploadFoto = async (foto: File): Promise<{ fotoUrl: string }> => {
+    };
+
+    const uploadFoto = async (foto: File): Promise<{ fotoUrl: string }> => {
         try {
             const { token, usuarioId } = getUserAuthData();
 
@@ -318,10 +360,16 @@ export const useUserProfile = () => {
 
             const result = await response.json();
             
-            // Se houver uma foto, adiciona a URL base
+            // Se houver uma foto, adicionar a URL base
             if (result.fotoUrl) {
                 result.fotoUrl = `http://localhost:8080${result.fotoUrl}`;
             }
+
+            // Salvar localmente
+            const savedProfile = localStorage.getItem('savedProfile');
+            const profile = savedProfile ? JSON.parse(savedProfile) : {};
+            profile.fotoUrl = result.fotoUrl;
+            localStorage.setItem('savedProfile', JSON.stringify(profile));
 
             return result;
         } catch (error) {
