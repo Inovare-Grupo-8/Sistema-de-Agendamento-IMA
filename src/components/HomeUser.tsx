@@ -2021,7 +2021,8 @@ const HomeUser = () => {
                   Avaliar Consulta
                 </Button>
               )}
-            </DialogFooter>          </DialogContent>
+            </DialogFooter>          
+            </DialogContent>
         </Dialog>
 
         {/* Modal de Feedback/Avaliação */}
