@@ -1222,10 +1222,11 @@ const HomeUser = () => {
                           Próximas Consultas
                         </CardTitle>
                         <CardDescription>Consultas agendadas para os próximos dias</CardDescription>
-                      </div>                      <Tooltip>
+                      </div>
+                      <Tooltip>
                         <TooltipTrigger asChild>
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800 cursor-help">
-                            {proximasConsultas.length} agendadas
+                            {atendimentosSummary.consultasEsteMes} agendadas
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent>
