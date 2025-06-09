@@ -53,6 +53,16 @@ export interface ConsultaCount {
   count: number;
 }
 
+export interface EspecialidadeDto {
+  id: number;
+  nome: string;
+}
+
+export interface EspecialidadeDto {
+  id: number;
+  nome: string;
+}
+
 export interface ConsultaDto {
   idConsulta: number;
   horario: string; // ISO date string
@@ -314,6 +324,135 @@ export class ConsultaApiService {
     } catch (error) {
       console.error('Error fetching próxima consulta:', error);
       throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get available time slots for a specific volunteer on a specific date
+   * @param date - Date in YYYY-MM-DD format
+   * @param voluntarioId - ID of the volunteer/specialist
+   * @returns Promise with array of available time slots
+   */
+  static async getHorariosDisponiveis(date: string, voluntarioId: number): Promise<string[]> {
+    try {
+      const response = await apiClient.get(`/consulta/horarios-disponiveis`, {
+        params: { 
+          data: date,
+          idVoluntario: voluntarioId
+        }
+      });
+      
+      // The backend returns LocalDateTime objects, so we need to extract just the time part
+      return response.data.map((dateTime: string) => {
+        const time = new Date(dateTime).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        return time;
+      });
+    } catch (error) {
+      console.error('Error fetching horarios disponiveis:', error);
+      throw this.handleApiError(error);
+    }
+  }  /**
+   * Create a new consultation appointment
+   * @param consultaData - Data for creating the consultation
+   * @returns Promise with the created consultation
+   */
+  static async criarConsulta(consultaData: {
+    idVoluntario: number;
+    data: string; // ISO date string
+    horario: string; // Time in HH:mm format
+    modalidade: 'ONLINE' | 'PRESENCIAL';
+    observacoes?: string;
+    especialidade?: string;
+  }): Promise<ConsultaOutput> {
+    try {
+      // Get current user ID from localStorage
+      const userData = localStorage.getItem('userData');
+      if (!userData) {
+        throw new Error('Usuário não está logado');
+      }
+      
+      const user = JSON.parse(userData);
+      const idAssistido = user.idUsuario;
+      
+      if (!idAssistido) {
+        throw new Error('ID do usuário não encontrado');
+      }
+
+      // Combine date and time into a proper datetime string
+      const dateTime = `${consultaData.data}T${consultaData.horario}:00`;
+      
+      // Get specialization ID if specialization name is provided
+      let idEspecialidade: number | null = null;
+      if (consultaData.especialidade) {
+        idEspecialidade = await this.getEspecialidadeIdByName(consultaData.especialidade);
+        if (!idEspecialidade) {
+          console.warn(`Especialidade '${consultaData.especialidade}' não encontrada. Usando ID padrão 1.`);
+          idEspecialidade = 1; // Default specialization ID
+        }
+      } else {
+        idEspecialidade = 1; // Default specialization ID
+      }
+
+      const payload = {
+        idVoluntario: consultaData.idVoluntario,
+        idAssistido: idAssistido,
+        horario: dateTime,
+        modalidade: consultaData.modalidade,
+        local: consultaData.modalidade === 'ONLINE' ? 'Online' : 'Presencial',
+        observacoes: consultaData.observacoes || '',
+        status: 'AGENDADA',
+        idEspecialidade: idEspecialidade 
+      };
+
+      const response = await apiClient.post<ConsultaOutput>('/consulta', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating consulta:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get all specializations
+   * @returns Promise with array of specializations
+   */
+  static async getEspecialidades(): Promise<EspecialidadeDto[]> {
+    try {
+      const response = await apiClient.get<EspecialidadeDto[]>('/especialidade');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching especialidades:', error);
+      throw this.handleApiError(error);
+    }
+  }
+  /**
+   * Get specialization ID by name
+   * @param nome - Name of the specialization
+   * @returns Promise with specialization ID or null if not found
+   */
+  static async getEspecialidadeIdByName(nome: string): Promise<number | null> {
+    try {
+      const especialidades = await this.getEspecialidades();
+      const especialidade = especialidades.find(esp => {
+        const nomeNormalizado = esp.nome.toUpperCase().replace(/[\s_-]/g, '');
+        const nomeParametroNormalizado = nome.toUpperCase().replace(/[\s_-]/g, '');
+        
+        return (
+          esp.nome.toUpperCase() === nome.toUpperCase() ||
+          esp.nome.toUpperCase().includes(nome.toUpperCase()) ||
+          nome.toUpperCase().includes(esp.nome.toUpperCase()) ||
+          nomeNormalizado === nomeParametroNormalizado ||
+          nomeNormalizado.includes(nomeParametroNormalizado) ||
+          nomeParametroNormalizado.includes(nomeNormalizado)
+        );
+      });
+      return especialidade ? especialidade.id : null;
+    } catch (error) {
+      console.error('Error finding especialidade by name:', error);
+      return null;
     }
   }
 }
