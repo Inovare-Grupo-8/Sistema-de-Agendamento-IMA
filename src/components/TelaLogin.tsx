@@ -198,23 +198,15 @@ const TelaLogin: React.FC = () => {
             if (!response.ok) {
                 // Se a resposta não for ok, trata como credenciais inválidas
                 throw new Error('Email ou senha incorretos');
-            }            let data;
+            }
+
+            let data;
             try {
                 data = await response.json();
-                console.log('🔍 Debug Login - Dados recebidos da API:', data);
             } catch (jsonError) {
                 // Se não conseguir fazer parse do JSON, trata como erro de credenciais
                 throw new Error('Email ou senha incorretos');
-            }
-
-            // Garantir que os dados incluam token e idUsuario
-            const userDataToSave = {
-                ...data,
-                token: data.token,
-                idUsuario: data.idUsuario
-            };
-            console.log('🔍 Debug Login - Dados sendo salvos no localStorage:', userDataToSave);
-            localStorage.setItem('userData', JSON.stringify(userDataToSave));
+            }            localStorage.setItem('userData', JSON.stringify(data));
             
             // Salvar informações específicas do usuário para fácil acesso
             const userInfo = {

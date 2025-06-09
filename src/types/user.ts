@@ -1,3 +1,13 @@
+export interface Endereco {
+  rua: string;
+  numero: string;
+  complemento: string; // Changed from optional to required
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+}
+
 export interface UserData {
   nome: string;
   sobrenome: string;
@@ -5,15 +15,7 @@ export interface UserData {
   telefone: string;
   dataNascimento: string;
   genero: string;
-  endereco: {
-    rua: string;
-    numero: string;
-    complemento: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    cep: string;
-  };
+  endereco: Endereco;
 }
 
 export interface UserContextType {

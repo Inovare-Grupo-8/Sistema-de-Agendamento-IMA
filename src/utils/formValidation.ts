@@ -11,7 +11,8 @@ export const validateEmail = (email: string): boolean => {
 
 export const validatePhone = (phone: string): boolean => {
   const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
-  return phoneRegex.test(phone);
+  const numericPhone = phone.replace(/\D/g, '');
+  return phoneRegex.test(phone) && numericPhone.length === 11;
 };
 
 export const validateCep = (cep: string): boolean => {
@@ -28,6 +29,6 @@ export const formatCep = (cep: string): string => {
 export const formatPhone = (phone: string): string => {
   const numbers = phone.replace(/\D/g, '');
   if (numbers.length <= 2) return `(${numbers}`;
-  if (numbers.length <= 6) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
   return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
 };

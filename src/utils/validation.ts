@@ -15,9 +15,10 @@ export const isEmail = (value: string): string | null => {
 
 export const isPhone = (value: string): string | null => {
   if (!value) return null;
-  
-  const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
-  return phoneRegex.test(value) ? null : 'Telefone inválido';
+
+  const phoneRegex = /^\(\d{2}\)\s\d{5}-\d{4}$/;
+  const numericPhone = value.replace(/\D/g, '');
+  return phoneRegex.test(value) && numericPhone.length === 11 ? null : 'Telefone inválido';
 };
 
 export const minLength = (min: number) => (value: string): string | null => {

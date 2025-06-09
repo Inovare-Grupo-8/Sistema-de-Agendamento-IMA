@@ -36,7 +36,7 @@ interface ConsultaSummary {
 
 interface AtendimentoSummary {
   realizados: number;
-  proximos: number;
+  canceladas: number;
   ultimaAvaliacao: number | null;
 }
 
@@ -66,8 +66,9 @@ const HomeUser = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { userData } = useUserData();
+  const { profileImage, setProfileImage } = useProfileImage();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { userData, setUserData } = useUserData();
+  const { fetchPerfil } = useUserData();
   
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -75,10 +76,15 @@ const HomeUser = () => {
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
   const [motivoSelecionado, setMotivoSelecionado] = useState("");
   const [cancelandoConsulta, setCancellandoConsulta] = useState(false);
-
   // Estado para o modal de detalhes
   const [detalhesModalOpen, setDetalhesModalOpen] = useState(false);
   const [consultaDetalhes, setConsultaDetalhes] = useState<Consulta | null>(null);
+  
+  // Estado para o modal de feedback/avaliação
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedConsultaFeedback, setSelectedConsultaFeedback] = useState<Consulta | null>(null);
+  const [currentRating, setCurrentRating] = useState(0);
+  const [currentComment, setCurrentComment] = useState("");
     // Estado para o calendário
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
     const savedDate = localStorage.getItem("selectedDateForBooking");
@@ -104,41 +110,37 @@ const HomeUser = () => {
     especialidade: string;
     tipo: string;
     status: string;
-  } | null>(null);
-
-  // Estado para o resumo dos dados
+  } | null>(null);  // Estado para o resumo dos dados
   const [atendimentosSummary, setAtendimentosSummary] = useState<AtendimentoSummary>({
     realizados: 0,
-    proximos: 0,
+    canceladas: 0,
     ultimaAvaliacao: null
-  });
-  // Estado para as próximas consultas - carregado via API
+  });// Estado para as próximas consultas - carregado via API
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
-
+  // Estado para todas as consultas (para o calendário)
+  const [todasConsultas, setTodasConsultas] = useState<Consulta[]>([]);
   //Proxima consulta do usuario
    const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
- // Adicionar useEffect para carregar a próxima consulta
+  
+  // Adicionar useEffect para carregar a próxima consulta
   useEffect(() => {
     const loadProximaConsulta = async () => {
       try {
         const userData = localStorage.getItem("userData");
         if (!userData) {
-          console.log("User data not found");
+          console.log("User data not found - continuing without data");
           return;
         }
 
         const user = JSON.parse(userData);
-        const idUsuario = user.idUsuario; // Note que aqui usamos idUsuario conforme o backend
+        const idUsuario = user.idUsuario; 
 
         const consulta = await ConsultaApiService.getProximaConsulta(idUsuario);
         setProximaConsulta(consulta);
       } catch (error) {
         console.error("Erro ao carregar próxima consulta:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar sua próxima consulta",
-          variant: "destructive"
-        });
+        // Apenas log do erro, sem redirecionamento
+        console.log("Continuando sem dados da próxima consulta");
       }
     };
 
@@ -152,10 +154,13 @@ const HomeUser = () => {
       setLoading(true);
       setError("");
       
-      try {
-        // Buscar dados de consultas da API
-        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');        // Para o usuário assistido, mapear os dados corretamente
-        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);        setConsultasSummary({
+      try {        // Buscar dados de consultas da API
+        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
+        
+        // Para o usuário assistido, mapear os dados corretamente
+        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
+        
+        setConsultasSummary({
           total: consultaStats.hoje, // Consultas de hoje (card azul)
           proxima: proximaData, // Próxima consulta agendada
           mes: consultaStats.mes, // Consultas do mês (card vermelho)
@@ -174,18 +179,18 @@ const HomeUser = () => {
               especialidade: proximaConsulta.especialidade,
               tipo: proximaConsulta.tipo,
               status: proximaConsulta.status
-            });
-          }
-        }        // Atualizar dados dos atendimentos com dados zerados até API estar completa
+            });          }        }
+          // Atualizar dados dos atendimentos com dados zerados até API estar completa
         setAtendimentosSummary({
           realizados: 0,
-          proximos: 0,
+          canceladas: 0,
           ultimaAvaliacao: null
         });
         
-      } catch (err: any) {
-        console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");        // Manter dados zerados em caso de erro
+      } catch (err: any) {        console.error('Erro ao carregar dados das consultas:', err);
+        setError(err.message || "Erro ao carregar dados das consultas");
+        
+        // Manter dados zerados em caso de erro
         const proximaData = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
@@ -199,13 +204,118 @@ const HomeUser = () => {
     };
 
     loadConsultaData();
-  }, [proximasConsultas]);
-
-  // Load all consultations when component mounts
+  }, [proximasConsultas]);  // Load all consultations when component mounts
   useEffect(() => {
-    loadTodasConsultas();
+    const loadData = async () => {
+      await loadTodasConsultas();
+      // After loading próximas consultas, load histórico to calculate statistics properly
+      setTimeout(() => {
+        loadHistoricoRecente();
+      }, 100); // Small delay to ensure proximasConsultas state is updated
+    };
+    loadData();
   }, []);
 
+  // Also reload histórico when proximasConsultas changes
+  useEffect(() => {
+    if (proximasConsultas.length >= 0) { // Check if proximasConsultas has been loaded (even if empty)
+      loadHistoricoRecente();
+    }
+  }, [proximasConsultas]);  // Function to load recent history including canceled consultations
+  const loadHistoricoRecente = async () => {
+    try {
+      // Load historical consultations (completed and canceled)
+      const historicoData = await ConsultaApiService.getHistoricoConsultas('assistido');
+      
+      // Load evaluations and feedbacks from API
+      const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback('assistido');
+      
+      // Create maps for quick lookup
+      const avaliacoesMap = new Map();
+      const feedbacksMap = new Map();
+      
+      avaliacoesFeedback.avaliacoes?.forEach((avaliacao: any) => {
+        if (avaliacao.consulta?.idConsulta) {
+          avaliacoesMap.set(avaliacao.consulta.idConsulta, avaliacao.nota);
+        }
+      });
+      
+      avaliacoesFeedback.feedbacks?.forEach((feedback: any) => {
+        if (feedback.consulta?.idConsulta) {
+          feedbacksMap.set(feedback.consulta.idConsulta, feedback.comentario);
+        }
+      });
+      
+      // Convert API data to component format and filter for recent history
+      const historicoFormatted: Consulta[] = historicoData
+        .map(consulta => {
+          const consultaDate = new Date(consulta.horario);
+          const consultaId = consulta.idConsulta;
+          
+          // Get evaluation for this consultation
+          const rating = avaliacoesMap.get(consultaId);
+          
+          return {
+            id: consultaId,
+            profissional: consulta.voluntario?.ficha?.nome || 'Voluntário',
+            especialidade: consulta.especialidade?.nome || 'Especialidade',
+            data: consultaDate,
+            tipo: consulta.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
+            status: consulta.status.toLowerCase() as "realizada" | "cancelada" | "remarcada",
+            avaliacao: rating || undefined // Real evaluation data from API
+          };
+        })
+        // Sort by date descending (most recent first) and take only last 5
+        .sort((a, b) => b.data.getTime() - a.data.getTime())
+        .slice(0, 5);
+      
+      setHistoricoRecente(historicoFormatted);      // Calculate statistics for "Meu Histórico" card based on all historical data
+      const consultasRealizadas = historicoData.filter(consulta => 
+        consulta.status.toLowerCase() === 'realizada'
+      ).length;
+      
+      // Calculate cancelled consultations (both from historical data and upcoming)
+      const consultasHistoricoCanceladas = historicoData.filter(consulta => 
+        consulta.status.toLowerCase() === 'cancelada'
+      ).length;
+      
+      const consultasProximasCanceladas = proximasConsultas.filter(consulta => {
+        return consulta.status.toLowerCase() === 'cancelada';
+      }).length;
+      
+      const consultasCanceladas = consultasHistoricoCanceladas + consultasProximasCanceladas;
+      
+      // Get the most recent evaluation from real API data
+      let ultimaAvaliacao = null;
+      const consultasComAvaliacao = historicoFormatted.filter(c => c.avaliacao);
+      if (consultasComAvaliacao.length > 0) {
+        // Get the most recent consultation with evaluation
+        const consultaRecente = consultasComAvaliacao.sort((a, b) => 
+          new Date(b.data).getTime() - new Date(a.data).getTime()
+        )[0];
+        ultimaAvaliacao = consultaRecente.avaliacao || null;
+      }
+        // Update the statistics with real data
+      setAtendimentosSummary({
+        realizados: consultasRealizadas,
+        canceladas: consultasCanceladas, // Now showing cancelled consultations
+        ultimaAvaliacao: ultimaAvaliacao // Real evaluation from API
+      });
+      
+      console.log('Histórico recente carregado:', historicoFormatted);      console.log('Estatísticas atualizadas:', {
+        realizados: consultasRealizadas,
+        canceladas: consultasCanceladas,
+        ultimaAvaliacao: ultimaAvaliacao
+      });
+    } catch (error) {
+      console.error("Erro ao carregar histórico recente:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar o histórico recente",
+        variant: "destructive"
+      });
+    }
+  };
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
     try {
@@ -220,6 +330,9 @@ const HomeUser = () => {
         tipo: consultaDto.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
         status: consultaDto.status.toLowerCase()
       }));
+      
+      // Save all consultations for calendar
+      setTodasConsultas(consultasConvertidas);
       
       // Filter upcoming consultations (future dates only) and sort by date (nearest first)
       const agora = new Date();
@@ -332,7 +445,6 @@ const HomeUser = () => {
     setMotivoCancelamento("");
     setMotivoSelecionado("");
   };
-
   // Função para abrir modal de detalhes
   const abrirModalDetalhes = (consulta: Consulta) => {
     setConsultaDetalhes({
@@ -347,6 +459,65 @@ const HomeUser = () => {
     setDetalhesModalOpen(true);
   };
 
+  // Função para abrir modal de feedback/avaliação
+  const abrirModalFeedback = (consulta: Consulta) => {
+    setSelectedConsultaFeedback(consulta);
+    setCurrentRating(consulta.avaliacao || 0);
+    setCurrentComment("");
+    setShowFeedbackModal(true);
+  };
+
+  // Função para salvar feedback/avaliação
+  const saveFeedback = async () => {
+    if (!selectedConsultaFeedback || currentRating === 0) {
+      toast({
+        title: "Avaliação obrigatória",
+        description: "Por favor, selecione pelo menos uma estrela.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Send evaluation to API
+      await ConsultaApiService.adicionarAvaliacao(Number(selectedConsultaFeedback.id), currentRating);
+      
+      // Send feedback comment if provided
+      if (currentComment?.trim()) {
+        await ConsultaApiService.adicionarFeedback(Number(selectedConsultaFeedback.id), currentComment.trim());
+      }
+
+      // Update local state - both historicoRecente and reload data
+      setHistoricoRecente(prev => prev.map(c => 
+        c.id === selectedConsultaFeedback.id 
+          ? { ...c, avaliacao: currentRating }
+          : c
+      ));
+
+      // Reload histórico recente to get updated evaluation data
+      setTimeout(() => {
+        loadHistoricoRecente();
+      }, 100);
+
+      toast({
+        title: "Feedback salvo!",
+        description: "Obrigado pela sua avaliação.",
+        variant: "default"
+      });
+
+      setShowFeedbackModal(false);
+      setSelectedConsultaFeedback(null);
+      setCurrentRating(0);
+      setCurrentComment("");
+    } catch (error: any) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Erro ao salvar feedback",
+        description: error.message || "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
   // Função para confirmar cancelamento
   const confirmarCancelamento = async () => {
     if (!motivoSelecionado) {
@@ -369,13 +540,15 @@ const HomeUser = () => {
       return;
     }
 
+    if (!consultaParaCancelar) return;
+
     setCancellandoConsulta(true);
 
-    // Simular delay de processamento
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Call the actual API to cancel the consultation
+      await ConsultaApiService.cancelarConsulta(consultaParaCancelar.id);
 
-    if (consultaParaCancelar) {
-      // Atualizar o status da consulta para cancelada
+      // Update the status of the consultation to cancelled
       setProximasConsultas(prev => 
         prev.map(consulta => 
           consulta.id === consultaParaCancelar.id 
@@ -383,7 +556,8 @@ const HomeUser = () => {
             : consulta
         )
       );
-        // Atualizar contadores - recarregar dados da API para ter dados precisos
+
+      // Reload data to get accurate statistics
       try {
         const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
         setConsultasSummary(prev => ({
@@ -394,18 +568,27 @@ const HomeUser = () => {
         }));
       } catch (error) {
         console.error('Erro ao recarregar estatísticas:', error);
-      }
+      }        // Reload all consultations to reflect the change
+      await loadTodasConsultas();
       
-      setAtendimentosSummary(prev => ({
-        ...prev,
-        proximos: prev.proximos - 1
-      }));
+      // Reload recent history to show the canceled consultation
+      // This will automatically recalculate statistics due to useEffect
+      setTimeout(() => {
+        loadHistoricoRecente();
+      }, 100);
       
       toast({
-        title: "Consulta cancelada com sucesso",
-        description: `A consulta com ${consultaParaCancelar.profissional} foi cancelada. Você receberá um e-mail de confirmação.`,
-        variant: "default",
+        title: "Consulta cancelada",
+        description: "Sua consulta foi cancelada com sucesso.",
+        variant: "destructive",
         duration: 5000,
+      });
+    } catch (error) {
+      console.error('Erro ao cancelar consulta:', error);
+      toast({
+        title: "Erro ao cancelar consulta",
+        description: "Ocorreu um erro ao cancelar sua consulta. Tente novamente.",
+        variant: "destructive"
       });
     }
     
@@ -459,6 +642,56 @@ const HomeUser = () => {
     ];
     return links[Math.floor(Math.random() * links.length)];
   };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+          const parsedUserData = JSON.parse(userData);
+          setUserData(parsedUserData);
+          if (parsedUserData.fotoUrl) {
+            setProfileImage(parsedUserData.fotoUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        toast({
+          title: 'Erro ao carregar dados',
+          description: 'Não foi possível carregar os dados do usuário.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  const [voluntarioProfile, setVoluntarioProfile] = useState<{ nome: string; sobrenome: string; funcao: string; profileImage: string | null }>({ nome: '', sobrenome: '', funcao: '', profileImage: null });
+
+  useEffect(() => {
+    const data = localStorage.getItem('voluntarioProfileData');
+    if (data) {
+      try {
+        setVoluntarioProfile(JSON.parse(data));
+      } catch {}
+    }
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
@@ -466,9 +699,15 @@ const HomeUser = () => {
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
-            </Button>
-            <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+            </Button>            <ProfileAvatar
+  profileImage={voluntarioProfile.profileImage}
+  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+  size="w-10 h-10"
+  className="border-2 border-[#ED4231] shadow"
+/>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">
+              {`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+            </span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -481,7 +720,12 @@ const HomeUser = () => {
               <Menu className="w-7 h-7" />
             </Button>
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-16 h-16" className="border-4 border-[#EDF2FB] shadow" />
+            <ProfileAvatar
+  profileImage={voluntarioProfile.profileImage}
+  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+  size="w-16 h-16"
+  className="border-4 border-[#EDF2FB] shadow"
+/>
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -508,7 +752,7 @@ const HomeUser = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
                     <span>Sair</span>
                   </SidebarMenuButton>
                 </TooltipTrigger>
@@ -527,7 +771,12 @@ const HomeUser = () => {
 
         <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
             <div className="flex items-center gap-3">
-              <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+              <ProfileAvatar
+  profileImage={voluntarioProfile.profileImage}
+  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+  size="w-10 h-10"
+  className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
+/>
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -728,22 +977,15 @@ const HomeUser = () => {
                               className="mt-2 text-center py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg"
                             >
                               <span className="text-sm text-gray-500 dark:text-gray-400">
-                                Você não tem consultas agendadas
+                                Você não tem nenhuma consulta agendada para os próximos dias.
                               </span>
-                              <div className="mt-2">
-                                <Link to="/agendar-horario-user">
-                                  <Button size="sm" variant="outline" className="text-xs border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10">
-                                    Agendar Consulta
-                                  </Button>
-                                </Link>
-                              </div>
                             </motion.div>
                           )}
                         </div>
                     )}
                   </CardContent>
                   <CardFooter className="flex justify-between items-center">
-                    <Link to="/consultas-user" className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
+                    <Link to="/agenda-user" className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
                       Ver todas as consultas
                       <ChevronRight className="w-4 h-4" />
                     </Link>
@@ -800,10 +1042,9 @@ const HomeUser = () => {
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Consultas realizadas:</span>
                           <span className="font-semibold text-green-600 dark:text-green-400">{atendimentosSummary.realizados}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Próximas consultas:</span>
-                          <span className="font-semibold text-blue-600 dark:text-blue-400">{atendimentosSummary.proximos}</span>
+                        </div>                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Consultas canceladas:</span>
+                          <span className="font-semibold text-red-600 dark:text-red-400">{atendimentosSummary.canceladas}</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Última avaliação:</span>
@@ -840,14 +1081,13 @@ const HomeUser = () => {
                     </CardTitle>
                     <CardDescription>Clique em datas com consultas para ver detalhes</CardDescription>
                   </CardHeader>
-                  <CardContent>                      <div className="flex justify-center">
-                      <Calendar
+                  <CardContent>                      <div className="flex justify-center">                      <Calendar
                         mode="single"
                         selected={undefined} // Removido para tornar apenas leitura
                         onSelect={(date) => {
                           if (date) {
-                            // Verificar se há consultas nesta data
-                            const consultasNaData = proximasConsultas.filter(
+                            // Verificar se há consultas nesta data (incluindo históricas)
+                            const consultasNaData = todasConsultas.filter(
                               consulta => consulta.data.toDateString() === date.toDateString()
                             );
                             
@@ -872,20 +1112,18 @@ const HomeUser = () => {
                               });
                             }
                           }
-                        }}
-                        className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
+                        }}                        className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
                         locale={ptBR}
                         disabled={(date) => {
-                          // Desabilitar datas passadas e datas sem consultas
-                          const isPastDate = date < new Date(new Date().setHours(0, 0, 0, 0));
-                          const hasConsultation = proximasConsultas.some(
+                          // Desabilitar apenas datas sem consultas (permitir datas passadas para ver histórico)
+                          const hasConsultation = todasConsultas.some(
                             consulta => consulta.data.toDateString() === date.toDateString()
                           );
-                          return isPastDate || !hasConsultation;
+                          return !hasConsultation;
                         }}
                         initialFocus
                         modifiers={{
-                          booked: (date) => proximasConsultas.some(
+                          booked: (date) => todasConsultas.some(
                             consulta => consulta.data.toDateString() === date.toDateString()
                           ),
                         }}
@@ -894,10 +1132,10 @@ const HomeUser = () => {
                             backgroundColor: "rgba(237, 66, 49, 0.1)",
                             borderColor: "rgba(237, 66, 49, 0.5)",
                             color: "#ED4231",
-                            fontWeight: "bold",
-                            cursor: "pointer"
+                            fontWeight: "bold",                            cursor: "pointer"
                           }
-                        }}                      />                    </div>
+                        }}
+                      /></div>
                     {/* Comentado: Seção de data selecionada removida para manter calendário apenas de visualização
                     {selectedDate && (
                       <motion.div 
@@ -1015,7 +1253,7 @@ const HomeUser = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800 cursor-help">
-                            {atendimentosSummary.proximos} agendadas
+                            {proximasConsultas.length} agendadas
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -1105,9 +1343,17 @@ const HomeUser = () => {
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        className="h-7 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        onClick={() => abrirModalDetalhes(consulta)}
+                                        className="text-gray-500 h-auto p-0"
+                                        onClick={() => {
+                                          abrirModalDetalhes(consulta);
+                                          toast({
+                                            title: "Detalhes da consulta",
+                                            description: "As informações detalhadas da consulta foram carregadas.",
+                                            duration: 3000,
+                                          });
+                                        }}
                                       >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M10 11h2v5" /><circle cx="12" cy="7" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                         Detalhes
                                       </Button>
                                     </TooltipTrigger>
@@ -1121,9 +1367,13 @@ const HomeUser = () => {
                                       <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        className="h-7 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="text-red-500 h-auto p-0"
                                         onClick={() => abrirModalCancelamento(consulta)}
-                                      >
+                                      >                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                                          <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
+                                          <path d="m10 11 4 4m0-4-4 4" />
+                                          <path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                                        </svg>
                                         Cancelar
                                       </Button>
                                     </TooltipTrigger>
@@ -1144,8 +1394,9 @@ const HomeUser = () => {
                         <div className="text-gray-400 dark:text-gray-500 text-sm">Você não tem nenhuma consulta agendada para os próximos dias.</div>
                       </div>
                     )}
-                  </CardContent>                  <CardFooter className="flex justify-between items-center">
-                    <Link to="/consultas-user" className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
+                  </CardContent>                  
+                  <CardFooter className="flex justify-between items-center">
+                    <Link to="/agenda-user" className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
                       Ver todas as consultas
                       <ChevronRight className="w-4 h-4" />
                     </Link>
@@ -1263,16 +1514,12 @@ const HomeUser = () => {
                                     onClick={() => abrirModalDetalhes(consulta)}
                                   >
                                     Ver detalhes
-                                  </Button>
-                                  {!consulta.avaliacao && (
+                                  </Button>                                  {!consulta.avaliacao && (
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
                                       className="h-7 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                      onClick={() => toast({
-                                        title: "Funcionalidade em desenvolvimento",
-                                        description: "A avaliação de consultas estará disponível em breve."
-                                      })}
+                                      onClick={() => abrirModalFeedback(consulta)}
                                     >
                                       Avaliar
                                     </Button>
@@ -1403,6 +1650,7 @@ const HomeUser = () => {
                   </div>
                 </div>
 
+               
                 {/* Seleção de Motivo */}
                 <div className="space-y-3">
                   <Label htmlFor="motivo" className="text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -1452,7 +1700,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />
@@ -1479,7 +1727,7 @@ const HomeUser = () => {
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                         <path d="m12 17 .01 0" />
@@ -1731,7 +1979,7 @@ const HomeUser = () => {
                 {consultaDetalhes.status === 'agendada' && (
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                       Lembrete
                     </h4>
                     <div className="text-sm text-green-700 dark:text-green-300">
@@ -1813,6 +2061,91 @@ const HomeUser = () => {
                   Avaliar Consulta
                 </Button>
               )}
+            </DialogFooter>          
+            </DialogContent>
+        </Dialog>
+
+        {/* Modal de Feedback/Avaliação */}
+        <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
+          <DialogContent className="w-[95vw] max-w-[500px] bg-white dark:bg-[#23272F] border border-[#EDF2FB] dark:border-[#444857]">
+            <DialogHeader>
+              <DialogTitle className="text-indigo-900 dark:text-gray-100">
+                Avaliar Consulta
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 dark:text-gray-400">
+                {selectedConsultaFeedback && `Avalie sua consulta com ${selectedConsultaFeedback.profissional}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              {/* Rating Section */}
+              <div className="space-y-3">
+                <Label htmlFor="rating" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Avaliação (obrigatório)
+                </Label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setCurrentRating(star)}
+                      className="focus:outline-none transition-colors hover:scale-110"
+                    >
+                      <svg 
+                        className={`w-8 h-8 ${star <= currentRating ? 'text-[#ED4231]' : 'text-gray-300 dark:text-gray-600'}`}
+                        fill="currentColor" 
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+                {currentRating > 0 && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {currentRating === 1 && "Muito insatisfeito"}
+                    {currentRating === 2 && "Insatisfeito"}
+                    {currentRating === 3 && "Neutro"}
+                    {currentRating === 4 && "Satisfeito"}
+                    {currentRating === 5 && "Muito satisfeito"}
+                  </p>
+                )}
+              </div>
+
+              {/* Comment Section */}
+              <div className="space-y-3">
+                <Label htmlFor="comment" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Comentário (opcional)
+                </Label>
+                <Textarea
+                  id="comment"
+                  value={currentComment}
+                  onChange={(e) => setCurrentComment(e.target.value)}
+                  placeholder="Compartilhe sua experiência com esta consulta..."
+                  className="min-h-[100px] resize-none border-gray-200 dark:border-gray-700 focus:border-[#ED4231] dark:focus:border-[#ED4231]"
+                  maxLength={500}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
+                  {currentComment.length}/500 caracteres
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFeedbackModal(false)}
+                className="border-gray-200 dark:border-gray-700"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={saveFeedback}
+                disabled={currentRating === 0}
+                className="bg-[#ED4231] hover:bg-[#ED4231]/90 text-white"
+              >
+                Salvar Avaliação
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

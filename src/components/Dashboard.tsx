@@ -3,8 +3,8 @@ import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation } from "react-router-dom";
 import { Calendar, User, Clock, Menu, History, BarChart, Settings, Sun, Moon, Home } from "lucide-react";
-import { useState } from "react";
-import { useProfileImage } from "@/components/useProfileImage";
+import { useState, useEffect } from "react";
+import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { useUserData } from "@/hooks/useUserData";
 
@@ -12,9 +12,37 @@ const Dashboard = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const { profileImage } = useProfileImage();
+  const [voluntarioProfile, setVoluntarioProfile] = useState<{ nome: string; sobrenome: string; funcao: string; profileImage: string | null }>({
+    nome: '',
+    sobrenome: '',
+    funcao: '',
+    profileImage: null
+  });
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { userData } = useUserData();
+  const { userData, fetchPerfil } = useUserData();
+
+  useEffect(() => {
+    const data = localStorage.getItem('voluntarioProfileData');
+    if (data) {
+      try {
+        setVoluntarioProfile(JSON.parse(data));
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   return (
     <SidebarProvider>
@@ -24,8 +52,13 @@ const Dashboard = () => {
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-primary text-white focus:outline-none shadow-md">
               <Menu className="w-7 h-7" />
             </Button>
-            <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow" />
-            <span className="font-bold text-foreground">{userData.nome} {userData.sobrenome}</span>
+            <ProfileAvatar
+              profileImage={voluntarioProfile.profileImage}
+              name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+              size="w-10 h-10"
+              className="border-2 border-primary shadow"
+            />
+            <span className="font-bold text-foreground">{voluntarioProfile.nome} {voluntarioProfile.sobrenome}</span>
           </div>
         )}
         
@@ -40,8 +73,16 @@ const Dashboard = () => {
             </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Logo" className="w-16 h-16 rounded-full border-4 border-background shadow" />
-            <span className="font-extrabold text-xl text-foreground tracking-wide">{userData.nome} {userData.sobrenome}</span>
+            <ProfileAvatar
+              profileImage={voluntarioProfile.profileImage}
+              name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+              size="w-16 h-16"
+              className="border-4 border-background shadow"
+            />
+            <span className="font-extrabold text-xl text-foreground tracking-wide">{voluntarioProfile.nome} {voluntarioProfile.sobrenome}</span>
+            {voluntarioProfile.funcao && (
+              <span className="text-sm text-gray-500 dark:text-gray-300">{voluntarioProfile.funcao}</span>
+            )}
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -144,8 +185,13 @@ const Dashboard = () => {
         <main className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-foreground">{userData.nome} {userData.sobrenome}</span>
+              <ProfileAvatar
+                profileImage={voluntarioProfile.profileImage}
+                name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+                size="w-10 h-10"
+                className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200"
+              />
+              <span className="font-bold text-foreground">{voluntarioProfile.nome} {voluntarioProfile.sobrenome}</span>
             </div>
             
             <div className="flex items-center gap-3">

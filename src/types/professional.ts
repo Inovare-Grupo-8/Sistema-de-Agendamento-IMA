@@ -1,3 +1,13 @@
+export interface Endereco {
+  rua: string;
+  numero: string;
+  complemento: string; // Changed from optional to required
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+}
+
 export interface ProfessionalData {
   nome: string;
   sobrenome: string;
@@ -8,15 +18,7 @@ export interface ProfessionalData {
   crm: string;
   bio: string;
   observacoesDisponibilidade: string;
-  endereco: {
-    rua: string;
-    numero: string;
-    complemento: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    cep: string;
-  };
+  endereco: Endereco;
 }
 
 export interface ProfessionalContextType {

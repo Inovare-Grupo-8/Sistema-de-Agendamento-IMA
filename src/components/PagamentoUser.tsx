@@ -50,7 +50,21 @@ const PagamentoUser = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { userData } = useUserData();
+  const { userData, fetchPerfil } = useUserData();
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   // Estados do formulário de pagamento
   const [paymentData, setPaymentData] = useState<PaymentData>({

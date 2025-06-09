@@ -495,16 +495,11 @@ export default function ProfileFormAssistenteSocial() {
         // Limpar estados locais
         setSelectedImage(null);
         setImagePreview(null);
-        setFormChanged(false);
-          toast({
+        setFormChanged(false);        toast({
           title: "Foto atualizada",
           description: "Sua foto de perfil foi atualizada com sucesso!",
         });
 
-        // Recarregar a página após sucesso para atualizar todas as referências da imagem
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
       } catch (error) {
         console.error('Erro ao fazer upload da foto:', error);
         toast({

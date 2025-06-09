@@ -59,45 +59,94 @@ const HistoricoUser = () => {
   const [sortBy, setSortBy] = useState<"date" | "rating" | "type">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");  const [isExporting, setIsExporting] = useState(false);
   const [historicoConsultas, setHistoricoConsultas] = useState<HistoricoConsulta[]>([]);
+  const [proximasConsultas, setProximasConsultas] = useState<number>(0);
+  const [ultimaAvaliacao, setUltimaAvaliacao] = useState<number | null>(null);
 
   const { profileImage } = useProfileImage();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Use the userData hook to get synchronized user data
-  const { userData } = useUserData();
+  const { userData, fetchPerfil } = useUserData();
 
   const location = useLocation();  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  useEffect(() => {
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);  useEffect(() => {
     const loadHistorico = async () => {
       setLoading(true);
       setError("");
       
       try {
+        // Load historical consultations
         const historicoData = await ConsultaApiService.getHistoricoConsultas('assistido');
+        
+        // Load evaluations and feedbacks
+        const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback('assistido');
+        
+        // Create maps for quick lookup
+        const avaliacoesMap = new Map();
+        const feedbacksMap = new Map();
+        
+        avaliacoesFeedback.avaliacoes?.forEach((avaliacao: any) => {
+          if (avaliacao.consulta?.idConsulta) {
+            avaliacoesMap.set(avaliacao.consulta.idConsulta, avaliacao.nota);
+          }
+        });
+        
+        avaliacoesFeedback.feedbacks?.forEach((feedback: any) => {
+          if (feedback.consulta?.idConsulta) {
+            feedbacksMap.set(feedback.consulta.idConsulta, feedback.comentario);
+          }
+        });
         
         // Convert API data to component format
         const historicoFormatted: HistoricoConsulta[] = historicoData.map(consulta => {
           const consultaDate = new Date(consulta.horario);
+          const consultaId = consulta.idConsulta;
+          
+          // Get evaluation and feedback for this consultation
+          const rating = avaliacoesMap.get(consultaId);
+          const comment = feedbacksMap.get(consultaId);
+          
           return {
-            id: consulta.idConsulta.toString(),
+            id: consultaId.toString(),
             date: consultaDate,
             time: consulta.horario.split('T')[1]?.substring(0, 5) || '00:00',
             name: consulta.voluntario?.ficha?.nome || 'Voluntário',
             type: consulta.especialidade?.nome || 'Especialidade',
             serviceType: consulta.modalidade,
-            status: consulta.status as "realizada" | "cancelada" | "remarcada",
+            status: consulta.status.toLowerCase() as "realizada" | "cancelada" | "remarcada",
             duration: 50, // Default duration, can be enhanced later
             cost: 0, // Default cost, can be enhanced later  
-            feedback: undefined // Feedback handling can be added later
+            feedback: rating ? { rating, comment } : undefined
           };
         });
         
         setHistoricoConsultas(historicoFormatted);
+
+        // Load upcoming consultations count
+        try {
+          const proximasData = await ConsultaApiService.getProximasConsultas('assistido');
+          setProximasConsultas(proximasData.length);
+        } catch (err) {
+          console.error('Erro ao carregar próximas consultas:', err);
+          setProximasConsultas(0);
+        }
+
+        // Extract last evaluation from historical data
+        const consultasComAvaliacao = historicoFormatted.filter(c => c.feedback?.rating);
+        if (consultasComAvaliacao.length > 0) {
+          // Get the most recent consultation with evaluation
+          const consultaRecente = consultasComAvaliacao.sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          )[0];
+          setUltimaAvaliacao(consultaRecente.feedback?.rating || null);
+        } else {
+          setUltimaAvaliacao(null);
+        }
+        
       } catch (err: any) {
         console.error('Erro ao carregar histórico:', err);
         setError(err.message || "Erro ao carregar histórico de consultas");
@@ -107,6 +156,20 @@ const HistoricoUser = () => {
     };
     
     loadHistorico();
+  }, []);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userProfile = await fetchPerfil();
+        console.log('User profile data:', userProfile);
+        // Update user data context or local state if needed
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    loadUserData();
   }, []);
 
   const handleAddFeedback = (consulta: HistoricoConsulta, rating: number, comment?: string) => {
@@ -137,8 +200,7 @@ const HistoricoUser = () => {
     setCurrentComment(consulta.feedback?.comment || "");
     setShowFeedbackModal(true);
   };
-
-  const saveFeedback = () => {
+  const saveFeedback = async () => {
     if (!selectedConsulta || currentRating === 0) {
       toast({
         title: "Avaliação obrigatória",
@@ -148,21 +210,39 @@ const HistoricoUser = () => {
       return;
     }
 
-    setHistoricoConsultas(prev => prev.map(c => 
-      c.id === selectedConsulta.id 
-        ? { ...c, feedback: { rating: currentRating, comment: currentComment || undefined } }
-        : c
-    ));
+    try {
+      // Send evaluation to API
+      await ConsultaApiService.adicionarAvaliacao(parseInt(selectedConsulta.id), currentRating);
+      
+      // Send feedback comment if provided
+      if (currentComment?.trim()) {
+        await ConsultaApiService.adicionarFeedback(parseInt(selectedConsulta.id), currentComment.trim());
+      }
 
-    toast({
-      title: "Feedback salvo!",
-      description: "Obrigado pela sua avaliação.",
-      variant: "default"
-    });
+      // Update local state
+      setHistoricoConsultas(prev => prev.map(c => 
+        c.id === selectedConsulta.id 
+          ? { ...c, feedback: { rating: currentRating, comment: currentComment || undefined } }
+          : c
+      ));
 
-    setShowFeedbackModal(false);
-    setCurrentRating(0);
-    setCurrentComment("");
+      toast({
+        title: "Feedback salvo!",
+        description: "Obrigado pela sua avaliação.",
+        variant: "default"
+      });
+
+      setShowFeedbackModal(false);
+      setCurrentRating(0);
+      setCurrentComment("");
+    } catch (error: any) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Erro ao salvar feedback",
+        description: error.message || "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const exportHistory = async () => {    setIsExporting(true);
@@ -461,11 +541,80 @@ const HistoricoUser = () => {
             <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
               {/* Add proper navigation breadcrumb */}
               {getUserNavigationPath(location.pathname)}
-              
-              {/* Rest of the component content */}
-              <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">
+                {/* Rest of the component content */}
+              <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-6">
                 Histórico de Consultas
               </h1>
+
+              {/* Summary Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {/* Consultas Realizadas */}
+                <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Consultas Realizadas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {loading ? (
+                          <Skeleton className="h-8 w-8" />
+                        ) : (
+                          stats.realizadas
+                        )}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Próximas Consultas */}
+                <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Próximas Consultas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-2">
+                      <CalendarIcon className="w-5 h-5 text-blue-500" />
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {loading ? (
+                          <Skeleton className="h-8 w-8" />
+                        ) : (
+                          proximasConsultas
+                        )}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Última Avaliação */}
+                <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Última Avaliação
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-2">
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {loading ? (
+                          <Skeleton className="h-8 w-8" />
+                        ) : ultimaAvaliacao !== null ? (
+                          <div className="flex items-center space-x-1">
+                            <span>{ultimaAvaliacao.toFixed(1)}</span>
+                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">N/A</span>
+                        )}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>              </div>
             </div>
 
             {/* {!formData.nome && (

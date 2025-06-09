@@ -32,7 +32,7 @@ interface NovoAssistenteSocialData {
     endereco: {
         cep: string;
         numero: string;
-        complemento?: string;
+        complemento: string; // Changed from optional to required
     };
     voluntario: {
         crp: string;
@@ -42,7 +42,7 @@ interface NovoAssistenteSocialData {
         endereco: {
             cep: string;
             numero: string;
-            complemento?: string;
+            complemento: string; // Changed from optional to required
         };
     };
     confirmarSenha?: string;

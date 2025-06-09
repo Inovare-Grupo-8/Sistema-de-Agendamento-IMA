@@ -264,7 +264,6 @@ export class ConsultaApiService {
       throw this.handleApiError(error);
     }
   }
-
   /**
    * Cancel a consultation
    * @param id - The ID of the consultation to cancel
@@ -276,6 +275,74 @@ export class ConsultaApiService {
       return response.data;
     } catch (error) {
       console.error('Error cancelling consulta:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Add evaluation/rating to a consultation
+   * @param id - The ID of the consultation
+   * @param avaliacao - Rating from 1 to 5
+   * @returns Promise with the updated consultation
+   */
+  static async adicionarAvaliacao(id: number, avaliacao: number): Promise<ConsultaDto> {
+    try {
+      const response = await apiClient.post<ConsultaDto>(
+        `/consulta/consultas/${id}/avaliacao`,
+        avaliacao.toString(),
+        {
+          headers: {
+            'Content-Type': 'text/plain'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error adding avaliacao:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Add feedback to a consultation
+   * @param id - The ID of the consultation
+   * @param feedback - Feedback text comment
+   * @returns Promise with the updated consultation
+   */
+  static async adicionarFeedback(id: number, feedback: string): Promise<ConsultaDto> {
+    try {
+      const response = await apiClient.post<ConsultaDto>(
+        `/consulta/consultas/${id}/feedback`,
+        feedback,
+        {
+          headers: {
+            'Content-Type': 'text/plain'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error adding feedback:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get evaluations and feedbacks for a user
+   * @param userType - "voluntario" for professionals or "assistido" for users
+   * @returns Promise with evaluations and feedbacks data
+   */
+  static async getAvaliacoesFeedback(userType: 'voluntario' | 'assistido'): Promise<{
+    feedbacks: any[];
+    avaliacoes: any[];
+  }> {
+    try {
+      const response = await apiClient.get(`/consulta/consultas/avaliacoes-feedback`, {
+        params: { user: userType }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching avaliacoes e feedback:', error);
       throw this.handleApiError(error);
     }
   }

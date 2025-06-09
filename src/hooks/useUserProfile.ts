@@ -2,13 +2,13 @@ import { updateEmailInLocalStorage } from '../utils/localStorage';
 import { useNavigate } from 'react-router-dom';
 
 interface Endereco {
-    rua: string;
-    numero: string;
-    complemento?: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    cep: string;
+  rua: string;
+  numero: string;
+  complemento: string; // Changed from optional to required
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
 }
 
 export interface UserProfileInput {
@@ -34,12 +34,16 @@ export interface UserProfileOutput {
 }
 
 export const useUserProfile = () => {
-    const navigate = useNavigate();
-
-    // Função utilitária para buscar dados de autenticação do localStorage
+    const navigate = useNavigate();    // Função utilitária para buscar dados de autenticação do localStorage
     const getUserAuthData = () => {
+        console.log('🔍 [useUserProfile] DEBUG: getUserAuthData iniciado');
+        
         const userData = localStorage.getItem('userData');
         const userInfo = localStorage.getItem('userInfo');
+        
+        console.log('🔍 [useUserProfile] DEBUG: userData exists:', !!userData);
+        console.log('🔍 [useUserProfile] DEBUG: userInfo exists:', !!userInfo);
+        console.log('🔍 [useUserProfile] DEBUG: localStorage keys:', Object.keys(localStorage));
         
         let user: any = {};
         let token: string | undefined;
@@ -61,7 +65,10 @@ export const useUserProfile = () => {
             tipoUsuario = info.tipo;
         }
         
+        console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
+        
         if (!usuarioId) {
+            console.error('❌ [useUserProfile] DEBUG: ID do usuário não encontrado!');
             throw new Error('ID do usuário não encontrado');
         }
         
@@ -116,6 +123,7 @@ export const useUserProfile = () => {
                 : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
             
             const response = await fetch(endpoint, {
+
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -130,8 +138,11 @@ export const useUserProfile = () => {
                     const publicRoutes = ['/login', '/cadastro', '/completar-cadastro-usuario', '/completar-cadastro-voluntario'];
                     
                     if (!publicRoutes.some(route => currentPath.startsWith(route))) {
+
                         localStorage.removeItem('userData');
                         navigate('/login');
+                    } else {
+                        console.log('✅ [useUserProfile] DEBUG: Rota pública detectada, não redirecionando');
                     }
                     throw new Error('Token inválido ou expirado');
                 }
@@ -139,13 +150,16 @@ export const useUserProfile = () => {
                 // Para outros erros (500, etc), usar dados offline
                 console.warn(`Erro ${response.status} no backend, usando dados offline`);
                 return createOfflineProfile(authData);
+
             }
 
+            console.log('✅ [useUserProfile] DEBUG: Resposta OK, fazendo parse JSON...');
             const data = await response.json();
             
             // Se houver uma foto, adicionar a URL base
             if (data.fotoUrl) {
                 data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
+                console.log('🖼️ [useUserProfile] DEBUG: URL da foto processada:', data.fotoUrl);
             }
 
             // Salvar no localStorage para usar offline
@@ -242,9 +256,14 @@ export const useUserProfile = () => {
 
     const buscarEndereco = async (): Promise<Endereco | null> => {
         try {
+            console.log('🔄 [useUserProfile] DEBUG: buscarEndereco iniciado');
             const { token, usuarioId } = getUserAuthData();
 
-            const response = await fetch(`http://localhost:8080/perfil/usuario/endereco?usuarioId=${usuarioId}`, {
+            const url = `http://localhost:8080/perfil/usuario/endereco?usuarioId=${usuarioId}`;
+            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco URL:', url);
+
+            console.log('🌐 [useUserProfile] DEBUG: Fazendo requisição para buscar endereço...');
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -252,8 +271,11 @@ export const useUserProfile = () => {
                 }
             });
 
+            console.log('📡 [useUserProfile] DEBUG: buscarEndereco - status:', response.status);
+
             if (!response.ok) {
                 if (response.status === 404) {
+                    console.log('ℹ️ [useUserProfile] DEBUG: Endereço não encontrado (404)');
                     return null; // Endereço não encontrado
                 }
                 
@@ -268,6 +290,7 @@ export const useUserProfile = () => {
             }
 
             const enderecoOutput = await response.json();
+            console.log('✅ [useUserProfile] DEBUG: Endereço recebido:', enderecoOutput);
             
             // Converter EnderecoOutput para Endereco
             const endereco = {
@@ -302,6 +325,7 @@ export const useUserProfile = () => {
     };
 
     const atualizarEndereco = async (endereco: {
+
         cep: string;
         numero: string;
         complemento?: string;

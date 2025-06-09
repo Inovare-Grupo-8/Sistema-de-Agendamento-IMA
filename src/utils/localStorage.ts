@@ -6,7 +6,7 @@ export interface UserData {
     idUsuario: number;
     nome: string;
     email: string;
-    token: string;
+    token: string; // Ensure token is included
     tipo: string;
     [key: string]: any;
 }
