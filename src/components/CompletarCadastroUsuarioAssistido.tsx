@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import InputMask from "react-input-mask";
+import { formatters } from "@/utils/validation";
 import {
     Select,
     SelectContent,
@@ -580,16 +581,14 @@ export function CompletarCadastroUsuarioAssistido() {
                 if (data.email) {
                     updatedFormData.email = data.email;
                     fieldsFromDB.add('email');
-                }
-                if (data.cpf) {
-                    updatedFormData.cpf = data.cpf;
+                }                if (data.cpf) {
+                    updatedFormData.cpf = formatters.cpf(data.cpf);
                     fieldsFromDB.add('cpf');
                 }
                 if (data.dataNascimento) {
                     updatedFormData.dataNascimento = data.dataNascimento;
                 }
-                
-                setFormData(updatedFormData);
+                  setFormData(updatedFormData);
                 setReadOnlyFields(fieldsFromDB);
                 
                 // Salva dados da primeira fase
@@ -597,7 +596,7 @@ export function CompletarCadastroUsuarioAssistido() {
                     nome: data.nome,
                     sobrenome: data.sobrenome,
                     email: data.email,
-                    cpf: data.cpf,
+                    cpf: data.cpf, // Keep original unformatted CPF for backend operations
                     dataNascimento: data.dataNascimento,
                     id: data.idUsuario
                 });
@@ -642,16 +641,14 @@ export function CompletarCadastroUsuarioAssistido() {
                     if (data.email) {
                         fieldsFromDB.add('email');
                         updatedFormData.email = data.email;
-                    }
-                    if (data.cpf) {
+                    }                    if (data.cpf) {
                         fieldsFromDB.add('cpf');
-                        updatedFormData.cpf = data.cpf;
+                        updatedFormData.cpf = formatters.cpf(data.cpf);
                     }
                     if (data.dataNascimento) {
                         updatedFormData.dataNascimento = data.dataNascimento;
                     }
-                    
-                    setFormData(updatedFormData);
+                      setFormData(updatedFormData);
                     setReadOnlyFields(fieldsFromDB);
                     
                     // Salva dados da primeira fase
@@ -659,7 +656,7 @@ export function CompletarCadastroUsuarioAssistido() {
                         nome: data.nome,
                         sobrenome: data.sobrenome,
                         email: data.email,
-                        cpf: data.cpf,
+                        cpf: data.cpf, // Keep original unformatted CPF for backend operations
                         dataNascimento: data.dataNascimento,
                         id: data.idUsuario
                     });
@@ -693,40 +690,48 @@ export function CompletarCadastroUsuarioAssistido() {
             };
         }
         throw new Error('Invalid phone number format');
-    };
-
-    const convertSalaryRange = (faixaSalarial: string): number => {
-        const salaryMap: Record<string, number> = {
-            'ate-1-salario': 1412,
-            '1-a-2-salarios': 2824,
-            '2-a-3-salarios': 4236,
-            '3-a-5-salarios': 7060,
-            '5-a-10-salarios': 14120,
-            'acima-10-salarios': 20000
-        };
-        return salaryMap[faixaSalarial] || 0;
+    };    const SALARIO_MINIMO = 1518.00;    const convertSalaryRange = (faixaSalarial: string): { rendaMinima: number; rendaMaxima: number } => {
+        switch (faixaSalarial) {
+            case 'ate-1-salario': 
+                return { rendaMinima: 0, rendaMaxima: SALARIO_MINIMO };
+            case '1-a-2-salarios': 
+                return { rendaMinima: SALARIO_MINIMO, rendaMaxima: SALARIO_MINIMO * 2 };
+            case '2-a-3-salarios': 
+                return { rendaMinima: SALARIO_MINIMO * 2, rendaMaxima: SALARIO_MINIMO * 3 };
+            case '3-a-5-salarios': 
+                return { rendaMinima: SALARIO_MINIMO * 3, rendaMaxima: SALARIO_MINIMO * 5 };
+            case '5-a-10-salarios': 
+                return { rendaMinima: SALARIO_MINIMO * 5, rendaMaxima: SALARIO_MINIMO * 10 };
+            case '10-a-20-salarios': 
+                return { rendaMinima: SALARIO_MINIMO * 10, rendaMaxima: SALARIO_MINIMO * 20 };
+            case 'acima-20-salarios': 
+                return { rendaMinima: SALARIO_MINIMO * 20, rendaMaxima: SALARIO_MINIMO * 30 };
+            case 'prefiro-nao-informar': 
+                return { rendaMinima: 0, rendaMaxima: 0 };
+            default: 
+                return { rendaMinima: 0, rendaMaxima: SALARIO_MINIMO };
+        }
     };
 
     const formatDateForBackend = (dateString: string): string => {
         // Convert from YYYY-MM-DD to backend LocalDate format
         return dateString; // LocalDate expects YYYY-MM-DD format
-    };
-
-    const transformToBackendPayload = (formData: any) => {
+    };    const transformToBackendPayload = (formData: any): any => {
         try {
             const telefoneData = parsePhoneNumber(formData.telefone);
+            const salaryData = convertSalaryRange(formData.faixaSalarial);
               return {
                 nomeCompleto: formData.nomeCompleto,
-                email: formData.email,
-                cpf: formData.cpf.replace(/\D/g, ''), 
+                email: formData.email,                cpf: formData.cpf.replace(/\D/g, ''), 
                 dataNascimento: formatDateForBackend(formData.dataNascimento),
-                faixaSalarial: convertSalaryRange(formData.faixaSalarial),
+                rendaMinima: salaryData.rendaMinima,
+                rendaMaxima: salaryData.rendaMaxima,
                 genero: formData.genero,
                 profissao: formData.profissao,
                 areaOrientacao: formData.areaOrientacao,
                 comoSoube: formData.comoSoube,
                 sugestaoOutraArea: formData.sugestaoOutraArea || null,
-                tipo: "NAO_CLASSIFICADO", 
+                tipo: "NAO_CLASSIFICADO",
                 endereco: {
                     cep: formData.cep.replace(/\D/g, ''), 
                     numero: formData.numero,
@@ -739,7 +744,7 @@ export function CompletarCadastroUsuarioAssistido() {
             console.error('Error transforming payload:', error);
             throw new Error('Erro ao processar dados do formulário');
         }
-    };    // Updated handleSubmit function
+    };// Updated handleSubmit function
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);

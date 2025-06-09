@@ -18,13 +18,13 @@ interface UsuarioCompleto {
   email: string;
   tipo: string;
   dataCadastro: string;
-
   // Dados da Ficha (podem ser null se não completaram segunda fase)
   nome?: string;
   sobrenome?: string;
   cpf?: string | null;
   dataNascimento?: string | null; // Data em formato ISO
-  renda?: number | null;
+  rendaMinima?: number | null;
+  rendaMaxima?: number | null;
   genero?: string | null;
   areaInteresse?: string | null;
   profissao?: string | null;
@@ -124,13 +124,70 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
     } catch {
       return 'Data inválida';
     }
-  };
-  const formatarRenda = (renda: number | null | undefined) => {
-    if (!renda) return 'Não informado';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(renda);
+  };  const formatarRenda = (rendaMinima?: number | null, rendaMaxima?: number | null) => {
+    // Se temos os valores de faixa salarial, usar eles diretamente
+    if (rendaMinima !== null && rendaMinima !== undefined && rendaMaxima !== null && rendaMaxima !== undefined) {
+      const SALARIO_MINIMO = 1518; // Valor atualizado do salário mínimo
+      
+      const formatarValor = (valor: number) => new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(valor);      // Determinar a faixa baseada nos valores mínimo e máximo
+      if (rendaMaxima <= SALARIO_MINIMO) {
+        return (
+          <span>
+            Até 1 salário mínimo<br />
+            ({formatarValor(rendaMinima)} - {formatarValor(rendaMaxima)})
+          </span>
+        );
+      } else if (rendaMaxima <= SALARIO_MINIMO * 2) {
+        return (
+          <span>
+            1 a 2 salários mínimos<br />
+            ({formatarValor(rendaMinima)} - {formatarValor(rendaMaxima)})
+          </span>
+        );
+      } else if (rendaMaxima <= SALARIO_MINIMO * 3) {
+        return (
+          <span>
+            2 a 3 salários mínimos<br />
+            ({formatarValor(rendaMinima)} - {formatarValor(rendaMaxima)})
+          </span>
+        );
+      } else if (rendaMaxima <= SALARIO_MINIMO * 5) {
+        return (
+          <span>
+            3 a 5 salários mínimos<br />
+            ({formatarValor(rendaMinima)} - {formatarValor(rendaMaxima)})
+          </span>
+        );
+      } else if (rendaMaxima <= SALARIO_MINIMO * 10) {
+        return (
+          <span>
+            5 a 10 salários mínimos<br />
+            ({formatarValor(rendaMinima)} - {formatarValor(rendaMaxima)})
+          </span>
+        );
+      } else if (rendaMaxima <= SALARIO_MINIMO * 20) {
+        return (
+          <span>
+            10 a 20 salários mínimos<br />
+            ({formatarValor(rendaMinima)} - {formatarValor(rendaMaxima)})
+          </span>
+        );
+      } else if (rendaMinima > SALARIO_MINIMO * 20) {
+        return (
+          <span>
+            Acima de 20 salários mínimos<br />
+            (acima de {formatarValor(rendaMinima)})
+          </span>
+        );
+      } else {
+        return `Prefere não informar`;
+      }
+    }
+
+    return 'Não informado';
   };
   const formatarCPF = (cpf: string | null | undefined) => {
     if (!cpf) return 'Não informado';
@@ -196,11 +253,11 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
                             <Calendar className="h-4 w-4 mr-1" />
                             {formatarData(usuario.dataNascimento)}
                           </span>
-                        )}
-                        {usuario.renda && (
+                        )}                        
+                        {(usuario.rendaMinima || usuario.rendaMaxima) && (
                           <span className="flex items-center">
                             <DollarSign className="h-4 w-4 mr-1" />
-                            {formatarRenda(usuario.renda)}
+                            {formatarRenda(usuario.rendaMinima, usuario.rendaMaxima)}
                           </span>
                         )}
                       </div>
@@ -289,13 +346,12 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
                     </div>
                   )}
                 </div>
-              </div>              {/* Informações Financeiras */}
-              {usuarioSelecionado.renda && (
+              </div>              {/* Informações Financeiras */}              {(usuarioSelecionado.rendaMinima || usuarioSelecionado.rendaMaxima) && (
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Informações Financeiras</h3>
                   <div>
                     <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Renda Mensal</label>
-                    <p className="font-medium text-lg">{formatarRenda(usuarioSelecionado.renda)}</p>
+                    <p className="font-medium text-lg">{formatarRenda(usuarioSelecionado.rendaMinima, usuarioSelecionado.rendaMaxima)}</p>
                   </div>
                 </div>
               )}
@@ -307,27 +363,6 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
                   <div>
                     <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Área de Orientação Desejada</label>
                     <p className="font-medium">{usuarioSelecionado.areaInteresse}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Alerta para cadastro incompleto */}
-              {(!usuarioSelecionado.nome || !usuarioSelecionado.cpf || !usuarioSelecionado.dataNascimento || !usuarioSelecionado.renda) && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                        Cadastro Incompleto
-                      </h3>
-                      <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                        <p>Este usuário não completou a segunda fase do cadastro. Algumas informações podem estar em falta. Se desejar entrar em contato com esse usuario, você assistente social pode ajudar a completar o cadastro antes da classificação.</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -365,6 +400,26 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
                         {formatarTelefone(telefone)}
                       </p>
                     ))}
+                  </div>
+                </div>
+              )}              {/* Alerta para cadastro incompleto */}
+              {(!usuarioSelecionado.nome || !usuarioSelecionado.cpf || !usuarioSelecionado.dataNascimento || 
+                (!usuarioSelecionado.rendaMinima && !usuarioSelecionado.rendaMaxima)) && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                        Cadastro Incompleto
+                      </h3>
+                      <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                        <p>Este usuário pode ser que não completou a segunda fase do cadastro e algumas informações podem estar em falta. Se desejar entrar em contato com esse usuario, você assistente social pode ajudar a completar o cadastro antes da classificação.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
