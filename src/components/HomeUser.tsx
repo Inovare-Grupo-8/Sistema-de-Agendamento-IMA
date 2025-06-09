@@ -113,28 +113,8 @@ const HomeUser = () => {
     proximos: 0,
     ultimaAvaliacao: null
   });
-
-  // Dados de exemplo para as próximas consultas
-  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>(
-    [
-      {
-        id: 1,
-        profissional: "Dr. Ricardo Santos",
-        especialidade: "Psicologia",
-        data: new Date(2025, 4, 18, 10, 0), // 18 de maio de 2025, 10:00
-        tipo: "Consulta Online",
-        status: "agendada"
-      },
-      {
-        id: 2,
-        profissional: "Dra. Ana Costa",
-        especialidade: "Nutrição",
-        data: new Date(2025, 4, 20, 14, 30), // 20 de maio de 2025, 14:30
-        tipo: "Consulta Presencial",
-        status: "agendada"
-      }
-    ]
-  );
+  // Estado para as próximas consultas - carregado via API
+  const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
 
   //Proxima consulta do usuario
    const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
@@ -165,38 +145,8 @@ const HomeUser = () => {
 
     loadProximaConsulta();
   }, []);
-
-  // Dados de exemplo para o histórico recente
-  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>(
-    [
-      {
-        id: 1,
-        profissional: "Dr. Carlos Pereira",
-        especialidade: "Psicologia",
-        data: new Date(2025, 4, 10, 11, 0), // 10 de maio de 2025, 11:00
-        tipo: "Consulta Online",
-        status: "realizada",
-        avaliacao: 5
-      },
-      {
-        id: 2,
-        profissional: "Dra. Lucia Ferreira",
-        especialidade: "Nutrição",
-        data: new Date(2025, 4, 12, 15, 0), // 12 de maio de 2025, 15:00
-        tipo: "Consulta Presencial",
-        status: "realizada",
-        avaliacao: 4
-      },
-      {
-        id: 3,
-        profissional: "Dr. Ricardo Santos",
-        especialidade: "Psicologia",
-        data: new Date(2025, 4, 8, 17, 30), // 8 de maio de 2025, 17:30
-        tipo: "Consulta Online",
-        status: "cancelada"
-      }
-    ]
-  );
+  // Estado para histórico recente - carregado via API
+  const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
   // Carregar dados das consultas via API
   useEffect(() => {
     const loadConsultaData = async () => {
@@ -228,17 +178,17 @@ const HomeUser = () => {
               status: proximaConsulta.status
             });
           }
-        }          // Atualizar dados dos atendimentos com dados da API
+        }        // Atualizar dados dos atendimentos com dados zerados até API estar completa
         setAtendimentosSummary({
-          realizados: consultaStats.semana || 8,
-          proximos: consultaStats.semana || 2, // Usar dados da semana para o card verde
-          ultimaAvaliacao: 5
+          realizados: 0,
+          proximos: 0,
+          ultimaAvaliacao: null
         });
         
       } catch (err: any) {
         console.error('Erro ao carregar dados das consultas:', err);
         setError(err.message || "Erro ao carregar dados das consultas");
-          // Fallback para dados simulados em caso de erro
+          // Manter dados zerados em caso de erro
         const proximaData = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
@@ -253,6 +203,49 @@ const HomeUser = () => {
 
     loadConsultaData();
   }, [proximasConsultas]);
+
+  // Load all consultations when component mounts
+  useEffect(() => {
+    loadTodasConsultas();
+  }, []);
+
+  // Function to load all consultations and order them by date
+  const loadTodasConsultas = async () => {
+    try {
+      const consultasData = await ConsultaApiService.getTodasConsultas();
+      
+      // Convert ConsultaDto to Consulta format for compatibility with existing component
+      const consultasConvertidas: Consulta[] = consultasData.map(consultaDto => ({
+        id: consultaDto.idConsulta,
+        profissional: consultaDto.nomeVoluntario || "Profissional não informado",
+        especialidade: consultaDto.nomeEspecialidade || "Especialidade não informada",
+        data: new Date(consultaDto.horario),
+        tipo: consultaDto.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
+        status: consultaDto.status.toLowerCase()
+      }));
+      
+      // Filter upcoming consultations (future dates only) and sort by date (nearest first)
+      const agora = new Date();
+      const consultasFuturas = consultasConvertidas
+        .filter(consulta => consulta.data > agora)
+        .sort((a, b) => a.data.getTime() - b.data.getTime());
+      
+      setProximasConsultas(consultasFuturas);
+      
+      toast({
+        title: "Consultas carregadas",
+        description: `${consultasFuturas.length} próximas consultas encontradas`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Erro ao carregar todas as consultas:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as consultas",
+        variant: "destructive"
+      });
+    }
+  };
 
   const statusColors: Record<string, string> = {
     agendada: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -646,8 +639,7 @@ const HomeUser = () => {
                                     </span>
                                   </div>
                                 )}
-                              </div>
-                              {proximaConsulta ? (
+                              </div>                              {proximaConsulta && proximaConsultaData ? (
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">{proximaConsultaData.profissional}</span>
@@ -674,8 +666,7 @@ const HomeUser = () => {
                                         <Button 
                                           size="sm" 
                                           variant="outline" 
-                                          className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
-                                          onClick={() => abrirModalCancelamento({
+                                          className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"                                          onClick={() => proximaConsultaData && abrirModalCancelamento({
                                             id: proximasConsultas.find(c => 
                                               c.data.toDateString() === consultasSummary.proxima?.toDateString()
                                             )?.id || 1,
@@ -699,8 +690,7 @@ const HomeUser = () => {
                                         <Button 
                                           size="sm" 
                                           variant="outline" 
-                                          className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
-                                          onClick={() => abrirModalDetalhes({
+                                          className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"                                          onClick={() => proximaConsultaData && abrirModalDetalhes({
                                             id: proximasConsultas.find(c => 
                                               c.data.toDateString() === consultasSummary.proxima?.toDateString()
                                             )?.id || 1,
@@ -1327,7 +1317,7 @@ const HomeUser = () => {
             <DialogHeader className="space-y-3">
               <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
                 <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ED4231" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                     <path d="M12 9v4" />
                     <path d="m12 17 .01 0" />
@@ -1383,7 +1373,7 @@ const HomeUser = () => {
                         <Clock className="w-4 h-4 text-gray-500" />
                         <span className="text-gray-600 dark:text-gray-400">Data e Hora:</span>
                       </div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{formatarData(consultaParaCancelar.data)}</p>
+                                           <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">{formatarData(consultaParaCancelar.data)}</p>
                     </div>
                     
                     <div className="space-y-2">
@@ -1447,7 +1437,7 @@ const HomeUser = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4" />
                         <path d="m12 8 .01 0" />

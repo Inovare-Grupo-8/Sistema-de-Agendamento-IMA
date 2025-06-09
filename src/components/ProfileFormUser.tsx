@@ -16,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { useUser } from "@/hooks/useUser";
+import { LetterAvatar } from "@/components/ui/LetterAvatar";
 
 const ProfileFormUser = () => {
   const location = useLocation();
@@ -23,11 +25,12 @@ const ProfileFormUser = () => {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
-  const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+  const { theme, toggleTheme } = useThemeToggleWithNotification();  const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
   
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
+    // Get upload function from user hook
+  const { uploadFoto, fetchPerfil } = useUser();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -36,17 +39,38 @@ const ProfileFormUser = () => {
 
   // Estado para o formulário
   const [formData, setFormData] = useState(userData);
-
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  // Update form data when userData changes (sync across tabs)
+  const [imageError, setImageError] = useState(false);
+    // Update form data when userData changes (sync across tabs)
   useEffect(() => {
     if (!formChanged) {
       setFormData(userData);
     }
   }, [userData, formChanged]);
+  // Reset image error state when profile image or preview changes
+  useEffect(() => {
+    if ((profileImage && profileImage !== 'undefined' && profileImage !== '') || imagePreview) {
+      setImageError(false);
+    }
+  }, [profileImage, imagePreview]);
+
+  // Load profile data including photo URL from backend
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        const dados = await fetchPerfil();
+        if (dados && dados.fotoUrl) {
+          setProfileImage(dados.fotoUrl);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do perfil:', error);
+      }
+    };
+
+    loadProfileData();
+  }, [fetchPerfil, setProfileImage]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,11 +152,10 @@ const ProfileFormUser = () => {
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  };
-  // Função para salvar as alterações
+  };  // Função para salvar as alterações dos dados pessoais
   const handleSave = async () => {
     // If no changes were made, just provide feedback
-    if (!formChanged && !selectedImage) {
+    if (!formChanged) {
       toast({
         title: "Nenhuma alteração detectada",
         description: "Altere algum campo para salvar",
@@ -169,11 +192,6 @@ const ProfileFormUser = () => {
       // Use the setUserData function from the hook instead of directly setting localStorage
       setUserData(formData);
       
-      // If there's a new image, update it
-      if (selectedImage && imagePreview) {
-        setProfileImage(imagePreview);
-      }
-      
       // Success feedback
       setSuccessMessage("Perfil atualizado com sucesso!");
       setFormChanged(false);
@@ -193,6 +211,52 @@ const ProfileFormUser = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Função para salvar a foto de perfil
+  const handleSavePhoto = async () => {
+    if (selectedImage && imagePreview) {
+      try {
+        setLoading(true);
+        
+        // Upload da foto e obter a URL
+        const url = await uploadFoto(selectedImage);
+        console.log('URL da foto recebida do servidor:', url);
+
+        // Atualizar o contexto com a nova URL da imagem do servidor
+        setProfileImage(url);
+
+        // Limpar estados locais
+        setSelectedImage(null);
+        setImagePreview(null);
+        setFormChanged(false);
+          
+        toast({
+          title: "Foto atualizada",
+          description: "Sua foto de perfil foi atualizada com sucesso!",
+        });
+
+        // Recarregar a página após sucesso para atualizar todas as referências da imagem
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } catch (error) {
+        console.error('Erro ao fazer upload da foto:', error);
+        toast({
+          title: "Erro ao atualizar foto",
+          description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar sua foto de perfil.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      toast({
+        title: "Nenhuma foto selecionada",
+        description: "Selecione uma foto para atualizar",
+        variant: "default"
+      });
     }
   };
   
@@ -222,8 +286,7 @@ const ProfileFormUser = () => {
       });
     }
   };
-  
-  // Função para descartar alterações
+    // Função para descartar alterações
   const handleCancel = () => {
     // Recarregando dados originais do localStorage
     const savedData = localStorage.getItem("userData");
@@ -234,6 +297,7 @@ const ProfileFormUser = () => {
     // Resetando estados
     setSelectedImage(null);
     setImagePreview(null);
+    setImageError(false);
     setFormChanged(false);
     setValidationErrors({});
     
@@ -717,8 +781,7 @@ const ProfileFormUser = () => {
                     </CardFooter>
                   </Card>
                 </TabsContent>
-                
-                {/* Aba de Foto de Perfil */}
+                  {/* Aba de Foto de Perfil */}
                 <TabsContent value="foto">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
@@ -728,11 +791,20 @@ const ProfileFormUser = () => {
                     <CardContent>
                       <div className="flex flex-col items-center gap-6">
                         <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
-                          <img 
-                            src={imagePreview || profileImage} 
-                            alt="Foto de perfil" 
-                            className="w-full h-full object-cover"
-                          />
+                          {(imagePreview || (profileImage && profileImage !== 'undefined' && profileImage !== '')) && !imageError
+                            ? (
+                              <img 
+                                src={imagePreview || profileImage} 
+                                alt="Foto de perfil" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.log('Erro ao carregar imagem de perfil:', e);
+                                  setImageError(true);
+                                }}
+                              />
+                            ) : (
+                              <LetterAvatar name={formData.nome || 'U'} size="w-40 h-40" />
+                            )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-4">
@@ -757,8 +829,8 @@ const ProfileFormUser = () => {
                             className="hidden"
                           />
                           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                            Formatos suportados: JPG, PNG, GIF<br/>
-                            Tamanho máximo: 5MB
+                            Formatos suportados: JPG, PNG<br/>
+                            Tamanho máximo: 1MB (imagens maiores serão comprimidas automaticamente)
                           </p>
                         </div>
                       </div>
@@ -766,8 +838,8 @@ const ProfileFormUser = () => {
                     <CardFooter>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                            {loading ? "Salvando..." : "Salvar Alterações"}
+                          <Button onClick={handleSavePhoto} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
+                            {loading ? "Salvando..." : "Salvar Foto"}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top">

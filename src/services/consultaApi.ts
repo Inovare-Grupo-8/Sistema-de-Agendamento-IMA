@@ -428,6 +428,21 @@ export class ConsultaApiService {
       throw this.handleApiError(error);
     }
   }
+
+  /**
+   * Get all consultations in the system
+   * @returns Promise with array of all consultations
+   */
+  static async getTodasConsultas(): Promise<ConsultaDto[]> {
+    try {
+      const response = await apiClient.get<ConsultaDto[]>('/consulta/consultas/todas');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching todas consultas:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
   /**
    * Get specialization ID by name
    * @param nome - Name of the specialization
