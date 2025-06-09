@@ -1,7 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, CheckCircle2, X, Save, User, MapPin, Heart, Star, Sparkles, GraduationCap, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+    Check, 
+    CheckCircle2, 
+    X, 
+    Save, 
+    User, 
+    MapPin, 
+    Heart, 
+    Star, 
+    Sparkles, 
+    GraduationCap, 
+    Loader2,
+    TriangleAlert,
+    UserCheck,
+    Phone,
+    Mail,
+    Calendar,
+    Building
+} from "lucide-react";
 import InputMask from "react-input-mask";
 
 // Constants and Types
@@ -44,16 +73,6 @@ interface PrimeiraFaseData {
   id?: number;
 }
 
-// Components
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  className?: string;
-  children: React.ReactNode;
-}
-
-const Button: React.FC<ButtonProps> = ({ className, children, ...props }) => (
-  <button className={className} {...props}>{children}</button>
-);
-
 // Helper functions
 const convertFaixaSalarialToNumber = (faixa: string): { rendaMinima: number; rendaMaxima: number } => {
   switch (faixa) {
@@ -88,24 +107,6 @@ const formatPhone = (value: string): string => {
     .replace(/(\d{2})(\d)/, '($1) $2')
     .replace(/(\d{5})(\d)/, '$1-$2')
     .replace(/(-\d{4})\d+?$/, '$1');
-};
-
-// Styles
-const formClasses = {
-  input: "w-full px-4 py-2.5 text-base text-gray-700 bg-white/90 dark:bg-gray-800/50 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200",
-  label: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
-  select: "w-full px-4 py-2.5 text-base text-gray-700 bg-white/90 dark:bg-gray-800/50 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200",
-  error: "text-red-500 text-xs mt-1",
-  section: {
-    pessoal: "bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-blue-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden mb-8",
-    endereco: "bg-gradient-to-br from-green-50/80 to-emerald-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-green-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden mb-8",
-    profissional: "bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-purple-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden mb-8"
-  },
-  sectionTitle: {
-    pessoal: "text-xl font-bold mb-6 text-blue-700 dark:text-blue-300 flex items-center gap-2",
-    endereco: "text-xl font-bold mb-6 text-green-700 dark:text-green-300 flex items-center gap-2",
-    profissional: "text-xl font-bold mb-6 text-purple-700 dark:text-purple-300 flex items-center gap-2"
-  }
 };
 
 // Animations
@@ -451,8 +452,7 @@ export function CompletarCadastroVoluntario() {
         })
         .finally(() => setFetchingUser(false));
     }
-  }, [formData.email, idUsuario, fieldStates.email]);
-  // Busca endereço por CEP
+  }, [formData.email, idUsuario, fieldStates.email]);  // Busca endereço por CEP
   const fetchAddressByCep = async (cep: string) => {
     try {
       setIsLoading(prev => ({ ...prev, cep: true }));
@@ -460,7 +460,17 @@ export function CompletarCadastroVoluntario() {
 
       if (cleanCep.length === 8) {
         const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-        const data = await response.json();
+        
+        interface ViaCepResponse {
+          erro?: boolean;
+          logradouro?: string;
+          bairro?: string;
+          localidade?: string;
+          uf?: string;
+          complemento?: string;
+        }
+        
+        const data: ViaCepResponse = await response.json();
 
         if (!data.erro) {
           setFormData(prev => ({
@@ -538,7 +548,30 @@ export function CompletarCadastroVoluntario() {
     }
       const salaryData = convertFaixaSalarialToNumber(formData.faixaSalarial);
     
-    const payload: any = {      // CPF is not included here since it comes from first phase
+    interface PayloadData {
+      dataNascimento: string;
+      genero: string;
+      rendaMinima: number;
+      rendaMaxima: number;
+      tipo: string;
+      endereco: {
+        cep: string;
+        numero: string;
+        complemento: string;
+      };
+      telefone: object;
+      profissao: string;
+      funcao?: string;
+      crm?: string;
+      nome?: string;
+      sobrenome?: string;
+      email?: string;
+      cpf?: string;
+      senha?: string;
+    }
+    
+    const payload: PayloadData = {
+      // CPF is not included here since it comes from first phase
       dataNascimento: formData.dataNascimento,
       genero: formData.genero,
       rendaMinima: salaryData.rendaMinima,
@@ -560,7 +593,7 @@ export function CompletarCadastroVoluntario() {
     // Para usuários novos, incluir dados da primeira fase e senha
     if (isNewUser) {
       // Separar nome completo em nome e sobrenome
-      const nomePartes = formData.nomeCompleto.trim().split(' ');
+      const nomePartes: string[] = formData.nomeCompleto.trim().split(' ');
       const nome = nomePartes[0];
       const sobrenome = nomePartes.slice(1).join(' ') || '';
       
@@ -631,9 +664,8 @@ export function CompletarCadastroVoluntario() {
       setIsSubmitting(false);
     }
   };
-
   // Função para obter classes CSS do campo baseado no estado readonly
-  const getFieldClasses = (fieldName: string, baseClass: string = formClasses.input) => {
+  const getFieldClasses = (fieldName: string, baseClass: string = "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500") => {
     if (readOnlyFields.has(fieldName)) {
       return `${baseClass} bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400`;
     }
@@ -659,80 +691,194 @@ export function CompletarCadastroVoluntario() {
     );
   };
 
+  // Calcular progresso do formulário
+  const calculateProgress = () => {
+    const totalFields = Object.keys(formData).length - 2; // Excluir complemento e crm (opcionais)
+    const filledFields = Object.entries(formData).filter(([key, value]) =>
+      key !== 'complemento' && key !== 'crm' && (typeof value === 'string' ? value.trim() !== '' : value !== undefined)
+    ).length;
+    return Math.round((filledFields / totalFields) * 100);
+  };
+
+  // Verificar se seção está completa
+  const isSectionComplete = (section: number) => {
+    switch (section) {
+      case 1:
+        return formData.nomeCompleto && formData.telefone && formData.dataNascimento &&
+          formData.cpf && formData.email && formData.genero && formData.faixaSalarial &&
+          !errors.nomeCompleto && !errors.telefone && !errors.dataNascimento &&
+          !errors.cpf && !errors.email && !errors.genero && !errors.faixaSalarial;
+      case 2:
+        return formData.cep && formData.logradouro && formData.numero &&
+          formData.bairro && formData.cidade && formData.estado &&
+          !errors.cep && !errors.logradouro && !errors.numero &&
+          !errors.bairro && !errors.cidade && !errors.estado;
+      case 3:
+        return formData.funcao && formData.profissao &&
+          !errors.funcao && !errors.profissao;
+      default:
+        return false;
+    }
+  };
+
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    
+    // Se foi um usuário novo, navegar para login
+    if (isNewUser) {
+      navigate('/login');
+    }
+    
+    // Reset form
+    setFormData({
+      nomeCompleto: "",
+      telefone: "",
+      dataNascimento: "",
+      genero: "",
+      cpf: "",
+      faixaSalarial: "",
+      email: "",
+      cep: "",
+      logradouro: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+      funcao: "",
+      profissao: "",
+      crm: "",
+      tipo: "VOLUNTARIO",
+    });
+    setErrors({});
+    setFieldStates({});
+    setLastSaved(null);
+  };
   // Layout e animações semelhantes à tela de anamnese
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
+      {/* Success Modal */}
       <AnimatePresence>
         {showSuccessModal && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-            <motion.div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/30 max-w-md w-full mx-4 overflow-hidden" initial={{ scale: 0.8, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.8, opacity: 0, y: 20 }} transition={{ duration: 0.4, type: "spring", stiffness: 300 }}>              <motion.button 
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  if (isNewUser) {
-                    navigate('/login');
-                  }
-                }} 
-                className="absolute top-4 right-4 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors z-10" 
-                whileHover={{ scale: 1.1 }} 
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeSuccessModal}
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/30 max-w-md w-full mx-4 overflow-hidden"
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              transition={{ duration: 0.4, type: "spring", stiffness: 300 }}
+            >
+              {/* Close Button */}
+              <motion.button
+                onClick={closeSuccessModal}
+                className="absolute top-4 right-4 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors z-10"
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
                 <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
               </motion.button>
+
+              {/* Success Content */}
               <div className="p-8 text-center">
-                <motion.div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 300 }}>
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4, duration: 0.3 }}>
+                {/* Success Icon */}
+                <motion.div
+                  className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 300 }}
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4, duration: 0.3 }}
+                  >
                     <CheckCircle2 className="w-10 h-10 text-white" />
                   </motion.div>
                 </motion.div>
-                <motion.h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                  Cadastro de Voluntário Completo!
+
+                {/* Success Message */}
+                <motion.h3
+                  className="text-2xl font-bold text-gray-900 dark:text-white mb-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  {isNewUser ? "Cadastro de Voluntário Realizado!" : "Cadastro de Voluntário Completo!"}
                 </motion.h3>
-                
-                {isNewUser ? (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-                      Bem-vindo! Seu cadastro foi criado com sucesso.
-                    </p>
-                    <div className="bg-blue-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Sua senha padrão é:
+
+                <motion.div
+                  className="space-y-3 mb-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  {isNewUser ? (
+                    <>
+                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                        Bem-vindo! Seu cadastro foi criado com sucesso.
                       </p>
-                      <div className="bg-white dark:bg-gray-600 rounded border px-3 py-2 font-mono text-lg text-center font-bold text-blue-600 dark:text-blue-400">
-                        {generatedPassword}
+                      <div className="bg-blue-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Sua senha padrão é:
+                        </p>
+                        <div className="bg-white dark:bg-gray-600 rounded border px-3 py-2 font-mono text-lg text-center font-bold text-blue-600 dark:text-blue-400">
+                          {generatedPassword}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Guarde esta senha em local seguro. Você pode alterá-la após fazer login.
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Guarde esta senha em local seguro. Você pode alterá-la após fazer login.
-                      </p>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Clique no X para ir para a tela de login.
+                    </>
+                  ) : (
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                      Obrigado por completar seu cadastro como voluntário! Nossa equipe entrará em contato em breve.
                     </p>
-                  </motion.div>
-                ) : (
-                  <motion.p className="text-gray-600 dark:text-gray-300 leading-relaxed" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                    Obrigado por completar seu cadastro como voluntário!
-                  </motion.p>
-                )}
+                  )}
+                </motion.div>
               </div>
+
+              {/* Decorative elements */}
+              <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-2xl" />
+              <div className="absolute -bottom-10 -left-10 w-20 h-20 bg-gradient-to-tr from-blue-400/20 to-indigo-400/20 rounded-full blur-2xl" />
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Auto-save indicator */}
       <AnimatePresence>
         {lastSaved && (
-          <motion.div 
-            initial={{ opacity: 0, y: -50 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -50 }} 
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
             className="fixed top-4 right-4 z-40 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
-            <span className="text-sm">Salvo automaticamente às {lastSaved.toLocaleTimeString()}</span>
+            <span className="text-sm">
+              Salvo automaticamente às {lastSaved.toLocaleTimeString()}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
@@ -744,378 +890,1046 @@ export function CompletarCadastroVoluntario() {
         animate="visible"
         variants={containerVariants}
       >
-        <motion.div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-6 mb-8">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <img src="image/LogoIMA.png" alt="Logo Mãos Amigas" className="h-24 w-auto drop-shadow-2xl" />
-            </motion.div>
-            <div className="text-left">
-              <motion.h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-white dark:via-blue-400 dark:to-purple-400 mb-3" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                Completar Cadastro do Voluntário
-              </motion.h1>
-              <motion.p className="text-xl text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <Sparkles className="w-5 h-5" />
-                Mãos Amigas
-              </motion.p>
+        {/* Progress Bar Enhanced */}
+        <motion.div
+          className="w-full max-w-4xl mx-auto mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-full p-2 shadow-lg border border-white/20">
+            <div className="flex items-center justify-between text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 px-4">
+              <span>Progresso do Formulário</span>
+              <span>{calculateProgress()}%</span>
             </div>
-          </div>          <motion.p className="text-gray-600 dark:text-gray-300 max-w-4xl mx-auto text-lg leading-relaxed" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            Preencha o formulário para completar seu cadastro como voluntário.
-          </motion.p>
-        </motion.div><motion.div className="max-w-4xl mx-auto">
-          {submitError && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg"
-            >
-              {submitError}
-            </motion.div>
-          )}
-          {fetchUserError && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg"
-            >
-              {fetchUserError}
-            </motion.div>
-          )}
-          {fetchingUser && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg"
-            >
-              Carregando dados do usuário...
-            </motion.div>
-          )}
-          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/30 overflow-hidden">
-            <div className="p-4 sm:p-8 lg:p-12">
-              <form onSubmit={handleSubmit} className="space-y-10">                
-                {/* Seção 1 - Dados Pessoais */}
-                <div className={formClasses.section.pessoal}>
-                  {/* Decorative element */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-full blur-2xl"></div>
-                  <div className="relative z-10">
-                    <h2 className={formClasses.sectionTitle.pessoal}>
-                      <User className="w-6 h-6" />
-                      Dados Pessoais
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                      {renderFieldWithState('nomeCompleto', (
-                        <div>
-                          <label className={formClasses.label}>
-                            Nome Completo *
-                            {readOnlyFields.has('nomeCompleto') && (
-                              <span className="text-xs text-gray-500 ml-1">(vindos do cadastro)</span>
-                            )}
-                          </label>
-                          <input 
-                            type="text" 
-                            className={getFieldClasses('nomeCompleto')}
-                            value={formData.nomeCompleto} 
-                            onChange={e => handleFieldChange('nomeCompleto', e.target.value)} 
-                            placeholder="Ex: João da Silva"
-                            readOnly={readOnlyFields.has('nomeCompleto')}
-                          />
-                          {errors.nomeCompleto && <span className={formClasses.error}>{errors.nomeCompleto}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('telefone', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Telefone *</label>
-                          <input type="text" className="input" value={formData.telefone} onChange={e => handleMaskedFieldChange('telefone', e.target.value)} maxLength={15} placeholder="Ex: (11) 99999-9999" />
-                          {errors.telefone && <span className="text-red-500 text-xs">{errors.telefone}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('dataNascimento', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Data de Nascimento *</label>
-                          <input type="date" className="input" value={formData.dataNascimento} onChange={e => handleFieldChange('dataNascimento', e.target.value)} />
-                          {errors.dataNascimento && <span className="text-red-500 text-xs">{errors.dataNascimento}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('genero', (
-                        <div>
-                          <label className={formClasses.label}>Gênero *</label>
-                          <select 
-                            className={formClasses.select} 
-                            value={formData.genero} 
-                            onChange={e => handleFieldChange('genero', e.target.value)}
-                          >
-                            <option value="">Selecione</option>
-                            <option value="M">Masculino</option>
-                            <option value="F">Feminino</option>
-                            <option value="O">Outro</option>
-                          </select>
-                          {errors.genero && <span className={formClasses.error}>{errors.genero}</span>}
-                        </div>
-                      ))}                      {renderFieldWithState('cpf', (
-                        <div>
-                          <label className={formClasses.label}>
-                            CPF *
-                            {readOnlyFields.has('cpf') && (
-                              <span className="text-xs text-gray-500 ml-1">(vindos do cadastro)</span>
-                            )}
-                          </label>
-                          <input 
-                            type="text" 
-                            className={getFieldClasses('cpf')}
-                            value={formData.cpf} 
-                            onChange={e => handleFieldChange('cpf', e.target.value)}
-                            placeholder="000.000.000-00" 
-                            readOnly={readOnlyFields.has('cpf')}
-                            title={readOnlyFields.has('cpf') ? "CPF foi informado na primeira fase do cadastro" : ""}
-                          />
-                          {errors.cpf && <span className={formClasses.error}>{errors.cpf}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('faixaSalarial', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Faixa Salarial *</label>
-                          <select className="input" value={formData.faixaSalarial} onChange={e => handleFieldChange('faixaSalarial', e.target.value)}>
-                            <option value="">Selecione</option>
-                            <option value="ate-1-salario">Até 1 salário mínimo</option>
-                            <option value="1-a-2-salarios">De 1 a 2 salários mínimos</option>
-                            <option value="2-a-3-salarios">De 2 a 3 salários mínimos</option>
-                            <option value="3-a-5-salarios">De 3 a 5 salários mínimos</option>
-                            <option value="5-a-10-salarios">De 5 a 10 salários mínimos</option>
-                            <option value="acima-10-salarios">Acima de 10 salários mínimos</option>
-                          </select>
-                          {errors.faixaSalarial && <span className="text-red-500 text-xs">{errors.faixaSalarial}</span>}
-                        </div>
-                      ))}                      {renderFieldWithState('email', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Email *
-                            {readOnlyFields.has('email') && (
-                              <span className="text-xs text-gray-500 ml-1">(vindos do cadastro)</span>
-                            )}
-                          </label>
-                          <input 
-                            type="email" 
-                            className={getFieldClasses('email', formClasses.input)}
-                            value={formData.email} 
-                            onChange={e => handleFieldChange('email', e.target.value)} 
-                            placeholder="Ex: joao@email.com"
-                            readOnly={readOnlyFields.has('email')}
-                          />
-                          {errors.email && <span className="text-red-500 text-xs">{errors.email}</span>}
-                        </div>
-                      ))}
-                    </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden mb-4">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full shadow-sm"
+                initial={{ width: 0 }}
+                animate={{ width: `${calculateProgress()}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </div>
+            
+            {/* Step indicators */}
+            <div className="grid grid-cols-3 gap-4 px-4 pb-2">
+              {[
+                { step: 1, title: "Dados Pessoais", icon: User, complete: isSectionComplete(1) },
+                { step: 2, title: "Endereço", icon: MapPin, complete: isSectionComplete(2) },
+                { step: 3, title: "Dados Profissionais", icon: GraduationCap, complete: isSectionComplete(3) },
+              ].map(({ step, title, icon: Icon, complete }) => (
+                <motion.div
+                  key={step}
+                  className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-300 ${
+                    complete 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
+                      : 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: step * 0.1 }}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    complete ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                  }`}>
+                    {complete ? <Check className="w-3 h-3" /> : step}
                   </div>
-                </div>                {/* Seção 2 - Endereço */}
-                <div className={formClasses.section.endereco}>
-                  {/* Decorative element */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-200/30 to-transparent rounded-full blur-2xl"></div>
-                  <div className="relative z-10">
-                    <h2 className={formClasses.sectionTitle.endereco}>
-                      <MapPin className="w-6 h-6" />
-                      Endereço
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                      {renderFieldWithState('cep', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">CEP *</label>
-                          <div className="relative">
-                            <InputMask
-                              mask="99999-999"
-                              type="text" 
-                              className={`input ${isLoading.cep ? 'pr-10' : ''}`} 
-                              value={formData.cep} 
-                              onChange={e => { 
-                                const value = e.target.value;
-                                handleFieldChange('cep', value); 
-                                const cleanCep = value.replace(/\D/g, '');
-                                if (cleanCep.length === 8) {
-                                  fetchAddressByCep(value); 
-                                }
-                              }} 
-                              placeholder="00000-000" 
-                            />
-                            {isLoading.cep && (
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                          {errors.cep && <span className="text-red-500 text-xs">{errors.cep}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('numero', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Número *</label>
-                          <input type="text" className="input" value={formData.numero} onChange={e => handleFieldChange('numero', e.target.value)} />
-                          {errors.numero && <span className="text-red-500 text-xs">{errors.numero}</span>}
-                        </div>
-                      ))}
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Complemento</label>
-                        <input type="text" className="input" value={formData.complemento} onChange={e => handleFieldChange('complemento', e.target.value)} />
-                      </div>                      {renderFieldWithState('logradouro', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Logradouro *
-                            {fieldStates.logradouro === 'valid' && (
-                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
-                            )}
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="text" 
-                              className="input" 
-                              value={formData.logradouro} 
-                              onChange={e => handleFieldChange('logradouro', e.target.value)} 
-                              placeholder="Rua, Avenida, etc."
-                            />
-                            {fieldStates.logradouro === 'valid' && (
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              </div>
-                            )}
-                          </div>
-                          {errors.logradouro && <span className="text-red-500 text-xs">{errors.logradouro}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('bairro', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Bairro *
-                            {fieldStates.bairro === 'valid' && (
-                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
-                            )}
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="text" 
-                              className="input" 
-                              value={formData.bairro} 
-                              onChange={e => handleFieldChange('bairro', e.target.value)} 
-                              placeholder="Centro, Vila Nova, etc."
-                            />
-                            {fieldStates.bairro === 'valid' && (
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              </div>
-                            )}
-                          </div>
-                          {errors.bairro && <span className="text-red-500 text-xs">{errors.bairro}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('cidade', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Cidade *
-                            {fieldStates.cidade === 'valid' && (
-                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
-                            )}
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="text" 
-                              className="input" 
-                              value={formData.cidade} 
-                              onChange={e => handleFieldChange('cidade', e.target.value)} 
-                              placeholder="São Paulo, Rio de Janeiro, etc."
-                            />
-                            {fieldStates.cidade === 'valid' && (
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              </div>
-                            )}
-                          </div>
-                          {errors.cidade && <span className="text-red-500 text-xs">{errors.cidade}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('estado', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Estado *
-                            {fieldStates.estado === 'valid' && (
-                              <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
-                            )}
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="text" 
-                              className="input" 
-                              value={formData.estado} 
-                              onChange={e => handleFieldChange('estado', e.target.value)} 
-                              placeholder="SP, RJ, MG, etc."
-                              maxLength={2}
-                              style={{ textTransform: 'uppercase' }}
-                            />
-                            {fieldStates.estado === 'valid' && (
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              </div>
-                            )}
-                          </div>
-                          {errors.estado && <span className="text-red-500 text-xs">{errors.estado}</span>}
-                        </div>
-                      ))}
-                    </div>
+                  <div className="hidden sm:block">
+                    <Icon className="w-4 h-4" />
                   </div>
-                </div>                {/* Seção 3 - Profissional */}
-                <div className={formClasses.section.profissional}>
-                  {/* Decorative element */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-200/30 to-transparent rounded-full blur-2xl"></div>
-                  <div className="relative z-10">
-                    <h2 className={formClasses.sectionTitle.profissional}>
-                      <GraduationCap className="w-6 h-6" />
-                      Dados Profissionais
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {renderFieldWithState('funcao', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Função *</label>
-                          <select className="input" value={formData.funcao} onChange={e => handleFieldChange('funcao', e.target.value)}>
-                            <option value="">Selecione</option>
-                            <option value="QUIROPRAXIA">Quiropraxia</option>
-                            <option value="PSICOLOGIA">Psicologia</option>
-                            <option value="FISIOTERAPIA">Fisioterapia</option>
-                            <option value="NUTRIÇÃO">Nutrição</option>
-                          </select>
-                          {errors.funcao && <span className="text-red-500 text-xs">{errors.funcao}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('profissao', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Profissão *</label>
-                          <input type="text" className="input" value={formData.profissao} onChange={e => handleFieldChange('profissao', e.target.value)} placeholder="Ex: Psicóloga Clínico" />
-                          {errors.profissao && <span className="text-red-500 text-xs">{errors.profissao}</span>}
-                        </div>
-                      ))}
-                      {renderFieldWithState('crm', (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">CRM (opcional)</label>
-                          <input type="text" className="input" value={formData.crm} onChange={e => handleFieldChange('crm', e.target.value)} placeholder="Ex: 123456/SP" />
-                          {errors.crm && <span className="text-red-500 text-xs">{errors.crm}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-6">
-                  <Button type="submit" className="w-full h-12 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300" disabled={isSubmitting}>
-                    {isSubmitting ? "Enviando..." : "Completar Cadastro"}
-                  </Button>
-                </div>
-              </form>
+                  <span className="text-xs font-medium hidden md:block">{title}</span>
+                </motion.div>
+              ))}
             </div>
           </div>
         </motion.div>
-        <motion.div className="text-center mt-12" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-          <div className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-white/20 dark:border-gray-700/30">          <motion.div className="text-gray-600 dark:text-gray-300 flex items-center justify-center gap-2" whileHover={{ scale: 1.02 }}>
-            <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}>
+
+        {/* Header Section */}
+        <motion.div
+          className="text-center mb-12"
+          variants={sectionVariants}
+        >
+          <div className="flex items-center justify-center gap-6 mb-8">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <img 
+                src="/image/LogoIMA.png" 
+                alt="Logo Mãos Amigas" 
+                className="h-24 w-auto drop-shadow-2xl" 
+              />
+            </motion.div>
+            <div className="text-left">
+              <motion.h1
+                className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                Cadastro de
+              </motion.h1>
+              <motion.h2
+                className="text-3xl md:text-4xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Heart className="w-8 h-8 text-red-500" />
+                Voluntário
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-6 h-6 text-yellow-500" />
+                </motion.div>
+              </motion.h2>
+            </div>
+          </div>
+          <motion.p
+            className="text-gray-600 dark:text-gray-300 max-w-3xl mx-auto text-lg leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            Complete seu cadastro para se tornar um voluntário e ajudar nossa comunidade. 
+            Sua dedicação faz a diferença na vida de muitas pessoas!
+          </motion.p>
+        </motion.div>
+
+        {/* Form Container */}
+        <motion.div
+          className="max-w-4xl mx-auto"
+          variants={sectionVariants}
+        >
+          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/30 overflow-hidden">
+            <form onSubmit={handleSubmit} className="space-y-8 p-8 md:p-12">
+                {/* Loading/Error States */}
+              {submitError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6"
+                >
+                  <div className="flex items-center gap-3">
+                    <TriangleAlert className="w-5 h-5 text-red-500" />
+                    <div>
+                      <h3 className="font-medium text-red-800 dark:text-red-200">Erro no Cadastro</h3>
+                      <p className="text-sm text-red-600 dark:text-red-300 mt-1">{submitError}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {fetchUserError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-6"
+                >
+                  <div className="flex items-center gap-3">
+                    <TriangleAlert className="w-5 h-5 text-yellow-500" />
+                    <div>
+                      <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Aviso</h3>
+                      <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">{fetchUserError}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {fetchingUser && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-center py-8"
+                >
+                  <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Carregando dados do usuário...</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Dados Pessoais section */}
+              <motion.div
+                className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-blue-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden mb-8"
+                variants={sectionVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                {/* Decorative element */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-full blur-2xl"></div>
+
+                <div className="relative z-10">
+                  <motion.h2
+                    className="text-2xl font-bold text-gray-800 dark:text-white mb-8 flex items-center gap-4"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <motion.div
+                      className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {isSectionComplete(1) ? (
+                        <CheckCircle2 className="w-6 h-6 text-white" />
+                      ) : (
+                        <User className="w-6 h-6 text-white" />
+                      )}
+                    </motion.div>
+                    <div>
+                      <span>Dados Pessoais</span>
+                      {isSectionComplete(1) && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="block text-sm font-normal text-green-600 dark:text-green-400"
+                        >
+                          ✓ Seção completa
+                        </motion.span>
+                      )}
+                    </div>
+                  </motion.h2>
+
+                  {/* Nome e Telefone */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="nomeCompleto" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Nome Completo <span className="text-red-500">*</span>
+                        {readOnlyFields.has('nomeCompleto') && (
+                          <span className="text-xs text-gray-500 ml-1">(vindos do cadastro)</span>
+                        )}
+                      </Label>
+
+                      {renderFieldWithState('nomeCompleto',
+                        <Input
+                          id="nomeCompleto"
+                          type="text"
+                          value={formData.nomeCompleto}
+                          onChange={(e) => handleFieldChange('nomeCompleto', e.target.value)}
+                          placeholder="Ex: João da Silva"
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.nomeCompleto === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.nomeCompleto === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500",
+                            readOnlyFields.has('nomeCompleto') && "bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400"
+                          )}
+                          readOnly={readOnlyFields.has('nomeCompleto')}
+                          aria-label="Campo obrigatório para nome completo"
+                          aria-describedby={errors.nomeCompleto ? "nomeCompleto-error" : undefined}
+                          aria-invalid={!!errors.nomeCompleto}
+                          autoComplete="name"
+                          required
+                        />
+                      )}
+
+                      {errors.nomeCompleto && (
+                        <motion.p
+                          id="nomeCompleto-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.nomeCompleto}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="telefone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Telefone <span className="text-red-500">*</span>
+                      </Label>
+
+                      {renderFieldWithState('telefone',
+                        <InputMask
+                          mask="(99) 99999-9999"
+                          id="telefone"
+                          value={formData.telefone}
+                          onChange={(e) => handleMaskedFieldChange('telefone', e.target.value)}
+                          placeholder="(11) 99999-9999"
+                          className={cn(
+                            "flex h-12 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-base ring-offset-background placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200",
+                            "mt-2",
+                            fieldStates.telefone === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.telefone === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para telefone"
+                          aria-describedby={errors.telefone ? "telefone-error" : undefined}
+                          aria-invalid={!!errors.telefone}
+                          autoComplete="tel"
+                          inputMode="tel"
+                          required
+                        />
+                      )}
+
+                      {errors.telefone && (
+                        <motion.p
+                          id="telefone-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.telefone}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Data de Nascimento e Gênero */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Data de Nascimento <span className="text-red-500">*</span>
+                      </Label>
+
+                      {renderFieldWithState('dataNascimento',
+                        <Input
+                          id="dataNascimento"
+                          type="date"
+                          value={formData.dataNascimento}
+                          onChange={(e) => handleFieldChange('dataNascimento', e.target.value)}
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.dataNascimento === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.dataNascimento === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para data de nascimento"
+                          aria-describedby={errors.dataNascimento ? "dataNascimento-error" : undefined}
+                          aria-invalid={!!errors.dataNascimento}
+                          autoComplete="bday"
+                          inputMode="none"
+                          required
+                        />
+                      )}
+
+                      {errors.dataNascimento && (
+                        <motion.p
+                          id="dataNascimento-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.dataNascimento}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="genero" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Gênero <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <select
+                          id="genero"
+                          name="genero"
+                          className={cn(
+                            "w-full h-12 px-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-all duration-200 shadow-sm text-base pr-10 appearance-auto",
+                            "mt-2",
+                            fieldStates.genero === 'invalid' && "border-red-500 focus:ring-red-500",
+                            fieldStates.genero === 'valid' && "border-green-500 bg-green-50/50"
+                          )}
+                          value={formData.genero || ''}
+                          onChange={e => {
+                            handleFieldChange('genero', e.target.value);
+                          }}
+                          required
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="M">Masculino</option>
+                          <option value="F">Feminino</option>
+                          <option value="O">Outro</option>
+                        </select>
+                      </div>
+                      {errors.genero && (
+                        <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                          <TriangleAlert className="w-4 h-4" /> {errors.genero}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CPF e Faixa Salarial */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="cpf" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        CPF <span className="text-red-500">*</span>
+                        {readOnlyFields.has('cpf') && (
+                          <span className="text-xs text-gray-500 ml-1">(vindos do cadastro)</span>
+                        )}
+                      </Label>
+
+                      {renderFieldWithState('cpf',
+                        <InputMask
+                          mask="999.999.999-99"
+                          id="cpf"
+                          value={formData.cpf || ''}
+                          onChange={(e) => handleFieldChange('cpf', e.target.value)}
+                          placeholder="000.000.000-00"
+                          className={cn(
+                            "flex h-12 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-base ring-offset-background placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200",
+                            "mt-2",
+                            fieldStates.cpf === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.cpf === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500",
+                            readOnlyFields.has('cpf') && "bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400"
+                          )}
+                          readOnly={readOnlyFields.has('cpf')}
+                          aria-label="Campo obrigatório para CPF"
+                          aria-describedby={errors.cpf ? "cpf-error" : undefined}
+                          aria-invalid={!!errors.cpf}
+                          autoComplete="off"
+                          inputMode="numeric"
+                          required
+                        />
+                      )}
+
+                      {errors.cpf && (
+                        <motion.p
+                          id="cpf-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.cpf}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="faixaSalarial" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Qual sua faixa salarial? <span className="text-red-500">*</span>
+                      </Label>
+                      {renderFieldWithState('faixaSalarial',
+                        <Select value={formData.faixaSalarial} onValueChange={(value) => handleFieldChange('faixaSalarial', value)}>
+                          <SelectTrigger className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.faixaSalarial === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.faixaSalarial === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}>
+                            <SelectValue placeholder="Selecione sua faixa salarial" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ate-1-salario">Até 1 salário mínimo</SelectItem>
+                            <SelectItem value="1-a-2-salarios">1 a 2 salários mínimos</SelectItem>
+                            <SelectItem value="2-a-3-salarios">2 a 3 salários mínimos</SelectItem>
+                            <SelectItem value="3-a-5-salarios">3 a 5 salários mínimos</SelectItem>
+                            <SelectItem value="5-a-10-salarios">5 a 10 salários mínimos</SelectItem>
+                            <SelectItem value="acima-10-salarios">Acima de 10 salários mínimos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {errors.faixaSalarial && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.faixaSalarial}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="mb-6">
+                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Email <span className="text-red-500">*</span>
+                      {readOnlyFields.has('email') && (
+                        <span className="text-xs text-gray-500 ml-1">(vindos do cadastro)</span>
+                      )}
+                    </Label>
+
+                    {renderFieldWithState('email',
+                      <Input
+                        id="email"
+                        type="email"
+                        inputMode="email"
+                        value={formData.email}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        placeholder="seu.email@exemplo.com"
+                        className={cn(
+                          "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                          fieldStates.email === 'valid' && "border-green-500 bg-green-50/50",
+                          fieldStates.email === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500",
+                          readOnlyFields.has('email') && "bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400"
+                        )}
+                        readOnly={readOnlyFields.has('email')}
+                        aria-label="Campo obrigatório para email"
+                        aria-describedby={errors.email ? "email-error" : undefined}
+                        aria-invalid={!!errors.email}
+                        autoComplete="email"
+                        required
+                      />
+                    )}
+
+                    {errors.email && (
+                      <motion.p
+                        id="email-error"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                        role="alert"
+                      >
+                        <TriangleAlert className="w-4 h-4" />
+                        {errors.email}
+                      </motion.p>
+                    )}
+                  </div>                </div>
+              </motion.div>
+
+              {/* Endereço section */}
+              <motion.div
+                className="bg-gradient-to-br from-green-50/80 to-emerald-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-green-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden mb-8"
+                variants={sectionVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                {/* Decorative element */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-200/30 to-transparent rounded-full blur-2xl"></div>
+
+                <div className="relative z-10">
+                  <motion.h2
+                    className="text-2xl font-bold text-gray-800 dark:text-white mb-8 flex items-center gap-4"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <motion.div
+                      className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {isSectionComplete(2) ? (
+                        <CheckCircle2 className="w-6 h-6 text-white" />
+                      ) : (
+                        <MapPin className="w-6 h-6 text-white" />
+                      )}
+                    </motion.div>
+                    <div>
+                      <span>Endereço</span>
+                      {isSectionComplete(2) && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="block text-sm font-normal text-green-600 dark:text-green-400"
+                        >
+                          ✓ Seção completa
+                        </motion.span>
+                      )}
+                    </div>
+                  </motion.h2>
+
+                  {/* CEP e Número */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="cep" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        CEP <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        {renderFieldWithState('cep',
+                          <InputMask
+                            mask="99999-999"
+                            id="cep"
+                            value={formData.cep}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              handleFieldChange('cep', value);
+                              const cleanCep = value.replace(/\D/g, '');
+                              if (cleanCep.length === 8) {
+                                fetchAddressByCep(value);
+                              }
+                            }}
+                            placeholder="00000-000"
+                            className={cn(
+                              "flex h-12 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-base ring-offset-background placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200",
+                              "mt-2",
+                              fieldStates.cep === 'valid' && "border-green-500 bg-green-50/50",
+                              fieldStates.cep === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500",
+                              isLoading.cep && "pr-10"
+                            )}
+                            aria-label="Campo obrigatório para CEP"
+                            aria-describedby={errors.cep ? "cep-error" : undefined}
+                            aria-invalid={!!errors.cep}
+                            autoComplete="postal-code"
+                            inputMode="numeric"
+                            required
+                          />
+                        )}
+                        {isLoading.cep && (
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      {errors.cep && (
+                        <motion.p
+                          id="cep-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.cep}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="numero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Número <span className="text-red-500">*</span>
+                      </Label>
+
+                      {renderFieldWithState('numero',
+                        <Input
+                          id="numero"
+                          type="text"
+                          value={formData.numero}
+                          onChange={(e) => handleFieldChange('numero', e.target.value)}
+                          placeholder="123"
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.numero === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.numero === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para número do endereço"
+                          aria-describedby={errors.numero ? "numero-error" : undefined}
+                          aria-invalid={!!errors.numero}
+                          autoComplete="address-line2"
+                          inputMode="numeric"
+                          required
+                        />
+                      )}
+
+                      {errors.numero && (
+                        <motion.p
+                          id="numero-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.numero}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Logradouro e Complemento */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-8">
+                      <Label htmlFor="logradouro" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Logradouro <span className="text-red-500">*</span>
+                        {fieldStates.logradouro === 'valid' && (
+                          <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                        )}
+                      </Label>
+
+                      {renderFieldWithState('logradouro',
+                        <Input
+                          id="logradouro"
+                          type="text"
+                          value={formData.logradouro}
+                          onChange={(e) => handleFieldChange('logradouro', e.target.value)}
+                          placeholder="Rua, Avenida, etc."
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.logradouro === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.logradouro === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para logradouro"
+                          aria-describedby={errors.logradouro ? "logradouro-error" : undefined}
+                          aria-invalid={!!errors.logradouro}
+                          autoComplete="address-line1"
+                          required
+                        />
+                      )}
+
+                      {errors.logradouro && (
+                        <motion.p
+                          id="logradouro-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.logradouro}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-4">
+                      <Label htmlFor="complemento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Complemento
+                      </Label>
+
+                      <Input
+                        id="complemento"
+                        type="text"
+                        value={formData.complemento}
+                        onChange={(e) => handleFieldChange('complemento', e.target.value)}
+                        placeholder="Apto, Casa, etc."
+                        className="mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        aria-label="Campo opcional para complemento do endereço"
+                        autoComplete="address-line3"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bairro, Cidade e Estado */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-4">
+                      <Label htmlFor="bairro" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Bairro <span className="text-red-500">*</span>
+                        {fieldStates.bairro === 'valid' && (
+                          <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                        )}
+                      </Label>
+
+                      {renderFieldWithState('bairro',
+                        <Input
+                          id="bairro"
+                          type="text"
+                          value={formData.bairro}
+                          onChange={(e) => handleFieldChange('bairro', e.target.value)}
+                          placeholder="Centro, Vila Nova, etc."
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.bairro === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.bairro === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para bairro"
+                          aria-describedby={errors.bairro ? "bairro-error" : undefined}
+                          aria-invalid={!!errors.bairro}
+                          autoComplete="address-level2"
+                          required
+                        />
+                      )}
+
+                      {errors.bairro && (
+                        <motion.p
+                          id="bairro-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.bairro}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="cidade" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Cidade <span className="text-red-500">*</span>
+                        {fieldStates.cidade === 'valid' && (
+                          <span className="text-xs text-green-600 ml-1">(preenchido automaticamente)</span>
+                        )}
+                      </Label>
+
+                      {renderFieldWithState('cidade',
+                        <Input
+                          id="cidade"
+                          type="text"
+                          value={formData.cidade}
+                          onChange={(e) => handleFieldChange('cidade', e.target.value)}
+                          placeholder="São Paulo, Rio de Janeiro, etc."
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.cidade === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.cidade === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para cidade"
+                          aria-describedby={errors.cidade ? "cidade-error" : undefined}
+                          aria-invalid={!!errors.cidade}
+                          autoComplete="address-level2"
+                          required
+                        />
+                      )}
+
+                      {errors.cidade && (
+                        <motion.p
+                          id="cidade-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.cidade}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-2">
+                      <Label htmlFor="estado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Estado <span className="text-red-500">*</span>
+                        {fieldStates.estado === 'valid' && (
+                          <span className="text-xs text-green-600 ml-1">(auto)</span>
+                        )}
+                      </Label>
+
+                      {renderFieldWithState('estado',
+                        <Input
+                          id="estado"
+                          type="text"
+                          value={formData.estado}
+                          onChange={(e) => handleFieldChange('estado', e.target.value.toUpperCase())}
+                          placeholder="SP"
+                          maxLength={2}
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase",
+                            fieldStates.estado === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.estado === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para estado"
+                          aria-describedby={errors.estado ? "estado-error" : undefined}
+                          aria-invalid={!!errors.estado}
+                          autoComplete="address-level1"
+                          required
+                        />
+                      )}
+
+                      {errors.estado && (
+                        <motion.p
+                          id="estado-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.estado}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Dados Profissionais section */}
+              <motion.div
+                className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 dark:from-gray-700/50 dark:to-gray-600/50 rounded-2xl p-4 sm:p-8 border border-purple-100/50 dark:border-gray-600/30 backdrop-blur-sm relative overflow-hidden mb-8"
+                variants={sectionVariants}
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                {/* Decorative element */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-200/30 to-transparent rounded-full blur-2xl"></div>
+
+                <div className="relative z-10">
+                  <motion.h2
+                    className="text-2xl font-bold text-gray-800 dark:text-white mb-8 flex items-center gap-4"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <motion.div
+                      className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {isSectionComplete(3) ? (
+                        <CheckCircle2 className="w-6 h-6 text-white" />
+                      ) : (
+                        <GraduationCap className="w-6 h-6 text-white" />
+                      )}
+                    </motion.div>
+                    <div>
+                      <span>Dados Profissionais</span>
+                      {isSectionComplete(3) && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="block text-sm font-normal text-green-600 dark:text-green-400"
+                        >
+                          ✓ Seção completa
+                        </motion.span>
+                      )}
+                    </div>
+                  </motion.h2>
+
+                  {/* Função e Profissão */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 mb-6">
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="funcao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Função <span className="text-red-500">*</span>
+                      </Label>
+                      {renderFieldWithState('funcao',
+                        <Select value={formData.funcao} onValueChange={(value) => handleFieldChange('funcao', value)}>
+                          <SelectTrigger className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.funcao === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.funcao === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}>
+                            <SelectValue placeholder="Selecione a função de voluntário" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="QUIROPRAXIA">Quiropraxia</SelectItem>
+                            <SelectItem value="PSICOLOGIA">Psicologia</SelectItem>
+                            <SelectItem value="FISIOTERAPIA">Fisioterapia</SelectItem>
+                            <SelectItem value="NUTRIÇÃO">Nutrição</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {errors.funcao && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.funcao}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6">
+                      <Label htmlFor="profissao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Profissão <span className="text-red-500">*</span>
+                      </Label>
+
+                      {renderFieldWithState('profissao',
+                        <Input
+                          id="profissao"
+                          type="text"
+                          value={formData.profissao}
+                          onChange={(e) => handleFieldChange('profissao', e.target.value)}
+                          placeholder="Ex: Psicóloga Clínica"
+                          className={cn(
+                            "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+                            fieldStates.profissao === 'valid' && "border-green-500 bg-green-50/50",
+                            fieldStates.profissao === 'invalid' && "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          )}
+                          aria-label="Campo obrigatório para profissão"
+                          aria-describedby={errors.profissao ? "profissao-error" : undefined}
+                          aria-invalid={!!errors.profissao}
+                          autoComplete="organization-title"
+                          required
+                        />
+                      )}
+
+                      {errors.profissao && (
+                        <motion.p
+                          id="profissao-error"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                          role="alert"
+                        >
+                          <TriangleAlert className="w-4 h-4" />
+                          {errors.profissao}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CRM */}
+                  <div className="mb-6">
+                    <Label htmlFor="crm" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      CRM/Registro Profissional (opcional)
+                    </Label>
+
+                    {renderFieldWithState('crm',
+                      <Input
+                        id="crm"
+                        type="text"
+                        value={formData.crm}
+                        onChange={(e) => handleFieldChange('crm', e.target.value)}
+                        placeholder="Ex: 123456/SP"
+                        className="mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        aria-label="Campo opcional para registro profissional"
+                        autoComplete="off"
+                      />
+                    )}
+
+                    {errors.crm && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-sm text-red-500 mt-2 flex items-center gap-1"
+                        role="alert"
+                      >
+                        <TriangleAlert className="w-4 h-4" />
+                        {errors.crm}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Submit Button */}
+              <motion.div
+                className="pt-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
+                >
+                  <motion.span
+                    className="flex items-center gap-2"
+                    whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enviando cadastro...
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="w-4 h-4" />
+                        Completar Cadastro de Voluntário
+                      </>
+                    )}
+                  </motion.span>
+                </Button>              </motion.div>
+            </form>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Footer */}
+      <motion.div
+        className="text-center mt-12"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <div className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-white/20 dark:border-gray-700/30 max-w-4xl mx-auto">
+          <motion.div
+            className="text-gray-600 dark:text-gray-300 flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.02 }}
+          >            <motion.span
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+            >
               <Heart className="w-4 h-4 text-red-500" />
             </motion.span>
             © 2025 Projeto Mãos Amigas - Ajudando a construir um futuro melhor
-            <motion.span animate={{ rotate: [0, 360] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
+            <motion.span
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            >
               <Star className="w-4 h-4 text-yellow-500" />
             </motion.span>
-          </motion.div>
-          </div>
-        </motion.div>
+          </motion.div>        </div>
       </motion.div>
     </div>
   );
