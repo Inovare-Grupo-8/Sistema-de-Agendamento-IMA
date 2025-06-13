@@ -21,9 +21,6 @@ import { isPhone, formatters } from "@/utils/validation";
 import { LetterAvatar } from "@/components/ui/LetterAvatar";
 
 const ProfileFormUser = () => {
-  console.log('🚀 [ProfileForm] DEBUG: Componente ProfileFormUser renderizado');
-  console.log('🚀 [ProfileForm] DEBUG: Timestamp:', new Date().toISOString());
-  console.log('🚀 [ProfileForm] DEBUG: URL atual:', window.location.href);
   
   // Interceptar mudanças de location para detectar redirecionamentos
   useEffect(() => {
@@ -115,10 +112,8 @@ const ProfileFormUser = () => {
         console.warn('⚠️ [ProfileForm] DEBUG: Usuário não logado - userData não encontrado.');
         console.log('🔍 [ProfileForm] DEBUG: localStorage completo:', Object.keys(localStorage));
         return;
-      }
-
-      try {
-        parsedData = JSON.parse(userData);
+      }      try {
+        const parsedData = JSON.parse(userData);
         console.log('🔍 [ProfileForm] DEBUG: userData parsed:', {
           hasIdUsuario: !!parsedData.idUsuario,
           hasToken: !!parsedData.token,
@@ -236,31 +231,13 @@ const ProfileFormUser = () => {
       };
       setFormData(safeUserData);
     }
-  }, [userData, formChanged]);
-  // Reset image error state when profile image or preview changes
+  }, [userData, formChanged]);  // Reset image error state when profile image or preview changes
   useEffect(() => {
     if ((profileImage && profileImage !== 'undefined' && profileImage !== '') || imagePreview) {
       setImageError(false);
     }
   }, [profileImage, imagePreview]);
-
-  // Load profile data including photo URL from backend
-  useEffect(() => {
-    const loadProfileData = async () => {
-      try {
-        const dados = await fetchPerfil();
-        if (dados && dados.fotoUrl) {
-          setProfileImage(dados.fotoUrl);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados do perfil:', error);
-      }
-    };
-
-    loadProfileData();
-  }, [fetchPerfil, setProfileImage]);
-
-  // Função para lidar com a mudança nos campos
+  // Função para lidar com a mudança nos campos de input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormChanged(true);
     const { name, value } = e.target;
@@ -303,6 +280,17 @@ const ProfileFormUser = () => {
         [name]: value
       });
     }
+  };
+
+  // Função específica para lidar com elementos select
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormChanged(true);
+    const { name, value } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: value
+    });
   };
 
   // Função para lidar com a seleção da imagem
@@ -564,9 +552,8 @@ const ProfileFormUser = () => {
       console.log('🔴 [ProfileForm] DEBUG: Timestamp da desmontagem:', new Date().toISOString());
       console.log('🔴 [ProfileForm] DEBUG: URL no momento da desmontagem:', window.location.href);
     };
-  }, []);
-  // Interceptador para monitorar todas as tentativas de navegação
-  const interceptedNavigate = (to: string | number, options?: any) => {
+  }, []);  // Interceptador para monitorar todas as tentativas de navegação
+  const interceptedNavigate = (to: string, options?: any) => {
     console.log('🚨 [ProfileForm] DEBUG: TENTATIVA DE NAVEGAÇÃO DETECTADA!');
     console.log('🚨 [ProfileForm] DEBUG: Destino:', to);
     console.log('🚨 [ProfileForm] DEBUG: Opções:', options);
@@ -843,12 +830,11 @@ const ProfileFormUser = () => {
                             <div className="space-y-2">
                               <Label htmlFor="genero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Gênero
-                              </Label>
-                              <select
+                              </Label>                              <select
                                 id="genero"
                                 name="genero"
                                 value={formData.genero}
-                                onChange={(e) => handleInputChange(e as any)}
+                                onChange={handleSelectChange}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-[#23272F] text-gray-900 dark:text-gray-100"
                               >
                                 <option value="OUTRO">Prefiro não informar</option>
