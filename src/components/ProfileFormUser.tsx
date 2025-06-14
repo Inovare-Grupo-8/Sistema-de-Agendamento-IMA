@@ -130,12 +130,11 @@ const ProfileFormUser = () => {
         console.error('❌ [ProfileForm] DEBUG: Erro ao fazer parse do userData:', parseError);
         console.log('🔍 [ProfileForm] DEBUG: userData raw:', userData);
         return;
-      }
-
-      const dadosPessoais = await fetchPerfil();
+      }      const dadosPessoais = await fetchPerfil();
       const endereco = await buscarEndereco();
 
       console.log('🔍 Debug ProfileFormUser - dadosPessoais recebidos:', dadosPessoais);
+      console.log('🔍 Debug ProfileFormUser - endereco recebido:', endereco);
       console.log('🔍 Debug ProfileFormUser - telefone específico:', dadosPessoais?.telefone);
 
       const perfilCompleto = {

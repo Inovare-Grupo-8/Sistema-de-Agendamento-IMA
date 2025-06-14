@@ -64,8 +64,8 @@ export const useUserProfile = () => {
             usuarioId = info.id;
             tipoUsuario = info.tipo;
         }
-        
-        console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
+          console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
+        console.log('🔍 [useUserProfile] DEBUG: Tipo de usuário original:', tipoUsuario);
         
         if (!usuarioId) {
             console.error('❌ [useUserProfile] DEBUG: ID do usuário não encontrado!');
@@ -77,6 +77,7 @@ export const useUserProfile = () => {
         
         if (tipoUsuario) {
             const tipo = tipoUsuario.toUpperCase();
+            console.log('🔍 [useUserProfile] DEBUG: Tipo convertido para uppercase:', tipo);
             
             if (tipo === 'VOLUNTARIO') {
                 tipoFormatado = 'voluntario';
@@ -88,6 +89,8 @@ export const useUserProfile = () => {
                 tipoFormatado = 'usuario';
             }
         }
+        
+        console.log('🔍 [useUserProfile] DEBUG: Tipo formatado para backend:', tipoFormatado);
         
         return { user, token, usuarioId, tipoUsuario: tipoFormatado };
     };
@@ -252,15 +255,14 @@ export const useUserProfile = () => {
             console.error('Erro ao atualizar dados pessoais:', error);
             throw error;
         }
-    };
-
-    const buscarEndereco = async (): Promise<Endereco | null> => {
+    };    const buscarEndereco = async (): Promise<Endereco | null> => {
         try {
             console.log('🔄 [useUserProfile] DEBUG: buscarEndereco iniciado');
-            const { token, usuarioId } = getUserAuthData();
+            const { token, usuarioId, tipoUsuario } = getUserAuthData();
+            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco - tipoUsuario:', tipoUsuario);
 
-            const url = `http://localhost:8080/perfil/usuario/endereco?usuarioId=${usuarioId}`;
-            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco URL:', url);
+            const url = `http://localhost:8080/perfil/${tipoUsuario}/endereco?usuarioId=${usuarioId}`;
+            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco URL completa:', url);
 
             console.log('🌐 [useUserProfile] DEBUG: Fazendo requisição para buscar endereço...');
             const response = await fetch(url, {
@@ -291,14 +293,13 @@ export const useUserProfile = () => {
 
             const enderecoOutput = await response.json();
             console.log('✅ [useUserProfile] DEBUG: Endereço recebido:', enderecoOutput);
-            
-            // Converter EnderecoOutput para Endereco
+              // Converter EnderecoOutput para Endereco
             const endereco = {
                 rua: enderecoOutput.logradouro || '',
                 numero: enderecoOutput.numero || '',
                 complemento: enderecoOutput.complemento || '',
                 bairro: enderecoOutput.bairro || '',
-                cidade: enderecoOutput.cidade || '',
+                cidade: enderecoOutput.localidade || '', // ✅ CORREÇÃO: usar localidade do backend
                 estado: enderecoOutput.uf || '',
                 cep: enderecoOutput.cep || ''
             };
@@ -322,16 +323,13 @@ export const useUserProfile = () => {
             
             return null;
         }
-    };
-
-    const atualizarEndereco = async (endereco: {
-
+    };    const atualizarEndereco = async (endereco: {
         cep: string;
         numero: string;
         complemento?: string;
     }): Promise<void> => {
         try {
-            const { token, usuarioId } = getUserAuthData();
+            const { token, usuarioId, tipoUsuario } = getUserAuthData();
 
             // Salvar localmente primeiro
             const savedProfile = localStorage.getItem('savedProfile');
@@ -346,7 +344,7 @@ export const useUserProfile = () => {
                 complemento: endereco.complemento || ''
             };
 
-            const response = await fetch(`http://localhost:8080/perfil/usuario/endereco?usuarioId=${usuarioId}`, {
+            const response = await fetch(`http://localhost:8080/perfil/${tipoUsuario}/endereco?usuarioId=${usuarioId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -361,16 +359,14 @@ export const useUserProfile = () => {
         } catch (error) {
             console.warn('Backend indisponível, endereço salvo localmente');
         }
-    };
-
-    const uploadFoto = async (foto: File): Promise<{ fotoUrl: string }> => {
+    };    const uploadFoto = async (foto: File): Promise<{ fotoUrl: string }> => {
         try {
-            const { token, usuarioId } = getUserAuthData();
+            const { token, usuarioId, tipoUsuario } = getUserAuthData();
 
             const formData = new FormData();
             formData.append('file', foto);
 
-            const response = await fetch(`http://localhost:8080/perfil/usuario/foto?usuarioId=${usuarioId}`, {
+            const response = await fetch(`http://localhost:8080/perfil/${tipoUsuario}/foto?usuarioId=${usuarioId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token || ''}`
