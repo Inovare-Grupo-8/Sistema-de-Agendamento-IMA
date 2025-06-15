@@ -490,7 +490,6 @@ const ProfileFormUser = () => {
       });
     }
   };
-
   // Função para buscar endereço pelo CEP
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const cep = e.target.value;
@@ -498,15 +497,20 @@ const ProfileFormUser = () => {
 
     const endereco = await fetchAddressByCep(cep);
     if (endereco) {
+      console.log('🔍 Debug handleCepBlur - endereco recebido:', endereco);
+      
       setFormData(prev => ({
         ...prev,
         endereco: {
           ...prev.endereco,
-          rua: endereco.rua, // Corrected property access
+          rua: endereco.rua,
           bairro: endereco.bairro,
-          cidade: endereco.cidade, // Corrected property access
-          estado: endereco.estado, // Corrected property access
-          cep: endereco.cep
+          cidade: endereco.cidade,
+          estado: endereco.estado,
+          cep: endereco.cep,
+          // Manter número e complemento existentes
+          numero: prev.endereco.numero,
+          complemento: endereco.complemento || prev.endereco.complemento
         }
       }));
       setFormChanged(true);
