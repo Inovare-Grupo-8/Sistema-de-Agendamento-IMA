@@ -28,7 +28,7 @@ const HomeUser = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage } = useProfileImage();
+  const { profileImage, refreshImageFromStorage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData } = useUserData();
   
@@ -101,8 +101,13 @@ const HomeUser = () => {
       });
       
       setRescheduleDialogOpen(false);
-    }
-  };
+    }  };
+
+  // 🔄 CORREÇÃO: Sincronizar imagem do perfil ao carregar o componente
+  useEffect(() => {
+    console.log('🖼️ [HomeUser] DEBUG: Sincronizando imagem do perfil ao carregar componente');
+    refreshImageFromStorage();
+  }, [refreshImageFromStorage]);
 
   return (
     <SidebarProvider>
