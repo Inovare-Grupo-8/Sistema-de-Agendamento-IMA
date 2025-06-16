@@ -374,26 +374,27 @@ const ProfileFormUser = () => {
             telefone: formData.telefone || '',
             dataNascimento: formData.dataNascimento || '',
             genero: formData.genero || '',
-        };
-
-        console.log('🔍 Debug handleSave - Atualizando dados pessoais:', dadosPessoais);
+        };        console.log('🔍 Debug handleSave - Atualizando dados pessoais:', dadosPessoais);
         const resultadoDadosPessoais = await atualizarDadosPessoais(dadosPessoais);
-        console.log('✅ Debug handleSave - Dados pessoais atualizados:', resultadoDadosPessoais);        // ✅ CORREÇÃO: Salvar endereço separadamente APENAS se tiver CEP e número válidos
-        const temDadosEndereco = formData.endereco && 
-            formData.endereco.cep?.trim() && 
-            formData.endereco.numero?.trim() &&
-            formData.endereco.cep.replace(/\D/g, '').length === 8; // CEP deve ter 8 dígitos
+        console.log('✅ Debug handleSave - Dados pessoais atualizados:', resultadoDadosPessoais);// ✅ CORREÇÃO: Verificar se há dados de endereço COMPLETOS antes de tentar salvar
+        const cepLimpo = formData.endereco?.cep?.replace(/\D/g, '') || '';
+        const temCepValido = cepLimpo.length === 8;
+        const temNumero = formData.endereco?.numero?.trim();
+        const temDadosEnderecoCompletos = temCepValido && temNumero;
 
-        if (temDadosEndereco) {
-            console.log('🔍 Debug handleSave - Dados de endereço válidos encontrados');
-            console.log('🔍 Debug handleSave - CEP:', formData.endereco.cep);
-            console.log('🔍 Debug handleSave - Número:', formData.endereco.numero);
-            console.log('🔍 Debug handleSave - Complemento:', formData.endereco.complemento);
+        console.log('🔍 Debug handleSave - Verificação de endereço:');
+        console.log('🔍 Debug handleSave - CEP limpo:', cepLimpo);
+        console.log('🔍 Debug handleSave - CEP válido (8 dígitos)?', temCepValido);
+        console.log('🔍 Debug handleSave - Tem número?', !!temNumero);
+        console.log('🔍 Debug handleSave - Tem dados completos?', temDadosEnderecoCompletos);
+
+        // ✅ SÓ tentar salvar endereço se tiver dados REALMENTE completos
+        if (temDadosEnderecoCompletos) {
+            console.log('🔍 Debug handleSave - Dados de endereço completos encontrados, tentando salvar...');
             
-            // ✅ Preparar dados EXATAMENTE como o backend espera
             const enderecoParaBackend = {
-                cep: formData.endereco.cep.replace(/\D/g, ''), // Limpar formatação
-                numero: formData.endereco.numero.toString().trim(),
+                cep: cepLimpo,
+                numero: temNumero.toString().trim(),
                 complemento: formData.endereco.complemento?.trim() || ''
             };
 
@@ -406,20 +407,19 @@ const ProfileFormUser = () => {
             } catch (enderecoError) {
                 console.error('❌ Debug handleSave - ERRO ao salvar endereço:', enderecoError);
                 
-                // ✅ MOSTRAR erro específico do endereço
+                // ✅ Mostrar aviso mas NÃO bloquear o salvamento dos dados pessoais
                 toast({
-                    title: "Erro ao atualizar endereço",
-                    description: enderecoError instanceof Error ? enderecoError.message : "Erro desconhecido ao atualizar endereço",
-                    variant: "destructive"
+                    title: "Aviso",
+                    description: "Dados pessoais salvos com sucesso, mas houve problema ao salvar o endereço. Verifique os dados do endereço.",
+                    variant: "default"
                 });
                 
-                // ✅ PARAR aqui se endereço falhou - não mostrar sucesso geral
-                return;
+                // ✅ NÃO retornar aqui - continuar com o sucesso dos dados pessoais
+                console.log('⚠️ Debug handleSave - Continuando apesar do erro no endereço...');
             }
         } else {
-            console.log('🔍 Debug handleSave - Dados de endereço insuficientes ou inválidos');
-            console.log('🔍 Debug handleSave - CEP válido?', formData.endereco?.cep?.replace(/\D/g, '').length === 8);
-            console.log('🔍 Debug handleSave - Tem número?', !!formData.endereco?.numero?.trim());
+            console.log('🔍 Debug handleSave - Dados de endereço incompletos - pulando atualização de endereço');
+            console.log('🔍 Debug handleSave - Dados pessoais serão salvos normalmente');
         }// ✅ Atualizar contexto local
         const dadosParaSincronizar = {
             nome: resultadoDadosPessoais.nome || formData.nome,
