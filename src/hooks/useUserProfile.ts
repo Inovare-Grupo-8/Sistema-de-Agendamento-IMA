@@ -71,26 +71,11 @@ export const useUserProfile = () => {
             console.error('❌ [useUserProfile] DEBUG: ID do usuário não encontrado!');
             throw new Error('ID do usuário não encontrado');
         }
+          // ✅ CORREÇÃO: Para ProfileFormUser, sempre usar 'assistido'
+        let tipoFormatado = 'assistido'; // Para usuários assistidos
         
-        // Mapear tipo do usuário para o formato esperado pelo backend
-        let tipoFormatado = 'usuario'; // default
-        
-        if (tipoUsuario) {
-            const tipo = tipoUsuario.toUpperCase();
-            console.log('🔍 [useUserProfile] DEBUG: Tipo convertido para uppercase:', tipo);
-            
-            if (tipo === 'VOLUNTARIO') {
-                tipoFormatado = 'voluntario';
-            } else if (tipo === 'ADMINISTRADOR') {
-                tipoFormatado = 'assistente-social';
-            } else if (tipo === 'VALOR_SOCIAL' || tipo === 'GRATUIDADE') {
-                tipoFormatado = 'assistido';
-            } else if (tipo === 'NAO_CLASSIFICADO' || tipo === 'USUARIO') {
-                tipoFormatado = 'usuario';
-            }
-        }
-        
-        console.log('🔍 [useUserProfile] DEBUG: Tipo formatado para backend:', tipoFormatado);
+        console.log('🔍 [useUserProfile] DEBUG: Tipo original do localStorage:', tipoUsuario);
+        console.log('🔍 [useUserProfile] DEBUG: Tipo formatado FIXO para assistido:', tipoFormatado);
         
         return { user, token, usuarioId, tipoUsuario: tipoFormatado };
     };
@@ -259,9 +244,7 @@ export const useUserProfile = () => {
         try {
             console.log('🔄 [useUserProfile] DEBUG: buscarEndereco iniciado');
             const { token, usuarioId, tipoUsuario } = getUserAuthData();
-            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco - tipoUsuario:', tipoUsuario);
-
-            const url = `http://localhost:8080/perfil/${tipoUsuario}/endereco?usuarioId=${usuarioId}`;
+            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco - tipoUsuario:', tipoUsuario);            const url = `http://localhost:8080/perfil/assistido/endereco?usuarioId=${usuarioId}`;
             console.log('🔍 [useUserProfile] DEBUG: buscarEndereco URL completa:', url);
 
             console.log('🌐 [useUserProfile] DEBUG: Fazendo requisição para buscar endereço...');
@@ -329,44 +312,99 @@ export const useUserProfile = () => {
         complemento?: string;
     }): Promise<void> => {
         try {
+            console.log('🔄 [useUserProfile] DEBUG: atualizarEndereco iniciado');
+            console.log('🔍 [useUserProfile] DEBUG: Dados recebidos:', endereco);
+            
             const { token, usuarioId, tipoUsuario } = getUserAuthData();
+            console.log('🔍 [useUserProfile] DEBUG: Auth data:', { usuarioId, tipoUsuario, hasToken: !!token });
 
-            // Salvar localmente primeiro
+            // ✅ CORREÇÃO: Validar dados obrigatórios
+            if (!endereco.cep?.trim() || !endereco.numero?.trim()) {
+                throw new Error('CEP e número são obrigatórios para salvar o endereço');
+            }
+
+            // ✅ CORREÇÃO: Preparar dados exatamente como o backend espera
+            const enderecoInput = {
+                cep: endereco.cep.replace(/\D/g, ''), // Remove formatação: 03026-000 → 03026000
+                numero: endereco.numero.toString().trim(),
+                complemento: endereco.complemento?.trim() || ''
+            };
+
+            console.log('🔍 [useUserProfile] DEBUG: Dados formatados:', enderecoInput);
+
+            // ✅ CORREÇÃO: URL sempre para assistido
+            const url = `http://localhost:8080/perfil/assistido/endereco?usuarioId=${usuarioId}`;
+            console.log('🌐 [useUserProfile] DEBUG: URL da requisição:', url);
+
+            // ✅ CORREÇÃO: Headers completos
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+
+            console.log('🚀 [useUserProfile] DEBUG: Enviando requisição PUT...');
+            
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: headers,
+                body: JSON.stringify(enderecoInput)
+            });
+
+            console.log('📡 [useUserProfile] DEBUG: Status da resposta:', response.status);
+            console.log('📡 [useUserProfile] DEBUG: Status text:', response.statusText);
+
+            // ✅ CORREÇÃO: Verificar resposta correta (204 No Content é sucesso)
+            if (response.status === 204) {
+                console.log('✅ [useUserProfile] DEBUG: Endereço atualizado com sucesso (204 No Content)');
+            } else if (response.ok) {
+                console.log('✅ [useUserProfile] DEBUG: Endereço atualizado com sucesso');
+            } else {
+                let errorText = '';
+                try {
+                    errorText = await response.text();
+                } catch (e) {
+                    errorText = 'Erro desconhecido';
+                }
+                
+                console.error('❌ [useUserProfile] ERROR: Erro na resposta do backend:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+                
+                throw new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
+            }
+
+            // ✅ SALVAR localmente APENAS após confirmação do backend
             const savedProfile = localStorage.getItem('savedProfile');
             const profile = savedProfile ? JSON.parse(savedProfile) : {};
-            profile.endereco = { ...profile.endereco, ...endereco };
-            localStorage.setItem('savedProfile', JSON.stringify(profile));
-
-            // Tentar enviar para o backend
-            const enderecoInput = {
+            
+            // Manter dados completos do endereço
+            profile.endereco = { 
+                ...profile.endereco, 
                 cep: endereco.cep,
                 numero: endereco.numero,
                 complemento: endereco.complemento || ''
             };
+            localStorage.setItem('savedProfile', JSON.stringify(profile));
+            
+            console.log('💾 [useUserProfile] DEBUG: Endereço salvo localmente após sucesso no backend');
 
-            const response = await fetch(`http://localhost:8080/perfil/${tipoUsuario}/endereco?usuarioId=${usuarioId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: JSON.stringify(enderecoInput)
-            });
-
-            if (!response.ok) {
-                console.warn('Erro no backend, endereço salvo localmente');
-            }
         } catch (error) {
-            console.warn('Backend indisponível, endereço salvo localmente');
+            console.error('❌ [useUserProfile] ERROR: Erro ao atualizar endereço:', error);
+            
+            // ✅ IMPORTANTE: NÃO salvar localmente se houve erro no backend
+            // Isso evita que o frontend mostre sucesso quando o backend falhou
+            throw error;
         }
-    };    const uploadFoto = async (foto: File): Promise<{ fotoUrl: string }> => {
+    };const uploadFoto = async (foto: File): Promise<string> => {
         try {
             const { token, usuarioId, tipoUsuario } = getUserAuthData();
 
             const formData = new FormData();
             formData.append('file', foto);
 
-            const response = await fetch(`http://localhost:8080/perfil/${tipoUsuario}/foto?usuarioId=${usuarioId}`, {
+            const response = await fetch(`http://localhost:8080/perfil/assistido/foto?usuarioId=${usuarioId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token || ''}`
@@ -375,23 +413,22 @@ export const useUserProfile = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao fazer upload da foto');
+                const errorText = await response.text();
+                throw new Error(`Erro ao fazer upload da foto: ${errorText}`);
             }
 
             const result = await response.json();
             
-            // Se houver uma foto, adicionar a URL base
-            if (result.fotoUrl) {
-                result.fotoUrl = `http://localhost:8080${result.fotoUrl}`;
-            }
-
+            // Concatena a URL base com o caminho relativo retornado pelo servidor
+            const photoUrl = `http://localhost:8080${result.url}`;
+            
             // Salvar localmente
             const savedProfile = localStorage.getItem('savedProfile');
             const profile = savedProfile ? JSON.parse(savedProfile) : {};
-            profile.fotoUrl = result.fotoUrl;
+            profile.fotoUrl = photoUrl;
             localStorage.setItem('savedProfile', JSON.stringify(profile));
 
-            return result;
+            return photoUrl;
         } catch (error) {
             console.error('Erro ao fazer upload da foto:', error);
             throw error;

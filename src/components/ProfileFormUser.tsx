@@ -343,120 +343,144 @@ const ProfileFormUser = () => {
   const handleSave = async () => {
     console.log('🔍 Debug handleSave - iniciando...');
     console.log('🔍 Debug handleSave - formChanged:', formChanged);
-    console.log('🔍 Debug handleSave - selectedImage:', selectedImage);
 
-    // If no changes were made, just provide feedback
     if (!formChanged) {
-      toast({
-        title: "Nenhuma alteração detectada",
-        description: "Altere algum campo para salvar",
-        variant: "default"
-      });
-      return;
+        toast({
+            title: "Nenhuma alteração detectada",
+            description: "Altere algum campo para salvar",
+            variant: "default"
+        });
+        return;
     }
 
-    console.log('🔍 Debug handleSave - chamando validateForm...');
-    // Validate the form before saving
     if (!validateForm()) {
-      console.log('🔍 Debug handleSave - validação falhou, mostrando toast de erro');
-      toast({
-        title: "Formulário com erros",
-        description: "Corrija os erros antes de salvar",
-        variant: "destructive"
-      });
-      return;
+        console.log('🔍 Debug handleSave - validação falhou');
+        toast({
+            title: "Formulário com erros",
+            description: "Corrija os erros antes de salvar",
+            variant: "destructive"
+        });
+        return;
     }
 
-    console.log('🔍 Debug handleSave - validação passou, salvando...');
     setLoading(true);
 
     try {
-      // Preparar dados pessoais (sem endereço)
-      const dadosPessoais = {
-        nome: formData.nome || '',
-        sobrenome: formData.sobrenome || '',
-        email: formData.email || '',
-        telefone: formData.telefone || '',
-        dataNascimento: formData.dataNascimento || '',
-        genero: formData.genero || '',
-      }; console.log('🔍 Debug handleSave - dadosPessoais preparados:', dadosPessoais);      // Atualizar dados pessoais usando o hook
-      console.log('🔍 Debug handleSave - chamando atualizarDadosPessoais...');
-      const resultadoDadosPessoais = await atualizarDadosPessoais(dadosPessoais);
-      console.log('🔍 Debug handleSave - resultado atualizarDadosPessoais:', resultadoDadosPessoais);
+        // ✅ CORREÇÃO: Salvar dados pessoais primeiro
+        const dadosPessoais = {
+            nome: formData.nome || '',
+            sobrenome: formData.sobrenome || '',
+            email: formData.email || '',
+            telefone: formData.telefone || '',
+            dataNascimento: formData.dataNascimento || '',
+            genero: formData.genero || '',
+        };
 
-      // Atualizar endereço se houver dados
-      if (formData.endereco && Object.values(formData.endereco).some(value => value.trim() !== '')) {
-        console.log('🔍 Debug handleSave - atualizando endereço...');
-        const resultadoEndereco = await atualizarEndereco(formData.endereco);
-        console.log('🔍 Debug handleSave - resultado atualizarEndereco:', resultadoEndereco);
-      }
+        console.log('🔍 Debug handleSave - Atualizando dados pessoais:', dadosPessoais);
+        const resultadoDadosPessoais = await atualizarDadosPessoais(dadosPessoais);
+        console.log('✅ Debug handleSave - Dados pessoais atualizados:', resultadoDadosPessoais);        // ✅ CORREÇÃO: Salvar endereço separadamente APENAS se tiver CEP e número válidos
+        const temDadosEndereco = formData.endereco && 
+            formData.endereco.cep?.trim() && 
+            formData.endereco.numero?.trim() &&
+            formData.endereco.cep.replace(/\D/g, '').length === 8; // CEP deve ter 8 dígitos
 
-      // Upload da foto se houver uma nova
-      if (selectedImage) {
-        console.log('🔍 Debug handleSave - fazendo upload da foto...');
-        await uploadFoto(selectedImage);
-        if (imagePreview) {
-          setProfileImage(imagePreview);
+        if (temDadosEndereco) {
+            console.log('🔍 Debug handleSave - Dados de endereço válidos encontrados');
+            console.log('🔍 Debug handleSave - CEP:', formData.endereco.cep);
+            console.log('🔍 Debug handleSave - Número:', formData.endereco.numero);
+            console.log('🔍 Debug handleSave - Complemento:', formData.endereco.complemento);
+            
+            // ✅ Preparar dados EXATAMENTE como o backend espera
+            const enderecoParaBackend = {
+                cep: formData.endereco.cep.replace(/\D/g, ''), // Limpar formatação
+                numero: formData.endereco.numero.toString().trim(),
+                complemento: formData.endereco.complemento?.trim() || ''
+            };
+
+            console.log('🔍 Debug handleSave - Dados formatados para backend:', enderecoParaBackend);
+
+            try {
+                console.log('🚀 Debug handleSave - Enviando endereço para o backend...');
+                await atualizarEndereco(enderecoParaBackend);
+                console.log('✅ Debug handleSave - Endereço atualizado com sucesso no backend');
+            } catch (enderecoError) {
+                console.error('❌ Debug handleSave - ERRO ao salvar endereço:', enderecoError);
+                
+                // ✅ MOSTRAR erro específico do endereço
+                toast({
+                    title: "Erro ao atualizar endereço",
+                    description: enderecoError instanceof Error ? enderecoError.message : "Erro desconhecido ao atualizar endereço",
+                    variant: "destructive"
+                });
+                
+                // ✅ PARAR aqui se endereço falhou - não mostrar sucesso geral
+                return;
+            }
+        } else {
+            console.log('🔍 Debug handleSave - Dados de endereço insuficientes ou inválidos');
+            console.log('🔍 Debug handleSave - CEP válido?', formData.endereco?.cep?.replace(/\D/g, '').length === 8);
+            console.log('🔍 Debug handleSave - Tem número?', !!formData.endereco?.numero?.trim());
+        }// ✅ Atualizar contexto local
+        const dadosParaSincronizar = {
+            nome: resultadoDadosPessoais.nome || formData.nome,
+            sobrenome: resultadoDadosPessoais.sobrenome || formData.sobrenome,
+            email: resultadoDadosPessoais.email || formData.email,
+            telefone: resultadoDadosPessoais.telefone || formData.telefone,
+            dataNascimento: resultadoDadosPessoais.dataNascimento || formData.dataNascimento,
+            genero: resultadoDadosPessoais.genero || formData.genero,
+            endereco: formData.endereco
+        };
+
+        console.log('🔍 Debug handleSave - Sincronizando com contexto:', dadosParaSincronizar);
+        setUserData(dadosParaSincronizar);
+
+        // ✅ CORREÇÃO: Recarregar dados do backend para garantir sincronização
+        console.log('🔄 Debug handleSave - Recarregando dados do backend...');
+        try {
+            await loadProfileData();
+            console.log('✅ Debug handleSave - Dados recarregados com sucesso');
+        } catch (reloadError) {
+            console.warn('⚠️ Debug handleSave - Erro ao recarregar dados (não crítico):', reloadError);
         }
-      }
 
-      // Atualizar contexto local com os dados salvos com sucesso
-      const dadosParaSincronizar = {
-        nome: resultadoDadosPessoais.nome || formData.nome,
-        sobrenome: resultadoDadosPessoais.sobrenome || formData.sobrenome,
-        email: resultadoDadosPessoais.email || formData.email,
-        telefone: resultadoDadosPessoais.telefone || formData.telefone,
-        dataNascimento: resultadoDadosPessoais.dataNascimento || formData.dataNascimento,
-        genero: resultadoDadosPessoais.genero || formData.genero,
-        endereco: formData.endereco
-      };
+        // ✅ Feedback de sucesso
+        setSuccessMessage("Perfil atualizado com sucesso!");
+        setFormChanged(false);
+        setSelectedImage(null);
+        setImagePreview(null);
+        setValidationErrors({});
 
-      console.log('🔍 Debug handleSave - sincronizando dados com contexto:', dadosParaSincronizar);
-      setUserData(dadosParaSincronizar);
+        toast({
+            title: "Perfil atualizado",
+            description: "Suas informações foram atualizadas com sucesso!",
+        });
 
-      // Success feedback
-      setSuccessMessage("Perfil atualizado com sucesso!");
-      setFormChanged(false);
-      setSelectedImage(null);
-      setImagePreview(null);
-      setValidationErrors({});
+        // Limpar mensagem após alguns segundos
+        setTimeout(() => setSuccessMessage(""), 3000);
 
-      console.log('🔍 Debug handleSave - sucesso!');
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram atualizadas com sucesso!",
-      });
-
-      // Hide success message after a few seconds
-      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error('🔍 Debug handleSave - erro:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações.",
-        variant: "destructive"
-      });
+        console.error('❌ Debug handleSave - Erro:', error);
+        toast({
+            title: "Erro ao salvar",
+            description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar suas informações.",
+            variant: "destructive"
+        });
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
-
   // Função para salvar a foto de perfil
   const handleSavePhoto = async () => {
     if (selectedImage && imagePreview) {
       try {
-        setLoading(true);        // Upload da foto e obter a URL
-
-        const url = await uploadFoto(selectedImage);
-        console.log('URL da foto recebida do servidor:', url);
-
-        // Extrair a URL da resposta se for um objeto
-        const imageUrl = typeof url === 'object' && url !== null && 'fotoUrl' in url
-          ? (url as any).fotoUrl
-          : String(url);
+        setLoading(true);
+        
+        // Upload da foto e obter a URL
+        const photoUrl = await uploadFoto(selectedImage);
+        console.log('URL da foto recebida do servidor:', photoUrl);
 
         // Atualizar o contexto com a nova URL da imagem do servidor
-        setProfileImage(imageUrl);
+        setProfileImage(photoUrl);
 
         // Limpar estados locais
         setSelectedImage(null);
@@ -468,10 +492,6 @@ const ProfileFormUser = () => {
           description: "Sua foto de perfil foi atualizada com sucesso!",
         });
 
-        // Recarregar a página após sucesso para atualizar todas as referências da imagem
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
       } catch (error) {
         console.error('Erro ao fazer upload da foto:', error);
         toast({
@@ -566,6 +586,7 @@ const ProfileFormUser = () => {
     // Chamar o navigate original
     return navigate(to, options);
   };
+
 
   return (
     <SidebarProvider>
@@ -1005,18 +1026,19 @@ const ProfileFormUser = () => {
                             </div>                      </div>
                         </>
                       )}
-                    </CardContent>
-                    <CardFooter>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                            {loading ? "Salvando..." : "Salvar Alterações"}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>Salvar alterações feitas no endereço</p>
-                        </TooltipContent>
-                      </Tooltip>
+                    </CardContent>                    <CardFooter>
+                      <div className="flex gap-2 ml-auto">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button onClick={handleSave} disabled={loading} className="bg-[#ED4231] hover:bg-[#d53a2a]">
+                              {loading ? "Salvando..." : "Salvar Alterações"}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Salvar alterações feitas no endereço</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     </CardFooter>
                   </Card>
                 </TabsContent>
