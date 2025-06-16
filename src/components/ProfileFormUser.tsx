@@ -468,46 +468,81 @@ const ProfileFormUser = () => {
     } finally {
         setLoading(false);
     }
-  };
-  // Função para salvar a foto de perfil
+  };  // Função para salvar a foto de perfil
   const handleSavePhoto = async () => {
-    if (selectedImage && imagePreview) {
-      try {
-        setLoading(true);
-        
-        // Upload da foto e obter a URL
-        const photoUrl = await uploadFoto(selectedImage);
-        console.log('URL da foto recebida do servidor:', photoUrl);
-
-        // Atualizar o contexto com a nova URL da imagem do servidor
-        setProfileImage(photoUrl);
-
-        // Limpar estados locais
-        setSelectedImage(null);
-        setImagePreview(null);
-        setFormChanged(false);
-
-        toast({
-          title: "Foto atualizada",
-          description: "Sua foto de perfil foi atualizada com sucesso!",
-        });
-
-      } catch (error) {
-        console.error('Erro ao fazer upload da foto:', error);
-        toast({
-          title: "Erro ao atualizar foto",
-          description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar sua foto de perfil.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    } else {
+    if (!selectedImage || !imagePreview) {
       toast({
         title: "Nenhuma foto selecionada",
         description: "Selecione uma foto para atualizar",
         variant: "default",
       });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('🔄 [ProfileForm] DEBUG: Iniciando upload de foto...');
+      console.log('🔍 [ProfileForm] DEBUG: Arquivo selecionado:', {
+        name: selectedImage.name,
+        size: selectedImage.size,
+        type: selectedImage.type
+      });
+      
+      // Verificar conexão com o backend primeiro
+      try {
+        const healthCheck = await fetch('http://localhost:8080/health', { 
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('🏥 [ProfileForm] DEBUG: Health check:', healthCheck.status);
+      } catch (healthError) {
+        console.warn('⚠️ [ProfileForm] DEBUG: Backend pode não estar rodando:', healthError);
+        throw new Error('Servidor não está disponível. Verifique se o backend está rodando.');
+      }
+      
+      // Upload da foto e obter a URL
+      const photoUrl = await uploadFoto(selectedImage);
+      console.log('✅ [ProfileForm] DEBUG: URL da foto recebida:', photoUrl);
+
+      // Atualizar o contexto com a nova URL da imagem do servidor
+      setProfileImage(photoUrl);
+
+      // Limpar estados locais
+      setSelectedImage(null);
+      setImagePreview(null);
+      setFormChanged(false);
+
+      toast({
+        title: "Foto atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso!",
+      });
+
+    } catch (error) {
+      console.error('❌ [ProfileForm] DEBUG: Erro completo no upload:', error);
+      
+      let errorMessage = "Ocorreu um erro ao atualizar sua foto de perfil.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('servidor não está disponível') || 
+            error.message.includes('conectar ao servidor')) {
+          errorMessage = "Não foi possível conectar ao servidor. Verifique se o backend está rodando e tente novamente.";
+        } else if (error.message.includes('muito grande')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = "Erro de conexão com o servidor. Verifique sua internet e se o backend está rodando na porta 8080.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Erro ao atualizar foto",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
   // Função para buscar endereço pelo CEP

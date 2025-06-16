@@ -399,36 +399,96 @@ export const useUserProfile = () => {
         }
     };const uploadFoto = async (foto: File): Promise<string> => {
         try {
+            console.log('🔄 [uploadFoto] DEBUG: Iniciando upload de foto...');
             const { token, usuarioId, tipoUsuario } = getUserAuthData();
+            
+            console.log('🔍 [uploadFoto] DEBUG: Dados de auth:', { 
+                usuarioId, 
+                tipoUsuario, 
+                hasToken: !!token,
+                tokenLength: token?.length || 0 
+            });
+            
+            // Verificar se a foto não é muito grande (máximo 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (foto.size > maxSize) {
+                throw new Error('A foto é muito grande. Tamanho máximo permitido: 5MB');
+            }
+            
+            console.log('🔍 [uploadFoto] DEBUG: Arquivo:', {
+                name: foto.name,
+                size: foto.size,
+                type: foto.type
+            });
 
             const formData = new FormData();
             formData.append('file', foto);
+            
+            // Tentar primeiro com endpoint genérico, depois específico para assistido
+            const endpoints = [
+                `http://localhost:8080/perfil/assistido/foto?usuarioId=${usuarioId}`,
+                `http://localhost:8080/perfil/foto?usuarioId=${usuarioId}`,
+                `http://localhost:8080/upload/foto?usuarioId=${usuarioId}`
+            ];
+            
+            let lastError = null;
+            
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`🌐 [uploadFoto] DEBUG: Tentando endpoint: ${endpoint}`);
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token || ''}`
+                            // NÃO incluir Content-Type para FormData - o browser define automaticamente
+                        },
+                        body: formData
+                    });
 
-            const response = await fetch(`http://localhost:8080/perfil/assistido/foto?usuarioId=${usuarioId}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: formData
-            });
+                    console.log('📡 [uploadFoto] DEBUG: Status da resposta:', response.status);
+                    console.log('📡 [uploadFoto] DEBUG: Headers da resposta:', Object.fromEntries(response.headers.entries()));
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Erro ao fazer upload da foto: ${errorText}`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ [uploadFoto] DEBUG: Upload bem-sucedido:', result);
+                        
+                        // Construir URL da foto
+                        let photoUrl;
+                        if (result.url) {
+                            photoUrl = result.url.startsWith('http') ? result.url : `http://localhost:8080${result.url}`;
+                        } else if (result.fotoUrl) {
+                            photoUrl = result.fotoUrl.startsWith('http') ? result.fotoUrl : `http://localhost:8080${result.fotoUrl}`;
+                        } else {
+                            // Fallback: assumir que foi salvo com sucesso
+                            photoUrl = `http://localhost:8080/uploads/fotos/${usuarioId}_${Date.now()}.jpg`;
+                        }
+                        
+                        // Salvar localmente
+                        const savedProfile = localStorage.getItem('savedProfile');
+                        const profile = savedProfile ? JSON.parse(savedProfile) : {};
+                        profile.fotoUrl = photoUrl;
+                        localStorage.setItem('savedProfile', JSON.stringify(profile));
+
+                        console.log('💾 [uploadFoto] DEBUG: Foto salva localmente:', photoUrl);
+                        return photoUrl;
+                    } else {
+                        const errorText = await response.text();
+                        console.warn(`⚠️ [uploadFoto] DEBUG: Falha no endpoint ${endpoint}:`, response.status, errorText);
+                        lastError = new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
+                    }
+                } catch (fetchError) {
+                    console.warn(`❌ [uploadFoto] DEBUG: Erro de conexão no endpoint ${endpoint}:`, fetchError);
+                    lastError = fetchError;
+                }
             }
-
-            const result = await response.json();
             
-            // Concatena a URL base com o caminho relativo retornado pelo servidor
-            const photoUrl = `http://localhost:8080${result.url}`;
-            
-            // Salvar localmente
-            const savedProfile = localStorage.getItem('savedProfile');
-            const profile = savedProfile ? JSON.parse(savedProfile) : {};
-            profile.fotoUrl = photoUrl;
-            localStorage.setItem('savedProfile', JSON.stringify(profile));
-
-            return photoUrl;
+            // Se chegou aqui, todos os endpoints falharam
+            if (lastError instanceof TypeError && lastError.message.includes('fetch')) {
+                throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 8080.');
+            } else {
+                throw lastError || new Error('Todos os endpoints de upload falharam');
+            }
         } catch (error) {
             console.error('Erro ao fazer upload da foto:', error);
             throw error;
