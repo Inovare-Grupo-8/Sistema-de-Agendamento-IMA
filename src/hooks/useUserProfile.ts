@@ -1,5 +1,6 @@
 import { updateEmailInLocalStorage } from '../utils/localStorage';
 import { useNavigate } from 'react-router-dom';
+import { useProfileImage } from '@/components/useProfileImage';
 
 interface Endereco {
   rua: string;
@@ -34,7 +35,8 @@ export interface UserProfileOutput {
 }
 
 export const useUserProfile = () => {
-    const navigate = useNavigate();    // Função utilitária para buscar dados de autenticação do localStorage
+    const navigate = useNavigate();
+    const { setProfileImage } = useProfileImage();// Função utilitária para buscar dados de autenticação do localStorage
     const getUserAuthData = () => {
         console.log('🔍 [useUserProfile] DEBUG: getUserAuthData iniciado');
         
@@ -463,14 +465,18 @@ export const useUserProfile = () => {
                             // Fallback: assumir que foi salvo com sucesso
                             photoUrl = `http://localhost:8080/uploads/fotos/${usuarioId}_${Date.now()}.jpg`;
                         }
-                        
-                        // Salvar localmente
+                          // Salvar localmente
                         const savedProfile = localStorage.getItem('savedProfile');
                         const profile = savedProfile ? JSON.parse(savedProfile) : {};
                         profile.fotoUrl = photoUrl;
                         localStorage.setItem('savedProfile', JSON.stringify(profile));
 
                         console.log('💾 [uploadFoto] DEBUG: Foto salva localmente:', photoUrl);
+                        
+                        // 🔄 CORREÇÃO: Atualizar o contexto de imagem para sincronizar com a sidebar
+                        setProfileImage(photoUrl);
+                        console.log('🔄 [uploadFoto] DEBUG: Contexto de imagem atualizado:', photoUrl);
+                        
                         return photoUrl;
                     } else {
                         const errorText = await response.text();

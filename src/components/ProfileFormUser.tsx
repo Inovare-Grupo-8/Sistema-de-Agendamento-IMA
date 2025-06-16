@@ -57,10 +57,9 @@ const ProfileFormUser = () => {
   
   const location = useLocation();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false);  const [initialLoading, setInitialLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage, setProfileImage } = useProfileImage();
+  const { profileImage, setProfileImage, refreshImageFromStorage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification(); const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
 
   // Get user data and setter from the hook
@@ -199,13 +198,18 @@ const ProfileFormUser = () => {
       setInitialLoading(false);
     }
   };
-
   useEffect(() => {
     console.log('🚀 [ProfileForm] DEBUG: useEffect montado - iniciando carregamento do perfil');
     console.log('🚀 [ProfileForm] DEBUG: Componente montado em:', window.location.pathname);
     console.log('🚀 [ProfileForm] DEBUG: User agent:', navigator.userAgent);
     loadProfileData();
   }, []);
+
+  // 🔄 CORREÇÃO: Sincronizar imagem do perfil ao carregar o componente
+  useEffect(() => {
+    console.log('🖼️ [ProfileForm] DEBUG: Sincronizando imagem do perfil ao carregar componente');
+    refreshImageFromStorage();
+  }, [refreshImageFromStorage]);
   // Update form data when userData changes (sync across tabs)
 
   useEffect(() => {
@@ -500,13 +504,18 @@ const ProfileFormUser = () => {
         console.warn('⚠️ [ProfileForm] DEBUG: Backend pode não estar rodando:', healthError);
         throw new Error('Servidor não está disponível. Verifique se o backend está rodando.');
       }
-      
-      // Upload da foto e obter a URL
+        // Upload da foto e obter a URL
       const photoUrl = await uploadFoto(selectedImage);
       console.log('✅ [ProfileForm] DEBUG: URL da foto recebida:', photoUrl);
 
       // Atualizar o contexto com a nova URL da imagem do servidor
       setProfileImage(photoUrl);
+
+      // 🔄 CORREÇÃO ADICIONAL: Forçar refresh do contexto para garantir sincronização
+      setTimeout(() => {
+        refreshImageFromStorage();
+        console.log('🔄 [ProfileForm] DEBUG: Refresh forçado do contexto de imagem');
+      }, 100);
 
       // Limpar estados locais
       setSelectedImage(null);
