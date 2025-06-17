@@ -101,13 +101,10 @@ const HomeUser = () => {
       });
       
       setRescheduleDialogOpen(false);
-    }  };
-
-  // 🔄 CORREÇÃO: Sincronizar imagem do perfil ao carregar o componente
+    }  };  // Componente simplificado - a foto é carregada automaticamente pelo ProfileImageContext
   useEffect(() => {
-    console.log('🖼️ [HomeUser] DEBUG: Sincronizando imagem do perfil ao carregar componente');
-    refreshImageFromStorage();
-  }, [refreshImageFromStorage]);
+    console.log('🏠 [HomeUser] Componente carregado');
+  }, []);
 
   return (
     <SidebarProvider>

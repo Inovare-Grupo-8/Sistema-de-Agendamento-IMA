@@ -2,7 +2,7 @@ import { updateEmailInLocalStorage } from '../utils/localStorage';
 import { useNavigate } from 'react-router-dom';
 import { useProfileImage } from '@/components/useProfileImage';
 
-interface Endereco {
+export interface Endereco {
   rua: string;
   numero: string;
   complemento: string; // Changed from optional to required
@@ -34,7 +34,30 @@ export interface UserProfileOutput {
     endereco?: Endereco;
 }
 
-export const useUserProfile = () => {
+// Define the return type for the hook
+export interface UseUserProfileReturn {
+    fetchPerfil: () => Promise<UserProfileOutput>;
+    atualizarDadosPessoais: (dados: {
+        nome: string;
+        sobrenome: string;
+        telefone: string;
+        email: string;
+        dataNascimento?: string;
+        genero?: string;
+    }) => Promise<{
+        nome: string;
+        sobrenome: string;
+        telefone: string;
+        email: string;
+        dataNascimento?: string;
+        genero?: string;
+    }>;
+    buscarEndereco: () => Promise<Endereco | null>;
+    atualizarEndereco: (endereco: Endereco) => Promise<Endereco>;
+    uploadFoto: (foto: File) => Promise<string>;
+}
+
+export const useUserProfile = (): UseUserProfileReturn => {
     const navigate = useNavigate();
     const { setProfileImage } = useProfileImage();// Função utilitária para buscar dados de autenticação do localStorage
     const getUserAuthData = () => {
@@ -65,21 +88,18 @@ export const useUserProfile = () => {
             const info = JSON.parse(userInfo);
             usuarioId = info.id;
             tipoUsuario = info.tipo;
-        }
-          console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
+        }        console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
         console.log('🔍 [useUserProfile] DEBUG: Tipo de usuário original:', tipoUsuario);
         
         if (!usuarioId) {
             console.error('❌ [useUserProfile] DEBUG: ID do usuário não encontrado!');
             throw new Error('ID do usuário não encontrado');
         }
-          // ✅ CORREÇÃO: Para ProfileFormUser, sempre usar 'assistido'
-        let tipoFormatado = 'assistido'; // Para usuários assistidos
         
-        console.log('🔍 [useUserProfile] DEBUG: Tipo original do localStorage:', tipoUsuario);
-        console.log('🔍 [useUserProfile] DEBUG: Tipo formatado FIXO para assistido:', tipoFormatado);
+        // ✅ CORREÇÃO: Manter o tipo original do usuário para evitar conflitos
+        console.log('🔍 [useUserProfile] DEBUG: Usando tipo original do localStorage:', tipoUsuario);
         
-        return { user, token, usuarioId, tipoUsuario: tipoFormatado };
+        return { user, token, usuarioId, tipoUsuario };
     };
 
     // Função para criar dados de perfil offline (quando backend não estiver disponível)
@@ -141,19 +161,23 @@ export const useUserProfile = () => {
                 console.warn(`Erro ${response.status} no backend, usando dados offline`);
                 return createOfflineProfile(authData);
 
-            }
-
-            console.log('✅ [useUserProfile] DEBUG: Resposta OK, fazendo parse JSON...');
+            }            console.log('✅ [useUserProfile] DEBUG: Resposta OK, fazendo parse JSON...');
             const data = await response.json();
             
             // Se houver uma foto, adicionar a URL base
             if (data.fotoUrl) {
                 data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
                 console.log('🖼️ [useUserProfile] DEBUG: URL da foto processada:', data.fotoUrl);
+                
+                // Atualizar contexto de imagem
+                setProfileImage(data.fotoUrl);
             }
 
             // Salvar no localStorage para usar offline
             localStorage.setItem('savedProfile', JSON.stringify(data));
+            
+            // Também salvar no profileData para sincronização
+            localStorage.setItem('profileData', JSON.stringify(data));
             
             return data;
         } catch (error) {
@@ -308,11 +332,7 @@ export const useUserProfile = () => {
             
             return null;
         }
-    };    const atualizarEndereco = async (endereco: {
-        cep: string;
-        numero: string;
-        complemento?: string;
-    }): Promise<void> => {
+    };    const atualizarEndereco = async (endereco: Endereco): Promise<Endereco> => {
         try {
             console.log('🔄 [useUserProfile] DEBUG: atualizarEndereco iniciado');
             console.log('🔍 [useUserProfile] DEBUG: Dados recebidos:', endereco);
@@ -375,22 +395,28 @@ export const useUserProfile = () => {
                 });
                 
                 throw new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
-            }
-
-            // ✅ SALVAR localmente APENAS após confirmação do backend
+            }            // ✅ SALVAR localmente APENAS após confirmação do backend
             const savedProfile = localStorage.getItem('savedProfile');
             const profile = savedProfile ? JSON.parse(savedProfile) : {};
             
             // Manter dados completos do endereço
-            profile.endereco = { 
+            const enderecoCompleto = { 
                 ...profile.endereco, 
                 cep: endereco.cep,
                 numero: endereco.numero,
-                complemento: endereco.complemento || ''
+                complemento: endereco.complemento || '',
+                rua: endereco.rua || '',
+                bairro: endereco.bairro || '',
+                cidade: endereco.cidade || '',
+                estado: endereco.estado || ''
             };
+            
+            profile.endereco = enderecoCompleto;
             localStorage.setItem('savedProfile', JSON.stringify(profile));
             
             console.log('💾 [useUserProfile] DEBUG: Endereço salvo localmente após sucesso no backend');
+            
+            return enderecoCompleto;
 
         } catch (error) {
             console.error('❌ [useUserProfile] ERROR: Erro ao atualizar endereço:', error);
@@ -399,7 +425,7 @@ export const useUserProfile = () => {
             // Isso evita que o frontend mostre sucesso quando o backend falhou
             throw error;
         }
-    };const uploadFoto = async (foto: File): Promise<string> => {
+    };    const uploadFoto = async (foto: File): Promise<string> => {
         try {
             console.log('🔄 [uploadFoto] DEBUG: Iniciando upload de foto...');
             const { token, usuarioId, tipoUsuario } = getUserAuthData();
@@ -426,74 +452,72 @@ export const useUserProfile = () => {
             const formData = new FormData();
             formData.append('file', foto);
             
-            // Tentar primeiro com endpoint genérico, depois específico para assistido
-            const endpoints = [
-                `http://localhost:8080/perfil/assistido/foto?usuarioId=${usuarioId}`,
-                `http://localhost:8080/perfil/foto?usuarioId=${usuarioId}`,
-                `http://localhost:8080/upload/foto?usuarioId=${usuarioId}`
-            ];
-            
-            let lastError = null;
-            
-            for (const endpoint of endpoints) {
-                try {
-                    console.log(`🌐 [uploadFoto] DEBUG: Tentando endpoint: ${endpoint}`);
-                    
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token || ''}`
-                            // NÃO incluir Content-Type para FormData - o browser define automaticamente
-                        },
-                        body: formData
-                    });
-
-                    console.log('📡 [uploadFoto] DEBUG: Status da resposta:', response.status);
-                    console.log('📡 [uploadFoto] DEBUG: Headers da resposta:', Object.fromEntries(response.headers.entries()));
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        console.log('✅ [uploadFoto] DEBUG: Upload bem-sucedido:', result);
-                        
-                        // Construir URL da foto
-                        let photoUrl;
-                        if (result.url) {
-                            photoUrl = result.url.startsWith('http') ? result.url : `http://localhost:8080${result.url}`;
-                        } else if (result.fotoUrl) {
-                            photoUrl = result.fotoUrl.startsWith('http') ? result.fotoUrl : `http://localhost:8080${result.fotoUrl}`;
-                        } else {
-                            // Fallback: assumir que foi salvo com sucesso
-                            photoUrl = `http://localhost:8080/uploads/fotos/${usuarioId}_${Date.now()}.jpg`;
-                        }
-                          // Salvar localmente
-                        const savedProfile = localStorage.getItem('savedProfile');
-                        const profile = savedProfile ? JSON.parse(savedProfile) : {};
-                        profile.fotoUrl = photoUrl;
-                        localStorage.setItem('savedProfile', JSON.stringify(profile));
-
-                        console.log('💾 [uploadFoto] DEBUG: Foto salva localmente:', photoUrl);
-                        
-                        // 🔄 CORREÇÃO: Atualizar o contexto de imagem para sincronizar com a sidebar
-                        setProfileImage(photoUrl);
-                        console.log('🔄 [uploadFoto] DEBUG: Contexto de imagem atualizado:', photoUrl);
-                        
-                        return photoUrl;
-                    } else {
-                        const errorText = await response.text();
-                        console.warn(`⚠️ [uploadFoto] DEBUG: Falha no endpoint ${endpoint}:`, response.status, errorText);
-                        lastError = new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
-                    }
-                } catch (fetchError) {
-                    console.warn(`❌ [uploadFoto] DEBUG: Erro de conexão no endpoint ${endpoint}:`, fetchError);
-                    lastError = fetchError;
-                }
+            // Mapear tipo de usuário para o formato esperado pelo backend
+            let tipoBackend = 'assistido'; // default
+            if (tipoUsuario === 'USUARIO') {
+                tipoBackend = 'assistido';
+            } else if (tipoUsuario === 'VOLUNTARIO') {
+                tipoBackend = 'assistente-social'; // Para assistente social
+            } else if (tipoUsuario === 'ADMINISTRADOR') {
+                tipoBackend = 'administrador';
             }
             
-            // Se chegou aqui, todos os endpoints falharam
-            if (lastError instanceof TypeError && lastError.message.includes('fetch')) {
-                throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando na porta 8080.');
+            console.log('🔍 [uploadFoto] DEBUG: Tipo mapeado:', { original: tipoUsuario, mapeado: tipoBackend });
+            
+            // Usar apenas o endpoint correto para o tipo de usuário
+            const endpoint = `http://localhost:8080/perfil/${tipoBackend}/foto?usuarioId=${usuarioId}`;
+            console.log(`🌐 [uploadFoto] DEBUG: Endpoint de upload: ${endpoint}`);
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token || ''}`
+                    // NÃO incluir Content-Type para FormData - o browser define automaticamente
+                },
+                body: formData
+            });
+
+            console.log('📡 [uploadFoto] DEBUG: Status da resposta:', response.status);
+            console.log('📡 [uploadFoto] DEBUG: Headers da resposta:', Object.fromEntries(response.headers.entries()));
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ [uploadFoto] DEBUG: Upload bem-sucedido:', result);
+                
+                // Construir URL da foto
+                let photoUrl;
+                if (result.url) {
+                    photoUrl = result.url.startsWith('http') ? result.url : `http://localhost:8080${result.url}`;
+                } else if (result.fotoUrl) {
+                    photoUrl = result.fotoUrl.startsWith('http') ? result.fotoUrl : `http://localhost:8080${result.fotoUrl}`;
+                } else {
+                    // Fallback: assumir que foi salvo com sucesso
+                    photoUrl = `http://localhost:8080/uploads/${tipoBackend}_user_${usuarioId}.jpg`;
+                }
+                
+                // Salvar localmente
+                const savedProfile = localStorage.getItem('savedProfile');
+                const profile = savedProfile ? JSON.parse(savedProfile) : {};
+                profile.fotoUrl = photoUrl;
+                localStorage.setItem('savedProfile', JSON.stringify(profile));
+
+                // Também salvar no profileData para sincronização
+                const profileData = localStorage.getItem('profileData');
+                const profileObj = profileData ? JSON.parse(profileData) : {};
+                profileObj.fotoUrl = photoUrl;
+                localStorage.setItem('profileData', JSON.stringify(profileObj));
+
+                console.log('💾 [uploadFoto] DEBUG: Foto salva localmente:', photoUrl);
+                
+                // 🔄 CORREÇÃO: Atualizar o contexto de imagem para sincronizar com a sidebar
+                setProfileImage(photoUrl);
+                console.log('🔄 [uploadFoto] DEBUG: Contexto de imagem atualizado:', photoUrl);
+                
+                return photoUrl;
             } else {
-                throw lastError || new Error('Todos os endpoints de upload falharam');
+                const errorText = await response.text();
+                console.warn(`⚠️ [uploadFoto] DEBUG: Falha no endpoint ${endpoint}:`, response.status, errorText);
+                throw new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
             }
         } catch (error) {
             console.error('Erro ao fazer upload da foto:', error);

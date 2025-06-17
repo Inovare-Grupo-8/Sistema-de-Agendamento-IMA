@@ -17,6 +17,7 @@ import { useCep } from "@/hooks/useCep";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import type { Endereco } from "@/hooks/useUserProfile";
 import { isPhone, formatters } from "@/utils/validation";
 import { LetterAvatar } from "@/components/ui/LetterAvatar";
 
@@ -395,11 +396,14 @@ const ProfileFormUser = () => {
         // ✅ SÓ tentar salvar endereço se tiver dados REALMENTE completos
         if (temDadosEnderecoCompletos) {
             console.log('🔍 Debug handleSave - Dados de endereço completos encontrados, tentando salvar...');
-            
-            const enderecoParaBackend = {
+              const enderecoParaBackend: Endereco = {
                 cep: cepLimpo,
                 numero: temNumero.toString().trim(),
-                complemento: formData.endereco.complemento?.trim() || ''
+                complemento: formData.endereco.complemento?.trim() || '',
+                rua: formData.endereco.rua?.trim() || '',
+                bairro: formData.endereco.bairro?.trim() || '',
+                cidade: formData.endereco.cidade?.trim() || '',
+                estado: formData.endereco.estado?.trim() || ''
             };
 
             console.log('🔍 Debug handleSave - Dados formatados para backend:', enderecoParaBackend);
