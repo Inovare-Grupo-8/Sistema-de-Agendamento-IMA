@@ -1,10 +1,26 @@
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 
+// Interface para resposta da API do ViaCEP
+interface ViaCepResponse {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string; // cidade
+  uf: string; // estado
+  ibge: string;
+  gia: string;
+  ddd: string;
+  siafi: string;
+  erro?: boolean;
+}
+
+// Interface para retorno padronizado
 interface EnderecoViaCep {
   rua: string;
   numero: string;
-  complemento: string; // Changed from optional to required
+  complemento: string;
   bairro: string;
   cidade: string;
   estado: string;
@@ -14,7 +30,6 @@ interface EnderecoViaCep {
 export function useCep() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const fetchAddressByCep = async (cep: string): Promise<EnderecoViaCep | null> => {
     // Remove caracteres não numéricos
     const cleanCep = cep.replace(/\D/g, '');
@@ -28,7 +43,7 @@ export function useCep() {
       setError(null);
       
       const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data: EnderecoViaCep = await response.json();
+      const data: ViaCepResponse = await response.json();
       
       if (data.erro) {
         toast({
@@ -40,7 +55,18 @@ export function useCep() {
         return null;
       }
       
-      return data;
+      // Mapear resposta do ViaCEP para formato esperado
+      const enderecoMapeado: EnderecoViaCep = {
+        rua: data.logradouro || '',
+        numero: '', // Número deve ser preenchido pelo usuário
+        complemento: data.complemento || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+        cep: data.cep || ''
+      };
+      
+      return enderecoMapeado;
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
       toast({

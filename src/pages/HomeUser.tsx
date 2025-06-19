@@ -28,7 +28,7 @@ const HomeUser = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { profileImage } = useProfileImage();
+  const { profileImage, refreshImageFromStorage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData } = useUserData();
   
@@ -101,8 +101,10 @@ const HomeUser = () => {
       });
       
       setRescheduleDialogOpen(false);
-    }
-  };
+    }  };  // Componente simplificado - a foto é carregada automaticamente pelo ProfileImageContext
+  useEffect(() => {
+    console.log('🏠 [HomeUser] Componente carregado');
+  }, []);
 
   return (
     <SidebarProvider>

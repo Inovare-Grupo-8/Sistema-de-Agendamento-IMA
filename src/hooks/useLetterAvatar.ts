@@ -16,9 +16,24 @@ export const useLetterAvatar = () => {
     const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
   };
+  // Função para obter as iniciais do nome (nome + sobrenome)
+  const getInitials = (name: string): string => {
+    if (!name || name.trim() === '') return '?';
+    
+    const words = name.trim().split(' ').filter(word => word.length > 0);
+    
+    if (words.length === 1) {
+      // Se só tem uma palavra, pegar as duas primeiras letras
+      return words[0].substring(0, 2).toUpperCase();
+    } else {
+      // Se tem múltiplas palavras, pegar primeira letra de cada uma (máximo 2)
+      return words.slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('');
+    }
+  };
 
-  // Função para obter a primeira letra do nome
+  // Função para obter a primeira letra do nome (manter compatibilidade)
   const getFirstLetter = (name: string): string => {
+    if (!name || name.trim() === '') return '?';
     return name.charAt(0).toUpperCase();
   };
 
@@ -29,10 +44,10 @@ export const useLetterAvatar = () => {
            containerSize.includes('w-10') ? 'text-2xl' : 
            containerSize.includes('w-8') ? 'text-xl' : 'text-2xl';
   };
-
   return {
     getColorFromName,
     getFirstLetter,
+    getInitials,
     getTextSize
   };
 };

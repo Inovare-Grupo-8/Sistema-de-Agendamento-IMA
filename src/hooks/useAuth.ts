@@ -120,10 +120,23 @@ export function useAuth() {
       const data = await response.json();
       
       // Atualizar último acesso após login bem-sucedido
-      await atualizarUltimoAcesso(data.idUsuario, data.token);
+      await atualizarUltimoAcesso(data.idUsuario, data.token);      // 🔄 LIMPEZA: Limpar dados de perfil antigos para evitar conflitos entre usuários
+      localStorage.removeItem('savedProfile');
+      localStorage.removeItem('profileData');
+      localStorage.removeItem('userProfileData');
+      console.log('🧹 [useAuth] Dados de perfil antigos limpos após novo login');
       
       // Salvar no localStorage
       localStorage.setItem('userData', JSON.stringify(data));
+      
+      // 🔄 TRIGGER: Forçar atualização do contexto de imagem para novo usuário
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'userData',
+        newValue: JSON.stringify(data),
+        oldValue: null,
+        storageArea: localStorage
+      }));
+      console.log('📡 [useAuth] Evento de mudança disparado para ProfileImageContext');
       
       // Redirecionar com base no tipo de usuário
       if (data.tipo === 'ADMINISTRADOR') {
@@ -148,11 +161,17 @@ export function useAuth() {
       setLoading(false);
     }
   }, [navigate]);
-
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem('userData'); // Clear new auth data too
+    
+    // 🔄 LIMPEZA: Limpar todos os dados de perfil no logout
+    localStorage.removeItem('savedProfile');
+    localStorage.removeItem('profileData');
+    localStorage.removeItem('userProfileData');
+    console.log('🧹 [useAuth] Todos os dados de usuário limpos no logout');
+    
     setUser(null);
     navigate('/login', { replace: true });
   }, [navigate]);

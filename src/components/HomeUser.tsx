@@ -700,13 +700,13 @@ const HomeUser = () => {
             <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>            <ProfileAvatar
-  profileImage={voluntarioProfile.profileImage}
-  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
-  size="w-10 h-10"
-  className="border-2 border-[#ED4231] shadow"
-/>
+              profileImage={profileImage}
+              name={`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+              size="w-10 h-10"
+              className="border-2 border-[#ED4231] shadow"
+            />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
+              {`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
             </span>
           </div>
         )}
@@ -721,11 +721,11 @@ const HomeUser = () => {
             </Button>
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
-  profileImage={voluntarioProfile.profileImage}
-  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
-  size="w-16 h-16"
-  className="border-4 border-[#EDF2FB] shadow"
-/>
+              profileImage={profileImage}
+              name={`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+              size="w-16 h-16"
+              className="border-4 border-[#EDF2FB] shadow"
+            />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -769,14 +769,13 @@ const HomeUser = () => {
           </div>
         </div>
 
-        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">
-            <div className="flex items-center gap-3">
+        <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">            <div className="flex items-center gap-3">
               <ProfileAvatar
-  profileImage={voluntarioProfile.profileImage}
-  name={`${voluntarioProfile.nome} ${voluntarioProfile.sobrenome}`.trim() || 'Voluntário'}
-  size="w-10 h-10"
-  className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
-/>
+                profileImage={profileImage}
+                name={`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+                size="w-10 h-10"
+                className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
+              />
               <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
