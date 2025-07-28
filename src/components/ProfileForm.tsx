@@ -371,10 +371,10 @@ const ProfileForm = () => {
         ...prev,
         endereco: {
           ...prev.endereco,
-          rua: endereco.logradouro,
+          rua: endereco.rua,
           bairro: endereco.bairro,
-          cidade: endereco.localidade,
-          estado: endereco.uf,
+          cidade: endereco.cidade,
+          estado: endereco.estado,
           cep: endereco.cep
         }
       }));
