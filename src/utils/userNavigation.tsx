@@ -70,6 +70,34 @@ export const userNavigationItems: Record<string, UserNavigationItem> = {
   },
 };
 
+export const professionalNavigationItems: Record<string, UserNavigationItem> = {
+  home: {
+    path: appUrls.professional.home,
+    label: "Home",
+    icon: <Home className="w-6 h-6" color="#ED4231" />,
+  },
+  agenda: {
+    path: appUrls.professional.agenda,
+    label: "Agenda",
+    icon: <Calendar className="w-6 h-6" color="#ED4231" />,
+  },
+  historico: {
+    path: appUrls.professional.historico,
+    label: "Histórico",
+    icon: <History className="w-6 h-6" color="#ED4231" />,
+  },
+  disponibilizar: {
+    path: appUrls.professional.disponibilizarHorario,
+    label: "Disponibilizar Horário",
+    icon: <Clock className="w-6 h-6" color="#ED4231" />,
+  },
+  perfil: {
+    path: appUrls.professional.profileForm,
+    label: "Editar Perfil",
+    icon: <User className="w-6 h-6" color="#ED4231" />,
+  },
+};
+
 export const getUserNavigationPath = (currentPath: string) => {
   const currentNavItem = Object.values(userNavigationItems).find(
     (item) => item.path === currentPath

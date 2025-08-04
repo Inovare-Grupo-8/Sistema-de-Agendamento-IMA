@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
 import { useProfessional } from "@/hooks/useProfessional";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 import React from "react";
 
 interface Appointment {
@@ -232,67 +233,24 @@ const Agenda = () => {
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* ...existing menu items... */}
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/home" className="flex items-center gap-3">
-                      <HomeIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Painel principal com resumo
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/agenda" className="flex items-center gap-3">
-                      <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Agenda</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja sua agenda de atendimentos
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/historico" className="flex items-center gap-3">
-                      <History className="w-6 h-6" color="#ED4231" />
-                      <span>Histórico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja seu histórico de atendimentos
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/profile-form" className="flex items-center gap-3">
-                      <User className="w-6 h-6" color="#ED4231" />
-                      <span>Editar Perfil</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Edite seu perfil e foto
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>            <SidebarMenuItem>
+            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
+            {Object.values(professionalNavigationItems).map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>

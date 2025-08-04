@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { userNavigationItems } from "@/utils/userNavigation";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -724,8 +724,8 @@ const Home = () => {
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* Substituir os items de menu por uma iteração do userNavigationItems */}
-            {Object.values(userNavigationItems).map((item) => (
+            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
+            {Object.values(professionalNavigationItems).map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>

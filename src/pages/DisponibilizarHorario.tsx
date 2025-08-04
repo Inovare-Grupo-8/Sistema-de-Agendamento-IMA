@@ -23,6 +23,7 @@ import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotifi
 import { STATUS_COLORS, MESSAGES } from "../constants/ui";
 import { useTranslation } from "react-i18next";
 import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
@@ -289,80 +290,24 @@ const DisponibilizarHorario = () => {
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/home" className="flex items-center gap-3">
-                      <HomeIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Painel principal com resumo
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/agenda" className="flex items-center gap-3">
-                      <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Agenda</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Veja sua agenda de atendimentos
-                </TooltipContent>
-              </Tooltip>            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/historico" className="flex items-center gap-3">
-                      <History className="w-6 h-6" color="#ED4231" />
-                      <span>Histórico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Veja seu histórico de atendimentos
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/disponibilizar-horario" className="flex items-center gap-3">
-                      <Clock className="w-6 h-6" color="#ED4231" />
-                      <span>Disponibilizar Horário</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Disponibilize novos horários para atendimento
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/profile-form" className="flex items-center gap-3">
-                      <User className="w-6 h-6" color="#ED4231" />
-                      <span>Editar Perfil</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Edite seu perfil e foto
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
+            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
+            {Object.values(professionalNavigationItems).map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}
             {/* Botão Sair na sidebar */}            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>

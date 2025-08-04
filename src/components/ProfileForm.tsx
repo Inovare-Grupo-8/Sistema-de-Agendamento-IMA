@@ -26,6 +26,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -49,35 +50,6 @@ const getProfessionalNavigationPath = (currentPath: string) => {
     </div>
   );
 };
-
-// Itens de navegação para o profissional
-const professionalNavItems = [
-  {
-    path: "/home",
-    label: "Home",
-    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/agenda",
-    label: "Agenda",
-    icon: <Calendar className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/historico",
-    label: "Histórico",
-    icon: <History className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/disponibilizar-horario",
-    label: "Disponibilizar Horário",
-    icon: <Clock className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/profile-form",
-    label: "Editar Perfil", 
-    icon: <User className="w-6 h-6" color="#ED4231" />
-  }
-];
 
 const ProfileForm = () => {
   const location = useLocation();
@@ -435,7 +407,7 @@ const ProfileForm = () => {
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do professional */}
-            {professionalNavItems.map((item) => (
+            {Object.values(professionalNavigationItems).map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
