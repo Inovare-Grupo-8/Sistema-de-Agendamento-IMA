@@ -230,13 +230,15 @@ const Historico = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={professionalData ? `${professionalData.nome} ${professionalData.sobrenome}` : 'Profissional'}
+              name={professionalData ? `${professionalData.nome} ${professionalData.sobrenome}` : 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {professionalData?.nome} {professionalData?.sobrenome}
+            </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData.especialidade}
+              {professionalData?.especialidade || 'Profissional'}
             </Badge>
           </div>
           
@@ -246,7 +248,7 @@ const Historico = () => {
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>

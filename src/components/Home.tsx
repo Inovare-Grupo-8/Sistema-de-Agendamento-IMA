@@ -26,6 +26,7 @@ import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { useProfessional } from "@/hooks/useProfessional";
 
 interface ConsultaSummary {
   total: number;
@@ -77,6 +78,7 @@ const Home = () => {
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification(); const { userData, setUserData } = useUserData();
   const { fetchPerfil } = useUserData();
+  const { professionalData } = useProfessional();
 
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -717,11 +719,16 @@ const Home = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+              name={`${professionalData?.nome || userData?.nome} ${professionalData?.sobrenome || userData?.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {professionalData?.nome || userData?.nome} {professionalData?.sobrenome || userData?.sobrenome}
+            </span>
+            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+              {professionalData?.especialidade || 'Profissional'}
+            </Badge>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
@@ -729,7 +736,7 @@ const Home = () => {
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
