@@ -27,6 +27,7 @@ import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 
 interface ConsultaSummary {
   total: number;
@@ -79,6 +80,16 @@ const Home = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification(); const { userData, setUserData } = useUserData();
   const { fetchPerfil } = useUserData();
   const { professionalData } = useProfessional();
+  const { buscarDadosPessoais } = useVoluntario();
+  
+  // Estado local para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
 
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -107,6 +118,23 @@ const Home = () => {
       localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
     }
   }, [selectedDate]);
+  
+  // Carregar dados pessoais do voluntário
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) {
+          setDadosPessoais(dados);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados pessoais:', error);
+      }
+    };
+
+    loadDadosPessoais();
+  }, [buscarDadosPessoais]);
+  
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
@@ -719,12 +747,12 @@ const Home = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={`${professionalData?.nome || userData?.nome} ${professionalData?.sobrenome || userData?.sobrenome}`.trim() || 'Voluntário'}
+              name={`${dadosPessoais?.nome || userData?.nome} ${dadosPessoais?.sobrenome || userData?.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {professionalData?.nome || userData?.nome} {professionalData?.sobrenome || userData?.sobrenome}
+              {dadosPessoais?.nome || userData?.nome} {dadosPessoais?.sobrenome || userData?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {professionalData?.especialidade || 'Profissional'}

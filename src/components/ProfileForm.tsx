@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar, User, Clock, Menu, History, Sun, Moon, ArrowLeft, Home as HomeIcon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { UserData } from "@/types/user";
 import { ProfessionalData } from "@/types/professional";
 import { Badge } from "@/components/ui/badge";
@@ -62,11 +63,23 @@ const ProfileForm = () => {
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
   const { professionalData, setProfessionalData } = useProfessional();
+  const { buscarDadosPessoais, atualizarDadosPessoais } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
+
+  // Estado para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Estado para o formulário with properly typed defaults for professional fields
   const [formData, setFormData] = useState<ProfessionalData>(() => ({
@@ -85,6 +98,62 @@ const ProfileForm = () => {
   // Estado para a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Função para carregar dados pessoais do voluntário
+  const loadProfileData = useCallback(async () => {
+    if (isLoadingData) return; // Evita múltiplas chamadas simultâneas
+    
+    try {
+      setIsLoadingData(true);
+      setInitialLoading(true);
+      const dados = await buscarDadosPessoais();
+      if (dados) {
+        setDadosPessoais(dados);
+        setFormChanged(false);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados pessoais do voluntário:', error);
+      
+      if (error instanceof Error && error.message.includes('Token inválido')) {
+        return;
+      }
+
+      if (error instanceof Error && error.message.includes('conexão')) {
+        toast({
+          title: 'Erro de conexão',
+          description: 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar os dados do seu perfil.',
+        variant: 'destructive',
+      });
+    } finally {
+      setInitialLoading(false);
+      setIsLoadingData(false);
+    }
+  }, [buscarDadosPessoais]);
+
+  // Carregar dados pessoais ao montar o componente (apenas uma vez)
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadData = async () => {
+      if (isMounted && !isLoadingData) {
+        await loadProfileData();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Sem dependências para carregar apenas uma vez
   
   // Update form data when professionalData changes (sync across tabs)
   useEffect(() => {
@@ -175,6 +244,104 @@ const ProfileForm = () => {
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Função para validar dados pessoais do voluntário
+  const validateDadosPessoais = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!dadosPessoais.nome.trim()) {
+      newErrors.nome = 'Nome é obrigatório';
+    }
+
+    if (!dadosPessoais.sobrenome.trim()) {
+      newErrors.sobrenome = 'Sobrenome é obrigatório';
+    }
+
+    if (!dadosPessoais.email.trim()) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/\S+@\S+\.\S+/.test(dadosPessoais.email)) {
+      newErrors.email = 'Email inválido';
+    }
+
+    if (!dadosPessoais.telefone.trim()) {
+      newErrors.telefone = 'Telefone é obrigatório';
+    }
+
+    if (!dadosPessoais.dataNascimento) {
+      newErrors.dataNascimento = 'Data de nascimento é obrigatória';
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Função para lidar com mudanças nos dados pessoais
+  const handleDadosPessoaisChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setDadosPessoais(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setFormChanged(true);
+
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Função para salvar dados pessoais
+  const handleSaveDadosPessoais = async () => {
+    if (!formChanged && !selectedImage) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!validateDadosPessoais()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      await atualizarDadosPessoais(dadosPessoais);
+      setSuccessMessage('Dados pessoais atualizados com sucesso!');
+      setFormChanged(false);
+      
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram atualizadas com sucesso!",
+      });
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao salvar dados pessoais:', error);
+      setValidationErrors({ form: 'Erro ao salvar dados. Tente novamente.' });
+      
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar suas informações.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   // Update to use setProfessionalData from the context
   const handleSave = async () => {
@@ -364,6 +531,21 @@ const ProfileForm = () => {
     }
   };
 
+  if (initialLoading) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231] mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-300">Carregando dados...</p>
+            </div>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
@@ -374,12 +556,12 @@ const ProfileForm = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`${formData.nome} ${formData.sobrenome}`}
+              name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
               size="w-10 h-10"
               className="border-2 border-primary shadow"
             />
-            {/* Use formData to show the current edited values */}
-            <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
+            {/* Use dadosPessoais to show the current updated values */}
+            <span className="font-bold text-foreground">{dadosPessoais.nome} {dadosPessoais.sobrenome}</span>
           </div>
         )}
         
@@ -395,12 +577,12 @@ const ProfileForm = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`${professionalData?.nome || formData?.nome} ${professionalData?.sobrenome || formData?.sobrenome}`.trim() || 'Voluntário'}
+              name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB]"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {professionalData?.nome || formData?.nome} {professionalData?.sobrenome || formData?.sobrenome}
+              {dadosPessoais.nome} {dadosPessoais.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {professionalData?.especialidade || formData?.especialidade || 'Profissional'}
@@ -452,12 +634,12 @@ const ProfileForm = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={formData.nome || 'User'}
+                name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
                 size="w-10 h-10"
                 className="border-2 border-primary"
               />
-              {/* Use formData to show the current edited values */}
-              <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
+              {/* Use dadosPessoais to show the current updated values */}
+              <span className="font-bold text-foreground">{dadosPessoais.nome} {dadosPessoais.sobrenome}</span>
             </div>
             
             <div className="flex items-center gap-3">              <Button
@@ -508,79 +690,145 @@ const ProfileForm = () => {
                       <CardTitle>Dados Pessoais</CardTitle>
                       <CardDescription>Atualize suas informações pessoais</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="nome">Nome</Label>
-                          <Input 
-                            id="nome" 
-                            name="nome" 
-                            value={formData.nome} 
-                            onChange={handleInputChange} 
-                            className="bg-white dark:bg-gray-800"
-                          />
+                    <CardContent className="space-y-6">
+                      {validationErrors.form && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                          {validationErrors.form}
                         </div>
+                      )}
+
+                      {/* Nome e Sobrenome */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label htmlFor="sobrenome">Sobrenome</Label>
-                          <Input 
-                            id="sobrenome" 
-                            name="sobrenome" 
-                            value={formData.sobrenome} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
+                          <Label htmlFor="nome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Nome *
+                          </Label>
+                          <Input
+                            id="nome"
+                            name="nome"
+                            type="text"
+                            value={dadosPessoais.nome}
+                            onChange={handleDadosPessoaisChange}
+                            className={`w-full ${validationErrors.nome ? 'border-red-500' : ''}`}
+                            placeholder="Digite seu nome"
                           />
+                          {validationErrors.nome && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.nome}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sobrenome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Sobrenome *
+                          </Label>
+                          <Input
+                            id="sobrenome"
+                            name="sobrenome"
+                            type="text"
+                            value={dadosPessoais.sobrenome}
+                            onChange={handleDadosPessoaisChange}
+                            className={`w-full ${validationErrors.sobrenome ? 'border-red-500' : ''}`}
+                            placeholder="Digite seu sobrenome"
+                          />
+                          {validationErrors.sobrenome && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.sobrenome}</p>
+                          )}
                         </div>
                       </div>
-                      
+
+                      {/* Email */}
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input 
-                          id="email" 
-                          name="email" 
-                          type="email" 
-                          value={formData.email} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800" 
+                        <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Email *
+                        </Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={dadosPessoais.email}
+                          onChange={handleDadosPessoaisChange}
+                          className={`w-full ${validationErrors.email ? 'border-red-500' : ''}`}
+                          placeholder="Digite seu email"
                         />
+                        {validationErrors.email && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.email}</p>
+                        )}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="telefone">Telefone</Label>
-                          <Input 
-                            id="telefone" 
-                            name="telefone" 
-                            value={formData.telefone} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dataNascimento">Data de Nascimento</Label>
-                          <Input 
-                            id="dataNascimento" 
-                            name="dataNascimento" 
-                            type="date" 
-                            value={formData.dataNascimento} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
+
+                      {/* Telefone */}
+                      <div className="space-y-2">
+                        <Label htmlFor="telefone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Telefone *
+                        </Label>
+                        <Input
+                          id="telefone"
+                          name="telefone"
+                          type="tel"
+                          value={dadosPessoais.telefone}
+                          onChange={handleDadosPessoaisChange}
+                          className={`w-full ${validationErrors.telefone ? 'border-red-500' : ''}`}
+                          placeholder="Digite seu telefone"
+                        />
+                        {validationErrors.telefone && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.telefone}</p>
+                        )}
                       </div>
+
+                      {/* Data de Nascimento */}
+                      <div className="space-y-2">
+                        <Label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Data de Nascimento *
+                        </Label>
+                        <Input
+                          id="dataNascimento"
+                          name="dataNascimento"
+                          type="date"
+                          value={dadosPessoais.dataNascimento}
+                          onChange={handleDadosPessoaisChange}
+                          className={`w-full ${validationErrors.dataNascimento ? 'border-red-500' : ''}`}
+                        />
+                        {validationErrors.dataNascimento && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.dataNascimento}</p>
+                        )}
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <Button
+                          onClick={handleSaveDadosPessoais}
+                          disabled={loading}
+                          className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Salvando...
+                            </div>
+                          ) : (
+                            'Salvar Alterações'
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={handleCancel}
+                          disabled={loading}
+                          variant="outline"
+                          className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? (
-                          <div className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Salvando...
-                          </div>
-                        ) : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 

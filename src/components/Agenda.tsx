@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
 import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import React from "react";
@@ -71,6 +72,16 @@ const Agenda = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { professionalData } = useProfessional();
+  const { buscarDadosPessoais } = useVoluntario();
+  
+  // Estado local para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
 
   // Memoized filtered appointments
   const filteredAppointments = useMemo(() => {
@@ -88,6 +99,22 @@ const Agenda = () => {
     const types = [...new Set(appointments.map(apt => apt.type))];
     return types;
   }, [appointments]);
+
+  // Carregar dados pessoais do voluntário
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) {
+          setDadosPessoais(dados);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados pessoais:', error);
+      }
+    };
+
+    loadDadosPessoais();
+  }, [buscarDadosPessoais]);
 
   // Optimized next appointment calculation
   const getNextAppointmentIndex = useCallback(() => {
@@ -210,7 +237,7 @@ const Agenda = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
           </div>
         )}
         
@@ -228,12 +255,12 @@ const Agenda = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={`${professionalData?.nome} ${professionalData?.sobrenome}`.trim() || 'Voluntário'}
+              name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {professionalData?.nome} {professionalData?.sobrenome}
+              {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {professionalData?.especialidade || 'Profissional'}
@@ -284,7 +311,7 @@ const Agenda = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+              <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button

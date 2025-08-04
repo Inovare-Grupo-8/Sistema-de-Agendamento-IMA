@@ -27,12 +27,23 @@ import { professionalNavigationItems } from "@/utils/userNavigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
 const DisponibilizarHorario = () => {
   const { t } = useTranslation();
   const { userData } = useUser();
   const { professionalData } = useProfessional();
+  const { buscarDadosPessoais } = useVoluntario();
+  
+  // Estado local para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
 
   // Estado para armazenar a data selecionada
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -86,6 +97,22 @@ const DisponibilizarHorario = () => {
 
   // Skeleton loader e feedback visual
   const [loading, setLoading] = useState(false);
+  
+  // Carregar dados pessoais do voluntário
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) {
+          setDadosPessoais(dados);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados pessoais:', error);
+      }
+    };
+
+    loadDadosPessoais();
+  }, [buscarDadosPessoais]);
   useEffect(() => {
     setLoading(true);
     setTimeout(() => setLoading(false), 800);
@@ -258,11 +285,11 @@ const DisponibilizarHorario = () => {
             </button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`Dr. ${professionalData.nome} ${professionalData.sobrenome}`}
+              name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
           </div>
         )}
         
@@ -279,12 +306,12 @@ const DisponibilizarHorario = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`${professionalData?.nome} ${professionalData?.sobrenome}`.trim() || 'Voluntário'}
+              name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {professionalData?.nome} {professionalData?.sobrenome}
+              {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {professionalData?.especialidade || 'Profissional'}
@@ -339,11 +366,11 @@ const DisponibilizarHorario = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={`Dr. ${professionalData.nome} ${professionalData.sobrenome}`}
+                name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`}
                 size="w-10 h-10"
                 className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200"
               />
-              <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+              <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">              <button
                 onClick={toggleTheme}
