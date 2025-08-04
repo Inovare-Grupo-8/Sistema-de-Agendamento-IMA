@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
-import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import { useVoluntario, DadosPessoaisVoluntario, EnderecoVoluntario } from "@/hooks/useVoluntario";
 import { UserData } from "@/types/user";
 import { ProfessionalData } from "@/types/professional";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ const ProfileForm = () => {
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
   const { professionalData, setProfessionalData } = useProfessional();
-  const { buscarDadosPessoais, atualizarDadosPessoais } = useVoluntario();
+  const { buscarDadosPessoais, atualizarDadosPessoais, buscarEndereco, atualizarEndereco } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -78,6 +78,18 @@ const ProfileForm = () => {
     telefone: '',
     dataNascimento: ''
   });
+
+  // Estado para endereço do voluntário
+  const [endereco, setEndereco] = useState<EnderecoVoluntario>({
+    rua: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+    cep: ''
+  });
+
   const [initialLoading, setInitialLoading] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
@@ -106,11 +118,25 @@ const ProfileForm = () => {
     try {
       setIsLoadingData(true);
       setInitialLoading(true);
+      
+      // Buscar dados pessoais
       const dados = await buscarDadosPessoais();
       if (dados) {
         setDadosPessoais(dados);
-        setFormChanged(false);
       }
+
+      // Buscar endereço
+      try {
+        const enderecoData = await buscarEndereco();
+        if (enderecoData) {
+          setEndereco(enderecoData);
+        }
+      } catch (enderecoError) {
+        console.log('Endereço não encontrado ou erro ao carregar:', enderecoError);
+        // Não mostra erro para o usuário se o endereço não existir ainda
+      }
+
+      setFormChanged(false);
     } catch (error) {
       console.error('Erro ao carregar dados pessoais do voluntário:', error);
       
@@ -136,7 +162,7 @@ const ProfileForm = () => {
       setInitialLoading(false);
       setIsLoadingData(false);
     }
-  }, [buscarDadosPessoais]);
+  }, [buscarDadosPessoais, buscarEndereco]);
 
   // Carregar dados pessoais ao montar o componente (apenas uma vez)
   useEffect(() => {
@@ -276,12 +302,71 @@ const ProfileForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Função para validar endereço do voluntário
+  const validateEndereco = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!endereco.cep.trim()) {
+      newErrors.cep = 'CEP é obrigatório';
+    } else if (endereco.cep.replace(/\D/g, '').length !== 8) {
+      newErrors.cep = 'CEP deve ter 8 dígitos';
+    }
+
+    if (!endereco.rua.trim()) {
+      newErrors.rua = 'Rua é obrigatória';
+    }
+
+    if (!endereco.numero.trim()) {
+      newErrors.numero = 'Número é obrigatório';
+    }
+
+    if (!endereco.bairro.trim()) {
+      newErrors.bairro = 'Bairro é obrigatório';
+    }
+
+    if (!endereco.cidade.trim()) {
+      newErrors.cidade = 'Cidade é obrigatória';
+    }
+
+    if (!endereco.estado.trim()) {
+      newErrors.estado = 'Estado é obrigatório';
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Função para lidar com mudanças nos dados pessoais
   const handleDadosPessoaisChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setDadosPessoais(prev => ({
       ...prev,
       [name]: value
+    }));
+    setFormChanged(true);
+
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Função para lidar com mudanças no endereço
+  const handleEnderecoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Formatação específica para o CEP
+    let formattedValue = value;
+    if (name === 'cep') {
+      formattedValue = formatCep(value);
+    }
+    
+    setEndereco(prev => ({
+      ...prev,
+      [name]: formattedValue
     }));
     setFormChanged(true);
 
@@ -343,6 +428,57 @@ const ProfileForm = () => {
       setLoading(false);
     }
   };
+
+  // Função para salvar endereço
+  const handleSaveEndereco = async () => {
+    if (!formChanged) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!validateEndereco()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      await atualizarEndereco(endereco);
+      setSuccessMessage('Endereço atualizado com sucesso!');
+      setFormChanged(false);
+      
+      toast({
+        title: "Endereço atualizado",
+        description: "Seu endereço foi atualizado com sucesso!",
+      });
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao salvar endereço:', error);
+      setValidationErrors({ form: 'Erro ao salvar endereço. Tente novamente.' });
+      
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar seu endereço.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Update to use setProfessionalData from the context
   const handleSave = async () => {
     if (!formChanged && !selectedImage) {
@@ -521,6 +657,30 @@ const ProfileForm = () => {
           estado: endereco.estado,
           cep: endereco.cep
         }
+      }));
+      setFormChanged(true);
+      
+      toast({
+        title: "Endereço encontrado",
+        description: "Os campos foram preenchidos automaticamente.",
+      });
+    }
+  };
+
+  // Função para buscar endereço pelo CEP para o voluntário
+  const handleEnderecoCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    if (!cep || cep.replace(/\D/g, '').length < 8) return;
+    
+    const enderecoData = await fetchAddressByCep(cep);
+    if (enderecoData) {
+      setEndereco(prev => ({
+        ...prev,
+        rua: enderecoData.rua,
+        bairro: enderecoData.bairro,
+        cidade: enderecoData.cidade,
+        estado: enderecoData.estado,
+        cep: enderecoData.cep
       }));
       setFormChanged(true);
       
@@ -892,104 +1052,186 @@ const ProfileForm = () => {
                 <TabsContent value="endereco">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
-                      <CardTitle>Endereço Profissional</CardTitle>
-                      <CardDescription>Atualize seu endereço de atendimento</CardDescription>
+                      <CardTitle>Endereço</CardTitle>
+                      <CardDescription>Atualize seu endereço pessoal</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+                      {validationErrors.form && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                          {validationErrors.form}
+                        </div>
+                      )}
+
+                      {/* CEP */}
+                      <div className="space-y-2">
+                        <Label htmlFor="cep" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          CEP *
+                        </Label>
+                        <div className="relative">
+                          <Input 
+                            id="cep" 
+                            name="cep" 
+                            value={endereco.cep} 
+                            onChange={handleEnderecoChange}
+                            onBlur={handleEnderecoCepBlur}
+                            placeholder="00000-000"
+                            maxLength={9}
+                            className={`w-full ${validationErrors.cep ? 'border-red-500' : ''}`}
+                          />
+                          {loadingCep && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                        {validationErrors.cep && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.cep}</p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
+                      </div>
+
+                      {/* Rua e Número */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-2">
-                          <Label htmlFor="rua">Rua</Label>
+                          <Label htmlFor="rua" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Rua *
+                          </Label>
                           <Input 
                             id="rua" 
-                            name="endereco.rua" 
-                            value={formData.endereco.rua} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="rua" 
+                            value={endereco.rua} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.rua ? 'border-red-500' : ''}`}
+                            placeholder="Digite o nome da rua"
                           />
+                          {validationErrors.rua && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.rua}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="numero">Número</Label>
+                          <Label htmlFor="numero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Número *
+                          </Label>
                           <Input 
                             id="numero" 
-                            name="endereco.numero" 
-                            value={formData.endereco.numero} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="numero" 
+                            value={endereco.numero} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.numero ? 'border-red-500' : ''}`}
+                            placeholder="Nº"
                           />
+                          {validationErrors.numero && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.numero}</p>
+                          )}
                         </div>
                       </div>
                       
+                      {/* Complemento */}
                       <div className="space-y-2">
-                        <Label htmlFor="complemento">Complemento</Label>
+                        <Label htmlFor="complemento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Complemento
+                        </Label>
                         <Input 
                           id="complemento" 
-                          name="endereco.complemento" 
-                          value={formData.endereco.complemento} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800"
+                          name="complemento" 
+                          value={endereco.complemento} 
+                          onChange={handleEnderecoChange}
+                          className="w-full"
+                          placeholder="Apartamento, bloco, etc. (opcional)"
                         />
                       </div>
                       
+                      {/* Bairro */}
                       <div className="space-y-2">
-                        <Label htmlFor="bairro">Bairro</Label>
+                        <Label htmlFor="bairro" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Bairro *
+                        </Label>
                         <Input 
                           id="bairro" 
-                          name="endereco.bairro" 
-                          value={formData.endereco.bairro} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800"
+                          name="bairro" 
+                          value={endereco.bairro} 
+                          onChange={handleEnderecoChange}
+                          className={`w-full ${validationErrors.bairro ? 'border-red-500' : ''}`}
+                          placeholder="Digite o bairro"
                         />
+                        {validationErrors.bairro && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.bairro}</p>
+                        )}
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1 space-y-2">
-                          <Label htmlFor="cidade">Cidade</Label>
+                      {/* Cidade e Estado */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="cidade" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Cidade *
+                          </Label>
                           <Input 
                             id="cidade" 
-                            name="endereco.cidade" 
-                            value={formData.endereco.cidade} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="cidade" 
+                            value={endereco.cidade} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.cidade ? 'border-red-500' : ''}`}
+                            placeholder="Digite a cidade"
                           />
+                          {validationErrors.cidade && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.cidade}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="estado">Estado</Label>
+                          <Label htmlFor="estado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Estado *
+                          </Label>
                           <Input 
                             id="estado" 
-                            name="endereco.estado" 
-                            value={formData.endereco.estado} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="estado" 
+                            value={endereco.estado} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.estado ? 'border-red-500' : ''}`}
+                            placeholder="Digite o estado"
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="cep">CEP</Label>
-                          <div className="relative">
-                            <Input 
-                              id="cep" 
-                              name="endereco.cep" 
-                              value={formData.endereco.cep} 
-                              onChange={handleInputChange}
-                              onBlur={handleCepBlur}
-                              placeholder="00000-000"
-                              maxLength={9}
-                              className="bg-white dark:bg-gray-800"
-                            />
-                            {loadingCep && (
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
+                          {validationErrors.estado && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.estado}</p>
+                          )}
                         </div>
                       </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <Button
+                          onClick={handleSaveEndereco}
+                          disabled={loading}
+                          className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Salvando...
+                            </div>
+                          ) : (
+                            'Salvar Endereço'
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={handleCancel}
+                          disabled={loading}
+                          variant="outline"
+                          className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 
