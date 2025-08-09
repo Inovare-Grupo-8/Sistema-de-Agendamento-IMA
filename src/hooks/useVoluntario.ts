@@ -7,12 +7,12 @@ export interface DadosPessoaisVoluntario {
 }
 
 export interface EnderecoVoluntario {
-  rua: string;
+  logradouro: string;
   numero: string;
   complemento: string;
   bairro: string;
   cidade: string;
-  estado: string;
+  uf: string;
   cep: string;
 }
 
@@ -124,7 +124,20 @@ export const useVoluntario = () => {
         throw new Error('Erro ao buscar endereço');
       }
 
-      return await response.json();
+      const enderecoOutput = await response.json();
+      
+      // Mapear EnderecoOutput do backend para EnderecoVoluntario
+      const endereco: EnderecoVoluntario = {
+        logradouro: enderecoOutput.logradouro || '',
+        numero: enderecoOutput.numero || '',
+        complemento: enderecoOutput.complemento || '',
+        bairro: enderecoOutput.bairro || '',
+        cidade: enderecoOutput.localidade || '', // ✅ CORREÇÃO: usar localidade do backend
+        uf: enderecoOutput.uf || '',
+        cep: enderecoOutput.cep || ''
+      };
+      
+      return endereco;
     } catch (error) {
       console.error('Erro ao buscar endereço:', error);
       throw error;

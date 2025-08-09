@@ -81,12 +81,12 @@ const ProfileForm = () => {
 
   // Estado para endereço do voluntário
   const [endereco, setEndereco] = useState<EnderecoVoluntario>({
-    rua: '',
+    logradouro: '',
     numero: '',
     complemento: '',
     bairro: '',
     cidade: '',
-    estado: '',
+    uf: '',
     cep: ''
   });
 
@@ -312,8 +312,8 @@ const ProfileForm = () => {
       newErrors.cep = 'CEP deve ter 8 dígitos';
     }
 
-    if (!endereco.rua.trim()) {
-      newErrors.rua = 'Rua é obrigatória';
+    if (!endereco.logradouro.trim()) {
+      newErrors.logradouro = 'Logradouro é obrigatório';
     }
 
     if (!endereco.numero.trim()) {
@@ -328,8 +328,8 @@ const ProfileForm = () => {
       newErrors.cidade = 'Cidade é obrigatória';
     }
 
-    if (!endereco.estado.trim()) {
-      newErrors.estado = 'Estado é obrigatório';
+    if (!endereco.uf.trim()) {
+      newErrors.uf = 'UF é obrigatória';
     }
 
     setValidationErrors(newErrors);
@@ -676,11 +676,11 @@ const ProfileForm = () => {
     if (enderecoData) {
       setEndereco(prev => ({
         ...prev,
-        rua: enderecoData.rua,
-        bairro: enderecoData.bairro,
-        cidade: enderecoData.cidade,
-        estado: enderecoData.estado,
-        cep: enderecoData.cep
+        logradouro: enderecoData.rua || '',             
+        bairro: enderecoData.bairro || '',
+        cidade: enderecoData.cidade || '', 
+        uf: enderecoData.estado || '',         
+        cep: enderecoData.cep || ''
       }));
       setFormChanged(true);
       
@@ -1099,7 +1099,7 @@ const ProfileForm = () => {
                           <Input 
                             id="rua" 
                             name="rua" 
-                            value={endereco.rua} 
+                            value={endereco.logradouro} 
                             onChange={handleEnderecoChange}
                             className={`w-full ${validationErrors.rua ? 'border-red-500' : ''}`}
                             placeholder="Digite o nome da rua"
@@ -1184,12 +1184,12 @@ const ProfileForm = () => {
                           <Input 
                             id="estado" 
                             name="estado" 
-                            value={endereco.estado} 
+                            value={endereco.uf} 
                             onChange={handleEnderecoChange}
-                            className={`w-full ${validationErrors.estado ? 'border-red-500' : ''}`}
+                            className={`w-full ${validationErrors.uf ? 'border-red-500' : ''}`}
                             placeholder="Digite o estado"
                           />
-                          {validationErrors.estado && (
+                          {validationErrors.uf && (
                             <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.estado}</p>
                           )}
                         </div>
