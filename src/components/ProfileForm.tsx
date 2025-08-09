@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUser } from "@/hooks/useUser";
 import { useProfessional } from "@/hooks/useProfessional";
-import { useVoluntario, DadosPessoaisVoluntario, EnderecoVoluntario } from "@/hooks/useVoluntario";
+import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario, EnderecoVoluntario } from "@/hooks/useVoluntario";
 import { UserData } from "@/types/user";
 import { ProfessionalData } from "@/types/professional";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ const ProfileForm = () => {
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
   const { professionalData, setProfessionalData } = useProfessional();
-  const { buscarDadosPessoais, atualizarDadosPessoais, buscarEndereco, atualizarEndereco } = useVoluntario();
+  const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -77,6 +77,13 @@ const ProfileForm = () => {
     email: '',
     telefone: '',
     dataNascimento: ''
+  });
+
+  // Estado para dados profissionais do voluntário
+  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario>({
+    funcao: '',
+    registroProfissional: '',
+    biografiaProfissional: ''
   });
 
   // Estado para endereço do voluntário
@@ -125,6 +132,17 @@ const ProfileForm = () => {
         setDadosPessoais(dados);
       }
 
+      // Buscar dados profissionais
+      try {
+        const dadosProfissionaisData = await buscarDadosProfissionais();
+        if (dadosProfissionaisData) {
+          setDadosProfissionais(dadosProfissionaisData);
+        }
+      } catch (profissionalError) {
+        console.log('Dados profissionais não encontrados ou erro ao carregar:', profissionalError);
+        // Não mostra erro para o usuário se os dados profissionais não existirem ainda
+      }
+
       // Buscar endereço
       try {
         const enderecoData = await buscarEndereco();
@@ -162,7 +180,7 @@ const ProfileForm = () => {
       setInitialLoading(false);
       setIsLoadingData(false);
     }
-  }, [buscarDadosPessoais, buscarEndereco]);
+  }, [buscarDadosPessoais, buscarDadosProfissionais, buscarEndereco]);
 
   // Carregar dados pessoais ao montar o componente (apenas uma vez)
   useEffect(() => {
@@ -336,6 +354,24 @@ const ProfileForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Função para validar dados profissionais do voluntário
+  const validateDadosProfissionais = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!dadosProfissionais.funcao.trim()) {
+      newErrors.funcao = 'Função é obrigatória';
+    }
+
+    if (!dadosProfissionais.registroProfissional.trim()) {
+      newErrors.registroProfissional = 'Registro profissional é obrigatório';
+    }
+
+    // biografiaProfissional é opcional, então não validamos
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Função para lidar com mudanças nos dados pessoais
   const handleDadosPessoaisChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -367,6 +403,24 @@ const ProfileForm = () => {
     setEndereco(prev => ({
       ...prev,
       [name]: formattedValue
+    }));
+    setFormChanged(true);
+
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Função para lidar com mudanças nos dados profissionais
+  const handleDadosProfissionaisChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setDadosProfissionais(prev => ({
+      ...prev,
+      [name]: value
     }));
     setFormChanged(true);
 
@@ -472,6 +526,56 @@ const ProfileForm = () => {
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar seu endereço.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para salvar dados profissionais
+  const handleSaveDadosProfissionais = async () => {
+    if (!formChanged) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!validateDadosProfissionais()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      await atualizarDadosProfissionais(dadosProfissionais);
+      setSuccessMessage('Dados profissionais atualizados com sucesso!');
+      setFormChanged(false);
+      
+      toast({
+        title: "Dados profissionais atualizados",
+        description: "Suas informações profissionais foram atualizadas com sucesso!",
+      });
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao salvar dados profissionais:', error);
+      setValidationErrors({ form: 'Erro ao salvar dados profissionais. Tente novamente.' });
+      
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar seus dados profissionais.",
         variant: "destructive"
       });
     } finally {
@@ -1000,52 +1104,107 @@ const ProfileForm = () => {
                       <CardTitle>Dados Profissionais</CardTitle>
                       <CardDescription>Atualize suas informações profissionais</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="especialidade">Especialidade</Label>
-                          <Input 
-                            id="especialidade" 
-                            name="especialidade" 
-                            value={formData.especialidade} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
+                    <CardContent className="space-y-6">
+                      {validationErrors.form && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                          {validationErrors.form}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="crm">CRM/CRP/Registro Profissional</Label>
-                          <Input 
-                            id="crm" 
-                            name="crm" 
-                            value={formData.crm} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
-                      </div>
-                      
+                      )}
+
+                      {/* Função */}
                       <div className="space-y-2">
-                        <Label htmlFor="bio">Biografia Profissional</Label>
-                        <textarea 
-                          id="bio" 
-                          name="bio" 
-                          value={formData.bio || ''} 
-                          onChange={(e) => {
-                            setFormChanged(true);
-                            setFormData({
-                              ...formData, 
-                              bio: e.target.value
-                            } as typeof formData);
-                          }}
-                          className="w-full min-h-[150px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]" 
+                        <Label htmlFor="funcao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Função/Especialidade *
+                        </Label>
+                        <Input
+                          id="funcao"
+                          name="funcao"
+                          type="text"
+                          value={dadosProfissionais.funcao}
+                          onChange={handleDadosProfissionaisChange}
+                          className={`w-full ${validationErrors.funcao ? 'border-red-500' : ''}`}
+                          placeholder="Ex: Psicólogo, Fisioterapeuta, Nutricionista"
                         />
+                        {validationErrors.funcao && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.funcao}</p>
+                        )}
                       </div>
+
+                      {/* Registro Profissional */}
+                      <div className="space-y-2">
+                        <Label htmlFor="registroProfissional" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Registro Profissional *
+                        </Label>
+                        <Input
+                          id="registroProfissional"
+                          name="registroProfissional"
+                          type="text"
+                          value={dadosProfissionais.registroProfissional}
+                          onChange={handleDadosProfissionaisChange}
+                          className={`w-full ${validationErrors.registroProfissional ? 'border-red-500' : ''}`}
+                          placeholder="Ex: CRP 12345/SP, CRM 67890/RJ"
+                        />
+                        {validationErrors.registroProfissional && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.registroProfissional}</p>
+                        )}
+                      </div>
+
+                      {/* Biografia Profissional */}
+                      <div className="space-y-2">
+                        <Label htmlFor="biografiaProfissional" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Biografia Profissional
+                        </Label>
+                        <textarea
+                          id="biografiaProfissional"
+                          name="biografiaProfissional"
+                          value={dadosProfissionais.biografiaProfissional}
+                          onChange={handleDadosProfissionaisChange}
+                          rows={4}
+                          className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231] resize-vertical min-h-[100px]"
+                          placeholder="Descreva sua experiência profissional, formação, especializações..."
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Conte um pouco sobre sua formação e experiência profissional (opcional)
+                        </p>
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <Button
+                          onClick={handleSaveDadosProfissionais}
+                          disabled={loading}
+                          className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Salvando...
+                            </div>
+                          ) : (
+                            'Salvar Dados Profissionais'
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={handleCancel}
+                          disabled={loading}
+                          variant="outline"
+                          className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 

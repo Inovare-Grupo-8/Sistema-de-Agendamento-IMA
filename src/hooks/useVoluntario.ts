@@ -6,6 +6,12 @@ export interface DadosPessoaisVoluntario {
   dataNascimento: string;
 }
 
+export interface DadosProfissionaisVoluntario {
+  funcao: string;
+  registroProfissional: string;
+  biografiaProfissional: string;
+}
+
 export interface EnderecoVoluntario {
   logradouro: string;
   numero: string;
@@ -93,6 +99,96 @@ export const useVoluntario = () => {
       return result;
     } catch (error) {
       console.error('Erro ao atualizar dados pessoais:', error);
+      throw error;
+    }
+  };
+
+  // Função para buscar dados profissionais do voluntário
+  const buscarDadosProfissionais = async (): Promise<DadosProfissionaisVoluntario> => {
+    try {
+      const userData = localStorage.getItem('userData');
+      if (!userData) {
+        throw new Error('Usuário não está logado');
+      }
+      
+      const user = JSON.parse(userData);
+      const usuarioId = user.idUsuario || user.id;
+      
+      if (!usuarioId) {
+        throw new Error('ID do usuário não encontrado');
+      }
+
+      // Os dados profissionais vêm junto com os dados pessoais
+      const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token || ''}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados profissionais');
+      }
+
+      const dadosCompletos = await response.json();
+      
+      // Extrair apenas os dados profissionais
+      const dadosProfissionais: DadosProfissionaisVoluntario = {
+        funcao: dadosCompletos.especialidade || '', // especialidade no backend vira funcao no frontend
+        registroProfissional: dadosCompletos.crp || '',
+        biografiaProfissional: dadosCompletos.bio || ''
+      };
+      
+      return dadosProfissionais;
+    } catch (error) {
+      console.error('Erro ao buscar dados profissionais:', error);
+      throw error;
+    }
+  };
+
+  // Função para atualizar dados profissionais do voluntário
+  const atualizarDadosProfissionais = async (dados: DadosProfissionaisVoluntario): Promise<DadosProfissionaisVoluntario> => {
+    try {
+      const userData = localStorage.getItem('userData');
+      if (!userData) {
+        throw new Error('Usuário não está logado');
+      }
+      
+      const user = JSON.parse(userData);
+      const usuarioId = user.idUsuario || user.id;
+      
+      if (!usuarioId) {
+        throw new Error('ID do usuário não encontrado');
+      }
+
+      // Mapear os dados para o formato esperado pelo backend
+      const dadosBackend = {
+        registroProfissional: dados.registroProfissional,
+        biografiaProfissional: dados.biografiaProfissional,
+        especialidade: dados.funcao // funcao do frontend vira especialidade no backend
+      };
+
+      const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-profissionais?usuarioId=${usuarioId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token || ''}`
+        },
+        body: JSON.stringify(dadosBackend)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro na resposta:', errorText);
+        throw new Error(`Erro ao atualizar dados profissionais: ${response.status}`);
+      }
+
+      // O backend retorna status 204 (No Content) para indicar sucesso
+      // Retornar os dados originais já que a atualização foi bem-sucedida
+      return dados;
+    } catch (error) {
+      console.error('Erro ao atualizar dados profissionais:', error);
       throw error;
     }
   };
@@ -192,6 +288,8 @@ export const useVoluntario = () => {
   return {
     buscarDadosPessoais,
     atualizarDadosPessoais,
+    buscarDadosProfissionais,
+    atualizarDadosProfissionais,
     buscarEndereco,
     atualizarEndereco
   };
