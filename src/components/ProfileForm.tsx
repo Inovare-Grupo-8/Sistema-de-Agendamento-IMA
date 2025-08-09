@@ -1116,15 +1116,24 @@ const ProfileForm = () => {
                         <Label htmlFor="funcao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Função/Especialidade *
                         </Label>
-                        <Input
+                        <select
                           id="funcao"
                           name="funcao"
-                          type="text"
                           value={dadosProfissionais.funcao}
-                          onChange={handleDadosProfissionaisChange}
-                          className={`w-full ${validationErrors.funcao ? 'border-red-500' : ''}`}
-                          placeholder="Ex: Psicólogo, Fisioterapeuta, Nutricionista"
-                        />
+                          onChange={(e) => handleDadosProfissionaisChange(e as any)}
+                          className={`w-full rounded-md border ${validationErrors.funcao ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]`}
+                        >
+                          {!dadosProfissionais.funcao && <option value="">Selecione uma especialidade</option>}
+                          <option value="JURIDICA">Jurídica</option>
+                          <option value="PSICOLOGIA">Psicologia</option>
+                          <option value="PSICOPEDAGOGIA">Psicopedagogia</option>
+                          <option value="CONTABIL">Contábil</option>
+                          <option value="FINANCEIRA">Financeira</option>
+                          <option value="PEDIATRIA">Pediatria</option>
+                          <option value="FISIOTERAPIA">Fisioterapia</option>
+                          <option value="QUIROPRAXIA">Quiropraxia</option>
+                          <option value="NUTRICAO">Nutrição</option>
+                        </select>
                         {validationErrors.funcao && (
                           <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.funcao}</p>
                         )}

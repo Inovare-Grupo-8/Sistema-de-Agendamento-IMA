@@ -24,6 +24,23 @@ export interface EnderecoVoluntario {
 
 export const useVoluntario = () => {
   
+  // Função para mapear valores do backend para nomes dos enums
+  const mapBackendValueToEnum = (backendValue: string): string => {
+    const mapping: Record<string, string> = {
+      'Juridica': 'JURIDICA',
+      'Psicologia': 'PSICOLOGIA', 
+      'Psicopedagogia': 'PSICOPEDAGOGIA',
+      'Assistencia Social': 'ASSISTENCIA_SOCIAL',
+      'Contabil': 'CONTABIL',
+      'Financeira': 'FINANCEIRA',
+      'Pediatria': 'PEDIATRIA',
+      'Fisioterapia': 'FISIOTERAPIA',
+      'Quiropraxia': 'QUIROPRAXIA',
+      'Nutricao': 'NUTRICAO'
+    };
+    return mapping[backendValue] || backendValue;
+  };
+
   // Função para buscar dados pessoais do voluntário
   const buscarDadosPessoais = async (): Promise<DadosPessoaisVoluntario> => {
     try {
@@ -135,7 +152,7 @@ export const useVoluntario = () => {
       
       // Extrair apenas os dados profissionais
       const dadosProfissionais: DadosProfissionaisVoluntario = {
-        funcao: dadosCompletos.especialidade || '', // especialidade no backend vira funcao no frontend
+        funcao: mapBackendValueToEnum(dadosCompletos.especialidade || ''),
         registroProfissional: dadosCompletos.crp || '',
         biografiaProfissional: dadosCompletos.bio || ''
       };
@@ -164,9 +181,9 @@ export const useVoluntario = () => {
 
       // Mapear os dados para o formato esperado pelo backend
       const dadosBackend = {
+        funcao: dados.funcao,
         registroProfissional: dados.registroProfissional,
-        biografiaProfissional: dados.biografiaProfissional,
-        especialidade: dados.funcao // funcao do frontend vira especialidade no backend
+        biografiaProfissional: dados.biografiaProfissional
       };
 
       const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-profissionais?usuarioId=${usuarioId}`, {
