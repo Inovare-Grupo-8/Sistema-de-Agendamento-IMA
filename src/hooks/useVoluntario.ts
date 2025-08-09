@@ -159,13 +159,20 @@ export const useVoluntario = () => {
         throw new Error('ID do usuário não encontrado');
       }
 
+      // Enviar apenas os campos que a API espera
+      const enderecoData = {
+        cep: endereco.cep.replace(/\D/g, ''), // Remove formatação do CEP
+        numero: endereco.numero,
+        complemento: endereco.complemento
+      };
+
       const response = await fetch(`http://localhost:8080/perfil/voluntario/endereco?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user.token || ''}`
         },
-        body: JSON.stringify(endereco)
+        body: JSON.stringify(enderecoData)
       });
 
       if (!response.ok) {
@@ -174,8 +181,8 @@ export const useVoluntario = () => {
         throw new Error(`Erro ao atualizar endereço: ${response.status}`);
       }
 
-      const result = await response.json();
-      return result;
+      // Retornar o endereço original já que a API não retorna os dados completos
+      return endereco;
     } catch (error) {
       console.error('Erro ao atualizar endereço:', error);
       throw error;

@@ -678,6 +678,7 @@ const ProfileForm = () => {
         ...prev,
         logradouro: enderecoData.rua || '',             
         bairro: enderecoData.bairro || '',
+        complemento: enderecoData.complemento || '',
         cidade: enderecoData.cidade || '', 
         uf: enderecoData.estado || '',         
         cep: enderecoData.cep || ''
