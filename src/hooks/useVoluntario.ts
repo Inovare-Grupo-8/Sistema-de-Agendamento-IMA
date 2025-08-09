@@ -319,6 +319,59 @@ export const useVoluntario = () => {
     }
   };
 
+  // Função para fazer upload da foto de perfil
+  const uploadFoto = async (file: File): Promise<string> => {
+    try {
+      const userData = localStorage.getItem('userData');
+      if (!userData) {
+        throw new Error('Usuário não está logado');
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario || user.id;
+      
+      if (!usuarioId) {
+        throw new Error('ID do usuário não encontrado');
+      }
+
+      // Verificar se a foto não é muito grande (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        throw new Error('A foto é muito grande. Tamanho máximo permitido: 5MB');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`http://localhost:8080/perfil/voluntario/foto?usuarioId=${usuarioId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro na resposta:', errorText);
+        throw new Error(`Erro ao fazer upload da foto: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Construir URL completa da foto
+      const photoUrl = result.url ? 
+        (result.url.startsWith('http') ? result.url : `http://localhost:8080${result.url}`) :
+        `http://localhost:8080/uploads/voluntario_user_${usuarioId}.jpg`;
+      
+      return photoUrl;
+    } catch (error) {
+      console.error('Erro ao fazer upload da foto:', error);
+      throw error;
+    }
+  };
+
   return {
     buscarDadosPessoais,
     atualizarDadosPessoais,
@@ -326,7 +379,8 @@ export const useVoluntario = () => {
     atualizarDadosProfissionais,
     buscarEndereco,
     atualizarEndereco,
-    mapEnumToText
+    mapEnumToText,
+    uploadFoto
   };
 };
 

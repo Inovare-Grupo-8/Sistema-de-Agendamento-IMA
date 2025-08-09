@@ -63,7 +63,7 @@ const ProfileForm = () => {
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
   const { professionalData, setProfessionalData } = useProfessional();
-  const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco, mapEnumToText } = useVoluntario();
+  const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco, mapEnumToText, uploadFoto } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -584,6 +584,64 @@ const ProfileForm = () => {
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar seus dados profissionais.",
         variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para salvar apenas a foto de perfil do voluntário
+  const handleSavePhoto = async () => {
+    if (!selectedImage || !imagePreview) {
+      toast({
+        title: "Nenhuma foto selecionada",
+        description: "Selecione uma foto para atualizar",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('🔄 [ProfileForm] Iniciando upload de foto do voluntário...');
+      
+      // Upload da foto e obter a URL
+      const photoUrl = await uploadFoto(selectedImage);
+      console.log('✅ [ProfileForm] URL da foto recebida:', photoUrl);
+
+      // Atualizar o contexto com a nova URL da imagem do servidor
+      setProfileImage(photoUrl);
+
+      // Limpar estados locais
+      setSelectedImage(null);
+      setImagePreview(null);
+      setFormChanged(false);
+
+      toast({
+        title: "Foto atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso!",
+      });
+
+    } catch (error) {
+      console.error('❌ [ProfileForm] Erro completo no upload:', error);
+      
+      let errorMessage = "Ocorreu um erro ao atualizar sua foto de perfil.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('muito grande')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = "Erro de conexão com o servidor. Verifique sua internet e se o backend está rodando na porta 8080.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Erro ao atualizar foto",
+        description: errorMessage,
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -1503,20 +1561,41 @@ const ProfileForm = () => {
                     <CardContent>
                       <div className="flex flex-col items-center gap-6">
                         <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
-                          <img 
-                            src={imagePreview || profileImage} 
-                            alt="Foto de perfil" 
-                            className="w-full h-full object-cover"
-                          />
+                          {(imagePreview || (profileImage && profileImage !== 'undefined' && profileImage !== '')) ? (
+                            <img 
+                              src={imagePreview || profileImage}
+                              alt="Foto de perfil" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.log('Erro ao carregar imagem de perfil:', e);
+                                // Em caso de erro, mostrar avatar com iniciais
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <ProfileAvatar 
+                              profileImage=""
+                              name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
+                              size="w-40 h-40"
+                              className="text-4xl"
+                            />
+                          )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-4">
-                          <Label 
-                            htmlFor="photo-upload"
-                            className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-                          >
-                            Escolher Foto
-                          </Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Label 
+                                htmlFor="photo-upload"
+                                className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                              >
+                                Escolher Foto
+                              </Label>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Clique para selecionar uma nova foto de perfil</p>
+                            </TooltipContent>
+                          </Tooltip>
                           <Input 
                             id="photo-upload" 
                             type="file" 
@@ -1525,15 +1604,43 @@ const ProfileForm = () => {
                             className="hidden"
                           />
                           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                            Formatos suportados: JPG, PNG, GIF<br/>
+                            Formatos suportados: JPG, PNG<br/>
                             Tamanho máximo: 5MB
                           </p>
                         </div>
                       </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg mt-6">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancel} 
+                        disabled={loading}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleSavePhoto} 
+                        disabled={loading || !selectedImage} 
+                        className="bg-[#ED4231] hover:bg-[#d53a2a]"
+                      >
+                        {loading ? (
+                          <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Enviando...
+                          </div>
+                        ) : (
+                          "Salvar Foto"
+                        )}
                       </Button>
                     </CardFooter>
                   </Card>
