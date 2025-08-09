@@ -63,12 +63,13 @@ const ProfileForm = () => {
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
   const { professionalData, setProfessionalData } = useProfessional();
-  const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco } = useVoluntario();
+  const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco, mapEnumToText } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>(''); // Estado para função na sidebar
 
   // Estado para dados pessoais do voluntário
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
@@ -137,10 +138,13 @@ const ProfileForm = () => {
         const dadosProfissionaisData = await buscarDadosProfissionais();
         if (dadosProfissionaisData) {
           setDadosProfissionais(dadosProfissionaisData);
+          // Atualizar função para a sidebar
+          setFuncaoVoluntario(mapEnumToText(dadosProfissionaisData.funcao));
         }
       } catch (profissionalError) {
         console.log('Dados profissionais não encontrados ou erro ao carregar:', profissionalError);
         // Não mostra erro para o usuário se os dados profissionais não existirem ainda
+        setFuncaoVoluntario(''); // Limpar função se não conseguir carregar
       }
 
       // Buscar endereço
@@ -558,6 +562,9 @@ const ProfileForm = () => {
 
     try {
       await atualizarDadosProfissionais(dadosProfissionais);
+      // Atualizar função na sidebar
+      setFuncaoVoluntario(mapEnumToText(dadosProfissionais.funcao));
+      
       setSuccessMessage('Dados profissionais atualizados com sucesso!');
       setFormChanged(false);
       
@@ -849,9 +856,11 @@ const ProfileForm = () => {
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
               {dadosPessoais.nome} {dadosPessoais.sobrenome}
             </span>
-            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData?.especialidade || formData?.especialidade || 'Profissional'}
-            </Badge>
+            {funcaoVoluntario && (
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                {funcaoVoluntario}
+              </Badge>
+            )}
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">

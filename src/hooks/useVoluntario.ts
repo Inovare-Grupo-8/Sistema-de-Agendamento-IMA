@@ -41,6 +41,23 @@ export const useVoluntario = () => {
     return mapping[backendValue] || backendValue;
   };
 
+  // Função para mapear enum para texto legível
+  const mapEnumToText = (enumValue: string): string => {
+    const mapping: Record<string, string> = {
+      'JURIDICA': 'Jurídica',
+      'PSICOLOGIA': 'Psicologia',
+      'PSICOPEDAGOGIA': 'Psicopedagogia',
+      'ASSISTENCIA_SOCIAL': 'Assistência Social',
+      'CONTABIL': 'Contábil',
+      'FINANCEIRA': 'Financeira',
+      'PEDIATRIA': 'Pediatria',
+      'FISIOTERAPIA': 'Fisioterapia',
+      'QUIROPRAXIA': 'Quiropraxia',
+      'NUTRICAO': 'Nutrição'
+    };
+    return mapping[enumValue] || '';
+  };
+
   // Função para buscar dados pessoais do voluntário
   const buscarDadosPessoais = async (): Promise<DadosPessoaisVoluntario> => {
     try {
@@ -308,7 +325,8 @@ export const useVoluntario = () => {
     buscarDadosProfissionais,
     atualizarDadosProfissionais,
     buscarEndereco,
-    atualizarEndereco
+    atualizarEndereco,
+    mapEnumToText
   };
 };
 
