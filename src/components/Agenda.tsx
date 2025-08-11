@@ -22,7 +22,6 @@ import { AgendaCardSkeleton } from "./ui/custom-skeletons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
-import { useProfessional } from "@/hooks/useProfessional";
 import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -71,8 +70,10 @@ const Agenda = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const { professionalData } = useProfessional();
-  const { buscarDadosPessoais } = useVoluntario();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
+  
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
   
   // Estado local para dados pessoais do voluntário
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
@@ -263,7 +264,7 @@ const Agenda = () => {
               {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData?.especialidade || 'Profissional'}
+              {funcaoVoluntario || 'Profissional'}
             </Badge>
           </div>
           

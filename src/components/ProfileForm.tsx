@@ -13,10 +13,8 @@ import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUser } from "@/hooks/useUser";
-import { useProfessional } from "@/hooks/useProfessional";
 import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario, EnderecoVoluntario } from "@/hooks/useVoluntario";
 import { UserData } from "@/types/user";
-import { ProfessionalData } from "@/types/professional";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -62,7 +60,6 @@ const ProfileForm = () => {
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
-  const { professionalData, setProfessionalData } = useProfessional();
   const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco, mapEnumToText, uploadFoto } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
@@ -101,17 +98,25 @@ const ProfileForm = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Estado para o formulário with properly typed defaults for professional fields
-  const [formData, setFormData] = useState<ProfessionalData>(() => ({
-    ...professionalData,
+  // Estado para o formulário usando apenas dados do voluntário
+  const [formData, setFormData] = useState(() => ({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: '',
+    especialidade: '',
+    crp: '',
+    bio: '',
+    observacoesDisponibilidade: '',
     endereco: {
-      rua: professionalData.endereco?.rua || '',
-      numero: professionalData.endereco?.numero || '',
-      complemento: professionalData.endereco?.complemento || '',
-      bairro: professionalData.endereco?.bairro || '',
-      cidade: professionalData.endereco?.cidade || '',
-      estado: professionalData.endereco?.estado || '',
-      cep: professionalData.endereco?.cep || ''
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+      cep: ''
     }
   }));
 
@@ -202,24 +207,6 @@ const ProfileForm = () => {
       isMounted = false;
     };
   }, []); // Sem dependências para carregar apenas uma vez
-  
-  // Update form data when professionalData changes (sync across tabs)
-  useEffect(() => {
-    if (!formChanged) {
-      setFormData({
-        ...professionalData,
-        endereco: {
-          rua: professionalData.endereco?.rua || '',
-          numero: professionalData.endereco?.numero || '',
-          complemento: professionalData.endereco?.complemento || '',
-          bairro: professionalData.endereco?.bairro || '',
-          cidade: professionalData.endereco?.cidade || '',
-          estado: professionalData.endereco?.estado || '',
-          cep: professionalData.endereco?.cep || ''
-        }
-      });
-    }
-  }, [professionalData, formChanged]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -648,7 +635,7 @@ const ProfileForm = () => {
     }
   };
 
-  // Update to use setProfessionalData from the context
+  // Update to use apenas dados do voluntário
   const handleSave = async () => {
     if (!formChanged && !selectedImage) {
       toast({
@@ -670,21 +657,10 @@ const ProfileForm = () => {
     setLoading(true);
     
     try {
-      // Real API call to update professional data
-      const response = await fetch('http://localhost:8080/perfil/profissional', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar perfil');
-      }
-
-      // Use the setProfessionalData function from the context
-      setProfessionalData(formData);
+      // Salvar apenas dados pessoais, profissionais e endereço do voluntário
+      await handleSaveDadosPessoais();
+      await handleSaveDadosProfissionais();
+      await handleSaveEndereco();
       
       if (selectedImage && imagePreview) {
         setProfileImage(imagePreview);
@@ -783,18 +759,29 @@ const ProfileForm = () => {
   
   // Fix the duplicate and incorrectly formatted handleCancel function
   const handleCancel = () => {
-    // Recarregando dados originais do contexto
-    setFormData({
-      ...professionalData,
-      endereco: {
-        rua: professionalData.endereco?.rua || '',
-        numero: professionalData.endereco?.numero || '',
-        complemento: professionalData.endereco?.complemento || '',
-        bairro: professionalData.endereco?.bairro || '',
-        cidade: professionalData.endereco?.cidade || '',
-        estado: professionalData.endereco?.estado || '',
-        cep: professionalData.endereco?.cep || ''
-      }
+    // Recarregando dados originais dos estados do voluntário
+    setDadosPessoais({
+      nome: '',
+      sobrenome: '',
+      email: '',
+      telefone: '',
+      dataNascimento: ''
+    });
+    
+    setDadosProfissionais({
+      funcao: '',
+      registroProfissional: '',
+      biografiaProfissional: ''
+    });
+    
+    setEndereco({
+      logradouro: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+      cep: ''
     });
     
     // Resetando estados
@@ -802,6 +789,9 @@ const ProfileForm = () => {
     setImagePreview(null);
     setFormChanged(false);
     setValidationErrors({});
+    
+    // Recarregar dados
+    loadProfileData();
     
     toast({
       title: "Alterações descartadas",

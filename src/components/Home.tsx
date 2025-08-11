@@ -26,7 +26,6 @@ import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
-import { useProfessional } from "@/hooks/useProfessional";
 import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 
 interface ConsultaSummary {
@@ -79,8 +78,7 @@ const Home = () => {
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification(); const { userData, setUserData } = useUserData();
   const { fetchPerfil } = useUserData();
-  const { professionalData } = useProfessional();
-  const { buscarDadosPessoais } = useVoluntario();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText, loading: voluntarioLoading, error: voluntarioError } = useVoluntario();
   
   // Estado local para dados pessoais do voluntário
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
@@ -90,6 +88,10 @@ const Home = () => {
     telefone: '',
     dataNascimento: ''
   });
+
+  // Estado para dados profissionais do voluntário
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
 
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -755,7 +757,7 @@ const Home = () => {
               {dadosPessoais?.nome || userData?.nome} {dadosPessoais?.sobrenome || userData?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData?.especialidade || 'Profissional'}
+              {funcaoVoluntario || 'Profissional'}
             </Badge>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">

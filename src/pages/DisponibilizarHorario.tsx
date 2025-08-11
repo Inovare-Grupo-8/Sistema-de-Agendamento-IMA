@@ -26,15 +26,13 @@ import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
-import { useProfessional } from "@/hooks/useProfessional";
 import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
 const DisponibilizarHorario = () => {
   const { t } = useTranslation();
   const { userData } = useUser();
-  const { professionalData } = useProfessional();
-  const { buscarDadosPessoais } = useVoluntario();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
   
   // Estado local para dados pessoais do voluntário
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
@@ -44,6 +42,8 @@ const DisponibilizarHorario = () => {
     telefone: '',
     dataNascimento: ''
   });
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
 
   // Estado para armazenar a data selecionada
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -314,7 +314,7 @@ const DisponibilizarHorario = () => {
               {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData?.especialidade || 'Profissional'}
+              {funcaoVoluntario || 'Profissional'}
             </Badge>
           </div>
           

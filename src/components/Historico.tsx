@@ -21,7 +21,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUser } from "@/hooks/useUser";
-import { useProfessional } from "@/hooks/useProfessional";
 import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 
@@ -132,8 +131,7 @@ const Historico = () => {
   const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);  const location = useLocation();
-  const { professionalData } = useProfessional();
-  const { buscarDadosPessoais } = useVoluntario();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
   
   // Estado local para dados pessoais do voluntário
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
@@ -143,6 +141,8 @@ const Historico = () => {
     telefone: '',
     dataNascimento: ''
   });
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
   const navigate = useNavigate();
   
   const handleLogout = () => {
@@ -265,7 +265,7 @@ const Historico = () => {
               {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData?.especialidade || 'Profissional'}
+              {funcaoVoluntario || 'Profissional'}
             </Badge>
           </div>
           

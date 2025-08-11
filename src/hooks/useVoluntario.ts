@@ -22,7 +22,14 @@ export interface EnderecoVoluntario {
   cep: string;
 }
 
+import { useState, useCallback } from 'react';
+
 export const useVoluntario = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // ✅ Cache para evitar chamadas repetidas
+  const [cache, setCache] = useState<Map<string, any>>(new Map());
   
   // Função para mapear valores do backend para nomes dos enums
   const mapBackendValueToEnum = (backendValue: string): string => {
@@ -59,8 +66,18 @@ export const useVoluntario = () => {
   };
 
   // Função para buscar dados pessoais do voluntário
-  const buscarDadosPessoais = async (): Promise<DadosPessoaisVoluntario> => {
+  const buscarDadosPessoais = useCallback(async (): Promise<DadosPessoaisVoluntario | null> => {
+    // ✅ Verificar cache primeiro
+    if (cache.has('dadosPessoais')) {
+      return cache.get('dadosPessoais');
+    }
+    
+    if (loading) return null; // ✅ Evitar chamadas simultâneas
+    
     try {
+      setLoading(true);
+      setError(null);
+      
       const userData = localStorage.getItem('userData');
       if (!userData) {
         throw new Error('Usuário não está logado');
@@ -85,12 +102,20 @@ export const useVoluntario = () => {
         throw new Error('Erro ao buscar dados pessoais');
       }
 
-      return await response.json();
+      const dados = await response.json();
+      
+      // ✅ Salvar no cache
+      setCache(prev => new Map(prev).set('dadosPessoais', dados));
+      
+      return dados;
     } catch (error) {
       console.error('Erro ao buscar dados pessoais:', error);
-      throw error;
+      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      return null;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [loading, cache]);
 
   // Função para atualizar dados pessoais do voluntário
   const atualizarDadosPessoais = async (dados: DadosPessoaisVoluntario): Promise<DadosPessoaisVoluntario> => {
@@ -138,8 +163,18 @@ export const useVoluntario = () => {
   };
 
   // Função para buscar dados profissionais do voluntário
-  const buscarDadosProfissionais = async (): Promise<DadosProfissionaisVoluntario> => {
+  const buscarDadosProfissionais = useCallback(async (): Promise<DadosProfissionaisVoluntario | null> => {
+    // ✅ Verificar cache primeiro
+    if (cache.has('dadosProfissionais')) {
+      return cache.get('dadosProfissionais');
+    }
+    
+    if (loading) return null; // ✅ Evitar chamadas simultâneas
+    
     try {
+      setLoading(true);
+      setError(null);
+      
       const userData = localStorage.getItem('userData');
       if (!userData) {
         throw new Error('Usuário não está logado');
@@ -174,12 +209,18 @@ export const useVoluntario = () => {
         biografiaProfissional: dadosCompletos.bio || ''
       };
       
+      // ✅ Salvar no cache
+      setCache(prev => new Map(prev).set('dadosProfissionais', dadosProfissionais));
+      
       return dadosProfissionais;
     } catch (error) {
       console.error('Erro ao buscar dados profissionais:', error);
-      throw error;
+      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      return null;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [loading, cache]);
 
   // Função para atualizar dados profissionais do voluntário
   const atualizarDadosProfissionais = async (dados: DadosProfissionaisVoluntario): Promise<DadosProfissionaisVoluntario> => {
@@ -380,7 +421,10 @@ export const useVoluntario = () => {
     buscarEndereco,
     atualizarEndereco,
     mapEnumToText,
-    uploadFoto
+    uploadFoto,
+    loading,
+    error,
+    clearCache: () => setCache(new Map()) // ✅ Função para limpar cache
   };
 };
 
