@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar, User, Clock, Menu, History, Sun, Moon, ArrowLeft, Home as HomeIcon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -13,9 +13,8 @@ import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import { useUser } from "@/hooks/useUser";
-import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario, EnderecoVoluntario } from "@/hooks/useVoluntario";
 import { UserData } from "@/types/user";
-import { ProfessionalData } from "@/types/professional";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -26,6 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 
 // Componente de breadcrumb simples para o profissional
 const getProfessionalNavigationPath = (currentPath: string) => {
@@ -50,30 +50,6 @@ const getProfessionalNavigationPath = (currentPath: string) => {
   );
 };
 
-// Itens de navegação para o profissional
-const professionalNavItems = [
-  {
-    path: "/home",
-    label: "Home",
-    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/agenda",
-    label: "Agenda",
-    icon: <Calendar className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/historico",
-    label: "Histórico",
-    icon: <History className="w-6 h-6" color="#ED4231" />
-  },
-  {
-    path: "/profile-form",
-    label: "Editar Perfil", 
-    icon: <User className="w-6 h-6" color="#ED4231" />
-  }
-];
-
 const ProfileForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -84,24 +60,63 @@ const ProfileForm = () => {
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
   // Get user data and setter from the context
   const { userData, setUserData } = useUser();
-  const { professionalData, setProfessionalData } = useProfessional();
+  const { buscarDadosPessoais, atualizarDadosPessoais, buscarDadosProfissionais, atualizarDadosProfissionais, buscarEndereco, atualizarEndereco, mapEnumToText, uploadFoto } = useVoluntario();
   
   // Adicionando estado para feedback visual de validação
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [formChanged, setFormChanged] = useState(false);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>(''); // Estado para função na sidebar
 
-  // Estado para o formulário with properly typed defaults for professional fields
-  const [formData, setFormData] = useState<ProfessionalData>(() => ({
-    ...professionalData,
+  // Estado para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
+
+  // Estado para dados profissionais do voluntário
+  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario>({
+    funcao: '',
+    registroProfissional: '',
+    biografiaProfissional: ''
+  });
+
+  // Estado para endereço do voluntário
+  const [endereco, setEndereco] = useState<EnderecoVoluntario>({
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    uf: '',
+    cep: ''
+  });
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Estado para o formulário usando apenas dados do voluntário
+  const [formData, setFormData] = useState(() => ({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: '',
+    especialidade: '',
+    crp: '',
+    bio: '',
+    observacoesDisponibilidade: '',
     endereco: {
-      rua: professionalData.endereco?.rua || '',
-      numero: professionalData.endereco?.numero || '',
-      complemento: professionalData.endereco?.complemento || '',
-      bairro: professionalData.endereco?.bairro || '',
-      cidade: professionalData.endereco?.cidade || '',
-      estado: professionalData.endereco?.estado || '',
-      cep: professionalData.endereco?.cep || ''
+      rua: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+      cep: ''
     }
   }));
 
@@ -109,23 +124,89 @@ const ProfileForm = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  // Update form data when professionalData changes (sync across tabs)
-  useEffect(() => {
-    if (!formChanged) {
-      setFormData({
-        ...professionalData,
-        endereco: {
-          rua: professionalData.endereco?.rua || '',
-          numero: professionalData.endereco?.numero || '',
-          complemento: professionalData.endereco?.complemento || '',
-          bairro: professionalData.endereco?.bairro || '',
-          cidade: professionalData.endereco?.cidade || '',
-          estado: professionalData.endereco?.estado || '',
-          cep: professionalData.endereco?.cep || ''
+  // Função para carregar dados pessoais do voluntário
+  const loadProfileData = useCallback(async () => {
+    if (isLoadingData) return; // Evita múltiplas chamadas simultâneas
+    
+    try {
+      setIsLoadingData(true);
+      setInitialLoading(true);
+      
+      // Buscar dados pessoais
+      const dados = await buscarDadosPessoais();
+      if (dados) {
+        setDadosPessoais(dados);
+      }
+
+      // Buscar dados profissionais
+      try {
+        const dadosProfissionaisData = await buscarDadosProfissionais();
+        if (dadosProfissionaisData) {
+          setDadosProfissionais(dadosProfissionaisData);
+          // Atualizar função para a sidebar
+          setFuncaoVoluntario(mapEnumToText(dadosProfissionaisData.funcao));
         }
+      } catch (profissionalError) {
+        console.log('Dados profissionais não encontrados ou erro ao carregar:', profissionalError);
+        // Não mostra erro para o usuário se os dados profissionais não existirem ainda
+        setFuncaoVoluntario(''); // Limpar função se não conseguir carregar
+      }
+
+      // Buscar endereço
+      try {
+        const enderecoData = await buscarEndereco();
+        if (enderecoData) {
+          setEndereco(enderecoData);
+        }
+      } catch (enderecoError) {
+        console.log('Endereço não encontrado ou erro ao carregar:', enderecoError);
+        // Não mostra erro para o usuário se o endereço não existir ainda
+      }
+
+      setFormChanged(false);
+    } catch (error) {
+      console.error('Erro ao carregar dados pessoais do voluntário:', error);
+      
+      if (error instanceof Error && error.message.includes('Token inválido')) {
+        return;
+      }
+
+      if (error instanceof Error && error.message.includes('conexão')) {
+        toast({
+          title: 'Erro de conexão',
+          description: 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar os dados do seu perfil.',
+        variant: 'destructive',
       });
+    } finally {
+      setInitialLoading(false);
+      setIsLoadingData(false);
     }
-  }, [professionalData, formChanged]);
+  }, [buscarDadosPessoais, buscarDadosProfissionais, buscarEndereco]);
+
+  // Carregar dados pessoais ao montar o componente (apenas uma vez)
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadData = async () => {
+      if (isMounted && !isLoadingData) {
+        await loadProfileData();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Sem dependências para carregar apenas uma vez
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +280,362 @@ const ProfileForm = () => {
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  // Update to use setProfessionalData from the context
+
+  // Função para validar dados pessoais do voluntário
+  const validateDadosPessoais = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!dadosPessoais.nome.trim()) {
+      newErrors.nome = 'Nome é obrigatório';
+    }
+
+    if (!dadosPessoais.sobrenome.trim()) {
+      newErrors.sobrenome = 'Sobrenome é obrigatório';
+    }
+
+    if (!dadosPessoais.email.trim()) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/\S+@\S+\.\S+/.test(dadosPessoais.email)) {
+      newErrors.email = 'Email inválido';
+    }
+
+    if (!dadosPessoais.telefone.trim()) {
+      newErrors.telefone = 'Telefone é obrigatório';
+    }
+
+    if (!dadosPessoais.dataNascimento) {
+      newErrors.dataNascimento = 'Data de nascimento é obrigatória';
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Função para validar endereço do voluntário
+  const validateEndereco = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!endereco.cep.trim()) {
+      newErrors.cep = 'CEP é obrigatório';
+    } else if (endereco.cep.replace(/\D/g, '').length !== 8) {
+      newErrors.cep = 'CEP deve ter 8 dígitos';
+    }
+
+    if (!endereco.logradouro.trim()) {
+      newErrors.logradouro = 'Logradouro é obrigatório';
+    }
+
+    if (!endereco.numero.trim()) {
+      newErrors.numero = 'Número é obrigatório';
+    }
+
+    if (!endereco.bairro.trim()) {
+      newErrors.bairro = 'Bairro é obrigatório';
+    }
+
+    if (!endereco.cidade.trim()) {
+      newErrors.cidade = 'Cidade é obrigatória';
+    }
+
+    if (!endereco.uf.trim()) {
+      newErrors.uf = 'UF é obrigatória';
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Função para validar dados profissionais do voluntário
+  const validateDadosProfissionais = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!dadosProfissionais.funcao.trim()) {
+      newErrors.funcao = 'Função é obrigatória';
+    }
+
+    if (!dadosProfissionais.registroProfissional.trim()) {
+      newErrors.registroProfissional = 'Registro profissional é obrigatório';
+    }
+
+    // biografiaProfissional é opcional, então não validamos
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Função para lidar com mudanças nos dados pessoais
+  const handleDadosPessoaisChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setDadosPessoais(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setFormChanged(true);
+
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Função para lidar com mudanças no endereço
+  const handleEnderecoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Formatação específica para o CEP
+    let formattedValue = value;
+    if (name === 'cep') {
+      formattedValue = formatCep(value);
+    }
+    
+    setEndereco(prev => ({
+      ...prev,
+      [name]: formattedValue
+    }));
+    setFormChanged(true);
+
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Função para lidar com mudanças nos dados profissionais
+  const handleDadosProfissionaisChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setDadosProfissionais(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setFormChanged(true);
+
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Função para salvar dados pessoais
+  const handleSaveDadosPessoais = async () => {
+    if (!formChanged && !selectedImage) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!validateDadosPessoais()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      await atualizarDadosPessoais(dadosPessoais);
+      setSuccessMessage('Dados pessoais atualizados com sucesso!');
+      setFormChanged(false);
+      
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram atualizadas com sucesso!",
+      });
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao salvar dados pessoais:', error);
+      setValidationErrors({ form: 'Erro ao salvar dados. Tente novamente.' });
+      
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar suas informações.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para salvar endereço
+  const handleSaveEndereco = async () => {
+    if (!formChanged) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!validateEndereco()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      await atualizarEndereco(endereco);
+      setSuccessMessage('Endereço atualizado com sucesso!');
+      setFormChanged(false);
+      
+      toast({
+        title: "Endereço atualizado",
+        description: "Seu endereço foi atualizado com sucesso!",
+      });
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao salvar endereço:', error);
+      setValidationErrors({ form: 'Erro ao salvar endereço. Tente novamente.' });
+      
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar seu endereço.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para salvar dados profissionais
+  const handleSaveDadosProfissionais = async () => {
+    if (!formChanged) {
+      toast({
+        title: "Nenhuma alteração detectada",
+        description: "Altere algum campo para salvar",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!validateDadosProfissionais()) {
+      toast({
+        title: "Formulário com erros",
+        description: "Corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      await atualizarDadosProfissionais(dadosProfissionais);
+      // Atualizar função na sidebar
+      setFuncaoVoluntario(mapEnumToText(dadosProfissionais.funcao));
+      
+      setSuccessMessage('Dados profissionais atualizados com sucesso!');
+      setFormChanged(false);
+      
+      toast({
+        title: "Dados profissionais atualizados",
+        description: "Suas informações profissionais foram atualizadas com sucesso!",
+      });
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao salvar dados profissionais:', error);
+      setValidationErrors({ form: 'Erro ao salvar dados profissionais. Tente novamente.' });
+      
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar seus dados profissionais.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para salvar apenas a foto de perfil do voluntário
+  const handleSavePhoto = async () => {
+    if (!selectedImage || !imagePreview) {
+      toast({
+        title: "Nenhuma foto selecionada",
+        description: "Selecione uma foto para atualizar",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('🔄 [ProfileForm] Iniciando upload de foto do voluntário...');
+      
+      // Upload da foto e obter a URL
+      const photoUrl = await uploadFoto(selectedImage);
+      console.log('✅ [ProfileForm] URL da foto recebida:', photoUrl);
+
+      // Atualizar o contexto com a nova URL da imagem do servidor
+      setProfileImage(photoUrl);
+
+      // Limpar estados locais
+      setSelectedImage(null);
+      setImagePreview(null);
+      setFormChanged(false);
+
+      toast({
+        title: "Foto atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso!",
+      });
+
+    } catch (error) {
+      console.error('❌ [ProfileForm] Erro completo no upload:', error);
+      
+      let errorMessage = "Ocorreu um erro ao atualizar sua foto de perfil.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('muito grande')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = "Erro de conexão com o servidor. Verifique sua internet e se o backend está rodando na porta 8080.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Erro ao atualizar foto",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update to use apenas dados do voluntário
   const handleSave = async () => {
     if (!formChanged && !selectedImage) {
       toast({
@@ -221,21 +657,10 @@ const ProfileForm = () => {
     setLoading(true);
     
     try {
-      // Real API call to update professional data
-      const response = await fetch('http://localhost:8080/perfil/profissional', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar perfil');
-      }
-
-      // Use the setProfessionalData function from the context
-      setProfessionalData(formData);
+      // Salvar apenas dados pessoais, profissionais e endereço do voluntário
+      await handleSaveDadosPessoais();
+      await handleSaveDadosProfissionais();
+      await handleSaveEndereco();
       
       if (selectedImage && imagePreview) {
         setProfileImage(imagePreview);
@@ -334,18 +759,29 @@ const ProfileForm = () => {
   
   // Fix the duplicate and incorrectly formatted handleCancel function
   const handleCancel = () => {
-    // Recarregando dados originais do contexto
-    setFormData({
-      ...professionalData,
-      endereco: {
-        rua: professionalData.endereco?.rua || '',
-        numero: professionalData.endereco?.numero || '',
-        complemento: professionalData.endereco?.complemento || '',
-        bairro: professionalData.endereco?.bairro || '',
-        cidade: professionalData.endereco?.cidade || '',
-        estado: professionalData.endereco?.estado || '',
-        cep: professionalData.endereco?.cep || ''
-      }
+    // Recarregando dados originais dos estados do voluntário
+    setDadosPessoais({
+      nome: '',
+      sobrenome: '',
+      email: '',
+      telefone: '',
+      dataNascimento: ''
+    });
+    
+    setDadosProfissionais({
+      funcao: '',
+      registroProfissional: '',
+      biografiaProfissional: ''
+    });
+    
+    setEndereco({
+      logradouro: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+      cep: ''
     });
     
     // Resetando estados
@@ -353,6 +789,9 @@ const ProfileForm = () => {
     setImagePreview(null);
     setFormChanged(false);
     setValidationErrors({});
+    
+    // Recarregar dados
+    loadProfileData();
     
     toast({
       title: "Alterações descartadas",
@@ -371,10 +810,10 @@ const ProfileForm = () => {
         ...prev,
         endereco: {
           ...prev.endereco,
-          rua: endereco.logradouro,
+          rua: endereco.rua,
           bairro: endereco.bairro,
-          cidade: endereco.localidade,
-          estado: endereco.uf,
+          cidade: endereco.cidade,
+          estado: endereco.estado,
           cep: endereco.cep
         }
       }));
@@ -387,6 +826,46 @@ const ProfileForm = () => {
     }
   };
 
+  // Função para buscar endereço pelo CEP para o voluntário
+  const handleEnderecoCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value;
+    if (!cep || cep.replace(/\D/g, '').length < 8) return;
+    
+    const enderecoData = await fetchAddressByCep(cep);
+    if (enderecoData) {
+      setEndereco(prev => ({
+        ...prev,
+        logradouro: enderecoData.rua || '',             
+        bairro: enderecoData.bairro || '',
+        complemento: enderecoData.complemento || '',
+        cidade: enderecoData.cidade || '', 
+        uf: enderecoData.estado || '',         
+        cep: enderecoData.cep || ''
+      }));
+      setFormChanged(true);
+      
+      toast({
+        title: "Endereço encontrado",
+        description: "Os campos foram preenchidos automaticamente.",
+      });
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231] mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-300">Carregando dados...</p>
+            </div>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
@@ -397,12 +876,12 @@ const ProfileForm = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`${formData.nome} ${formData.sobrenome}`}
+              name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
               size="w-10 h-10"
               className="border-2 border-primary shadow"
             />
-            {/* Use formData to show the current edited values */}
-            <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
+            {/* Use dadosPessoais to show the current updated values */}
+            <span className="font-bold text-foreground">{dadosPessoais.nome} {dadosPessoais.sobrenome}</span>
           </div>
         )}
         
@@ -418,23 +897,27 @@ const ProfileForm = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={formData.nome || 'User'}
+              name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB]"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{formData.nome} {formData.sobrenome}</span>
-            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {formData.especialidade}
-            </Badge>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {dadosPessoais.nome} {dadosPessoais.sobrenome}
+            </span>
+            {funcaoVoluntario && (
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                {funcaoVoluntario}
+              </Badge>
+            )}
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do professional */}
-            {professionalNavItems.map((item) => (
+            {Object.values(professionalNavigationItems).map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
@@ -473,12 +956,12 @@ const ProfileForm = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={formData.nome || 'User'}
+                name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
                 size="w-10 h-10"
                 className="border-2 border-primary"
               />
-              {/* Use formData to show the current edited values */}
-              <span className="font-bold text-foreground">{formData.nome} {formData.sobrenome}</span>
+              {/* Use dadosPessoais to show the current updated values */}
+              <span className="font-bold text-foreground">{dadosPessoais.nome} {dadosPessoais.sobrenome}</span>
             </div>
             
             <div className="flex items-center gap-3">              <Button
@@ -529,79 +1012,145 @@ const ProfileForm = () => {
                       <CardTitle>Dados Pessoais</CardTitle>
                       <CardDescription>Atualize suas informações pessoais</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="nome">Nome</Label>
-                          <Input 
-                            id="nome" 
-                            name="nome" 
-                            value={formData.nome} 
-                            onChange={handleInputChange} 
-                            className="bg-white dark:bg-gray-800"
-                          />
+                    <CardContent className="space-y-6">
+                      {validationErrors.form && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                          {validationErrors.form}
                         </div>
+                      )}
+
+                      {/* Nome e Sobrenome */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label htmlFor="sobrenome">Sobrenome</Label>
-                          <Input 
-                            id="sobrenome" 
-                            name="sobrenome" 
-                            value={formData.sobrenome} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
+                          <Label htmlFor="nome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Nome *
+                          </Label>
+                          <Input
+                            id="nome"
+                            name="nome"
+                            type="text"
+                            value={dadosPessoais.nome}
+                            onChange={handleDadosPessoaisChange}
+                            className={`w-full ${validationErrors.nome ? 'border-red-500' : ''}`}
+                            placeholder="Digite seu nome"
                           />
+                          {validationErrors.nome && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.nome}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sobrenome" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Sobrenome *
+                          </Label>
+                          <Input
+                            id="sobrenome"
+                            name="sobrenome"
+                            type="text"
+                            value={dadosPessoais.sobrenome}
+                            onChange={handleDadosPessoaisChange}
+                            className={`w-full ${validationErrors.sobrenome ? 'border-red-500' : ''}`}
+                            placeholder="Digite seu sobrenome"
+                          />
+                          {validationErrors.sobrenome && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.sobrenome}</p>
+                          )}
                         </div>
                       </div>
-                      
+
+                      {/* Email */}
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input 
-                          id="email" 
-                          name="email" 
-                          type="email" 
-                          value={formData.email} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800" 
+                        <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Email *
+                        </Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={dadosPessoais.email}
+                          onChange={handleDadosPessoaisChange}
+                          className={`w-full ${validationErrors.email ? 'border-red-500' : ''}`}
+                          placeholder="Digite seu email"
                         />
+                        {validationErrors.email && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.email}</p>
+                        )}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="telefone">Telefone</Label>
-                          <Input 
-                            id="telefone" 
-                            name="telefone" 
-                            value={formData.telefone} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dataNascimento">Data de Nascimento</Label>
-                          <Input 
-                            id="dataNascimento" 
-                            name="dataNascimento" 
-                            type="date" 
-                            value={formData.dataNascimento} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
+
+                      {/* Telefone */}
+                      <div className="space-y-2">
+                        <Label htmlFor="telefone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Telefone *
+                        </Label>
+                        <Input
+                          id="telefone"
+                          name="telefone"
+                          type="tel"
+                          value={dadosPessoais.telefone}
+                          onChange={handleDadosPessoaisChange}
+                          className={`w-full ${validationErrors.telefone ? 'border-red-500' : ''}`}
+                          placeholder="Digite seu telefone"
+                        />
+                        {validationErrors.telefone && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.telefone}</p>
+                        )}
                       </div>
+
+                      {/* Data de Nascimento */}
+                      <div className="space-y-2">
+                        <Label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Data de Nascimento *
+                        </Label>
+                        <Input
+                          id="dataNascimento"
+                          name="dataNascimento"
+                          type="date"
+                          value={dadosPessoais.dataNascimento}
+                          onChange={handleDadosPessoaisChange}
+                          className={`w-full ${validationErrors.dataNascimento ? 'border-red-500' : ''}`}
+                        />
+                        {validationErrors.dataNascimento && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.dataNascimento}</p>
+                        )}
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <Button
+                          onClick={handleSaveDadosPessoais}
+                          disabled={loading}
+                          className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Salvando...
+                            </div>
+                          ) : (
+                            'Salvar Alterações'
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={handleCancel}
+                          disabled={loading}
+                          variant="outline"
+                          className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? (
-                          <div className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Salvando...
-                          </div>
-                        ) : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 
@@ -612,52 +1161,116 @@ const ProfileForm = () => {
                       <CardTitle>Dados Profissionais</CardTitle>
                       <CardDescription>Atualize suas informações profissionais</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="especialidade">Especialidade</Label>
-                          <Input 
-                            id="especialidade" 
-                            name="especialidade" 
-                            value={formData.especialidade} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
+                    <CardContent className="space-y-6">
+                      {validationErrors.form && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                          {validationErrors.form}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="crm">CRM/CRP/Registro Profissional</Label>
-                          <Input 
-                            id="crm" 
-                            name="crm" 
-                            value={formData.crm} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800" 
-                          />
-                        </div>
-                      </div>
-                      
+                      )}
+
+                      {/* Função */}
                       <div className="space-y-2">
-                        <Label htmlFor="bio">Biografia Profissional</Label>
-                        <textarea 
-                          id="bio" 
-                          name="bio" 
-                          value={formData.bio || ''} 
-                          onChange={(e) => {
-                            setFormChanged(true);
-                            setFormData({
-                              ...formData, 
-                              bio: e.target.value
-                            } as typeof formData);
-                          }}
-                          className="w-full min-h-[150px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]" 
-                        />
+                        <Label htmlFor="funcao" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Função/Especialidade *
+                        </Label>
+                        <select
+                          id="funcao"
+                          name="funcao"
+                          value={dadosProfissionais.funcao}
+                          onChange={(e) => handleDadosProfissionaisChange(e as any)}
+                          className={`w-full rounded-md border ${validationErrors.funcao ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]`}
+                        >
+                          {!dadosProfissionais.funcao && <option value="">Selecione uma especialidade</option>}
+                          <option value="JURIDICA">Jurídica</option>
+                          <option value="PSICOLOGIA">Psicologia</option>
+                          <option value="PSICOPEDAGOGIA">Psicopedagogia</option>
+                          <option value="CONTABIL">Contábil</option>
+                          <option value="FINANCEIRA">Financeira</option>
+                          <option value="PEDIATRIA">Pediatria</option>
+                          <option value="FISIOTERAPIA">Fisioterapia</option>
+                          <option value="QUIROPRAXIA">Quiropraxia</option>
+                          <option value="NUTRICAO">Nutrição</option>
+                        </select>
+                        {validationErrors.funcao && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.funcao}</p>
+                        )}
                       </div>
+
+                      {/* Registro Profissional */}
+                      <div className="space-y-2">
+                        <Label htmlFor="registroProfissional" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Registro Profissional *
+                        </Label>
+                        <Input
+                          id="registroProfissional"
+                          name="registroProfissional"
+                          type="text"
+                          value={dadosProfissionais.registroProfissional}
+                          onChange={handleDadosProfissionaisChange}
+                          className={`w-full ${validationErrors.registroProfissional ? 'border-red-500' : ''}`}
+                          placeholder="Ex: CRP 12345/SP, CRM 67890/RJ"
+                        />
+                        {validationErrors.registroProfissional && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.registroProfissional}</p>
+                        )}
+                      </div>
+
+                      {/* Biografia Profissional */}
+                      <div className="space-y-2">
+                        <Label htmlFor="biografiaProfissional" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Biografia Profissional
+                        </Label>
+                        <textarea
+                          id="biografiaProfissional"
+                          name="biografiaProfissional"
+                          value={dadosProfissionais.biografiaProfissional}
+                          onChange={handleDadosProfissionaisChange}
+                          rows={4}
+                          className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231] resize-vertical min-h-[100px]"
+                          placeholder="Descreva sua experiência profissional, formação, especializações..."
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Conte um pouco sobre sua formação e experiência profissional (opcional)
+                        </p>
+                      </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <Button
+                          onClick={handleSaveDadosProfissionais}
+                          disabled={loading}
+                          className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Salvando...
+                            </div>
+                          ) : (
+                            'Salvar Dados Profissionais'
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={handleCancel}
+                          disabled={loading}
+                          variant="outline"
+                          className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 
@@ -665,104 +1278,186 @@ const ProfileForm = () => {
                 <TabsContent value="endereco">
                   <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857]">
                     <CardHeader>
-                      <CardTitle>Endereço Profissional</CardTitle>
-                      <CardDescription>Atualize seu endereço de atendimento</CardDescription>
+                      <CardTitle>Endereço</CardTitle>
+                      <CardDescription>Atualize seu endereço pessoal</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+                      {validationErrors.form && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                          {validationErrors.form}
+                        </div>
+                      )}
+
+                      {/* CEP */}
+                      <div className="space-y-2">
+                        <Label htmlFor="cep" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          CEP *
+                        </Label>
+                        <div className="relative">
+                          <Input 
+                            id="cep" 
+                            name="cep" 
+                            value={endereco.cep} 
+                            onChange={handleEnderecoChange}
+                            onBlur={handleEnderecoCepBlur}
+                            placeholder="00000-000"
+                            maxLength={9}
+                            className={`w-full ${validationErrors.cep ? 'border-red-500' : ''}`}
+                          />
+                          {loadingCep && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                        {validationErrors.cep && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.cep}</p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
+                      </div>
+
+                      {/* Rua e Número */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-2">
-                          <Label htmlFor="rua">Rua</Label>
+                          <Label htmlFor="rua" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Rua *
+                          </Label>
                           <Input 
                             id="rua" 
-                            name="endereco.rua" 
-                            value={formData.endereco.rua} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="rua" 
+                            value={endereco.logradouro} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.rua ? 'border-red-500' : ''}`}
+                            placeholder="Digite o nome da rua"
                           />
+                          {validationErrors.rua && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.rua}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="numero">Número</Label>
+                          <Label htmlFor="numero" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Número *
+                          </Label>
                           <Input 
                             id="numero" 
-                            name="endereco.numero" 
-                            value={formData.endereco.numero} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="numero" 
+                            value={endereco.numero} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.numero ? 'border-red-500' : ''}`}
+                            placeholder="Nº"
                           />
+                          {validationErrors.numero && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.numero}</p>
+                          )}
                         </div>
                       </div>
                       
+                      {/* Complemento */}
                       <div className="space-y-2">
-                        <Label htmlFor="complemento">Complemento</Label>
+                        <Label htmlFor="complemento" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Complemento
+                        </Label>
                         <Input 
                           id="complemento" 
-                          name="endereco.complemento" 
-                          value={formData.endereco.complemento} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800"
+                          name="complemento" 
+                          value={endereco.complemento} 
+                          onChange={handleEnderecoChange}
+                          className="w-full"
+                          placeholder="Apartamento, bloco, etc. (opcional)"
                         />
                       </div>
                       
+                      {/* Bairro */}
                       <div className="space-y-2">
-                        <Label htmlFor="bairro">Bairro</Label>
+                        <Label htmlFor="bairro" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Bairro *
+                        </Label>
                         <Input 
                           id="bairro" 
-                          name="endereco.bairro" 
-                          value={formData.endereco.bairro} 
-                          onChange={handleInputChange}
-                          className="bg-white dark:bg-gray-800"
+                          name="bairro" 
+                          value={endereco.bairro} 
+                          onChange={handleEnderecoChange}
+                          className={`w-full ${validationErrors.bairro ? 'border-red-500' : ''}`}
+                          placeholder="Digite o bairro"
                         />
+                        {validationErrors.bairro && (
+                          <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.bairro}</p>
+                        )}
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1 space-y-2">
-                          <Label htmlFor="cidade">Cidade</Label>
+                      {/* Cidade e Estado */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="cidade" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Cidade *
+                          </Label>
                           <Input 
                             id="cidade" 
-                            name="endereco.cidade" 
-                            value={formData.endereco.cidade} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="cidade" 
+                            value={endereco.cidade} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.cidade ? 'border-red-500' : ''}`}
+                            placeholder="Digite a cidade"
                           />
+                          {validationErrors.cidade && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.cidade}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="estado">Estado</Label>
+                          <Label htmlFor="estado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Estado *
+                          </Label>
                           <Input 
                             id="estado" 
-                            name="endereco.estado" 
-                            value={formData.endereco.estado} 
-                            onChange={handleInputChange}
-                            className="bg-white dark:bg-gray-800"
+                            name="estado" 
+                            value={endereco.uf} 
+                            onChange={handleEnderecoChange}
+                            className={`w-full ${validationErrors.uf ? 'border-red-500' : ''}`}
+                            placeholder="Digite o estado"
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="cep">CEP</Label>
-                          <div className="relative">
-                            <Input 
-                              id="cep" 
-                              name="endereco.cep" 
-                              value={formData.endereco.cep} 
-                              onChange={handleInputChange}
-                              onBlur={handleCepBlur}
-                              placeholder="00000-000"
-                              maxLength={9}
-                              className="bg-white dark:bg-gray-800"
-                            />
-                            {loadingCep && (
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <div className="animate-spin h-4 w-4 border-2 border-[#ED4231] border-t-transparent rounded-full"></div>
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Digite o CEP para preencher o endereço automaticamente</p>
+                          {validationErrors.uf && (
+                            <p className="text-sm text-red-600 dark:text-red-400">{validationErrors.estado}</p>
+                          )}
                         </div>
                       </div>
+
+                      {/* Botões de ação */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <Button
+                          onClick={handleSaveEndereco}
+                          disabled={loading}
+                          className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          {loading ? (
+                            <div className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Salvando...
+                            </div>
+                          ) : (
+                            'Salvar Endereço'
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={handleCancel}
+                          disabled={loading}
+                          variant="outline"
+                          className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 
@@ -856,20 +1551,41 @@ const ProfileForm = () => {
                     <CardContent>
                       <div className="flex flex-col items-center gap-6">
                         <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-[#EDF2FB] dark:border-[#23272F] shadow-lg">
-                          <img 
-                            src={imagePreview || profileImage} 
-                            alt="Foto de perfil" 
-                            className="w-full h-full object-cover"
-                          />
+                          {(imagePreview || (profileImage && profileImage !== 'undefined' && profileImage !== '')) ? (
+                            <img 
+                              src={imagePreview || profileImage}
+                              alt="Foto de perfil" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.log('Erro ao carregar imagem de perfil:', e);
+                                // Em caso de erro, mostrar avatar com iniciais
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <ProfileAvatar 
+                              profileImage=""
+                              name={`${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim() || 'Voluntário'}
+                              size="w-40 h-40"
+                              className="text-4xl"
+                            />
+                          )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-4">
-                          <Label 
-                            htmlFor="photo-upload"
-                            className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-                          >
-                            Escolher Foto
-                          </Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Label 
+                                htmlFor="photo-upload"
+                                className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                              >
+                                Escolher Foto
+                              </Label>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Clique para selecionar uma nova foto de perfil</p>
+                            </TooltipContent>
+                          </Tooltip>
                           <Input 
                             id="photo-upload" 
                             type="file" 
@@ -878,15 +1594,43 @@ const ProfileForm = () => {
                             className="hidden"
                           />
                           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                            Formatos suportados: JPG, PNG, GIF<br/>
+                            Formatos suportados: JPG, PNG<br/>
                             Tamanho máximo: 5MB
                           </p>
                         </div>
                       </div>
+
+                      {/* Mensagem de sucesso */}
+                      {successMessage && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg mt-6">
+                          {successMessage}
+                        </div>
+                      )}
                     </CardContent>
-                    <CardFooter>
-                      <Button onClick={handleSave} disabled={loading || !selectedImage} className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancel} 
+                        disabled={loading}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleSavePhoto} 
+                        disabled={loading || !selectedImage} 
+                        className="bg-[#ED4231] hover:bg-[#d53a2a]"
+                      >
+                        {loading ? (
+                          <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Enviando...
+                          </div>
+                        ) : (
+                          "Salvar Foto"
+                        )}
                       </Button>
                     </CardFooter>
                   </Card>

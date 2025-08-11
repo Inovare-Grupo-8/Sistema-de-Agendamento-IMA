@@ -22,7 +22,9 @@ import { AgendaCardSkeleton } from "./ui/custom-skeletons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
-import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import { professionalNavigationItems } from "@/utils/userNavigation";
+import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import React from "react";
 
 interface Appointment {
@@ -68,7 +70,19 @@ const Agenda = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const { professionalData } = useProfessional();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
+  
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
+  
+  // Estado local para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
 
   // Memoized filtered appointments
   const filteredAppointments = useMemo(() => {
@@ -86,6 +100,22 @@ const Agenda = () => {
     const types = [...new Set(appointments.map(apt => apt.type))];
     return types;
   }, [appointments]);
+
+  // Carregar dados pessoais do voluntário
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) {
+          setDadosPessoais(dados);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados pessoais:', error);
+      }
+    };
+
+    loadDadosPessoais();
+  }, [buscarDadosPessoais]);
 
   // Optimized next appointment calculation
   const getNextAppointmentIndex = useCallback(() => {
@@ -208,7 +238,7 @@ const Agenda = () => {
               <Menu className="w-7 h-7" />
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-[#ED4231] shadow" />
-            <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
           </div>
         )}
         
@@ -224,75 +254,39 @@ const Agenda = () => {
             </Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <img src={profileImage} alt="Foto de perfil" className="w-16 h-16 rounded-full border-4 border-[#EDF2FB] shadow" />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <ProfileAvatar
+              profileImage={profileImage}
+              name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'}
+              size="w-16 h-16"
+              className="border-4 border-[#EDF2FB] shadow"
+            />
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
+            </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData.especialidade}
+              {funcaoVoluntario || 'Profissional'}
             </Badge>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* ...existing menu items... */}
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/home" className="flex items-center gap-3">
-                      <HomeIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Painel principal com resumo
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/agenda" className="flex items-center gap-3">
-                      <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Agenda</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja sua agenda de atendimentos
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/historico" className="flex items-center gap-3">
-                      <History className="w-6 h-6" color="#ED4231" />
-                      <span>Histórico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja seu histórico de atendimentos
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/profile-form" className="flex items-center gap-3">
-                      <User className="w-6 h-6" color="#ED4231" />
-                      <span>Editar Perfil</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Edite seu perfil e foto
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>            <SidebarMenuItem>
+            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
+            {Object.values(professionalNavigationItems).map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
@@ -318,7 +312,7 @@ const Agenda = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+              <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button

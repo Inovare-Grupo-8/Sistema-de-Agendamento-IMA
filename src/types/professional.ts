@@ -9,6 +9,7 @@ export interface Endereco {
 }
 
 export interface ProfessionalData {
+  id: number;
   nome: string;
   sobrenome: string;
   email: string;
@@ -28,6 +29,7 @@ export interface ProfessionalContextType {
 }
 
 export const defaultProfessionalData: ProfessionalData = {
+  id: 0,
   nome: "",
   sobrenome: "",
   email: "",

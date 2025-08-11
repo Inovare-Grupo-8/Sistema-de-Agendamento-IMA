@@ -23,15 +23,27 @@ import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotifi
 import { STATUS_COLORS, MESSAGES } from "../constants/ui";
 import { useTranslation } from "react-i18next";
 import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
-import { useProfessional } from "@/hooks/useProfessional";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
 const DisponibilizarHorario = () => {
   const { t } = useTranslation();
   const { userData } = useUser();
-  const { professionalData } = useProfessional();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
+  
+  // Estado local para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
 
   // Estado para armazenar a data selecionada
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -85,6 +97,22 @@ const DisponibilizarHorario = () => {
 
   // Skeleton loader e feedback visual
   const [loading, setLoading] = useState(false);
+  
+  // Carregar dados pessoais do voluntário
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) {
+          setDadosPessoais(dados);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados pessoais:', error);
+      }
+    };
+
+    loadDadosPessoais();
+  }, [buscarDadosPessoais]);
   useEffect(() => {
     setLoading(true);
     setTimeout(() => setLoading(false), 800);
@@ -257,11 +285,11 @@ const DisponibilizarHorario = () => {
             </button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`Dr. ${professionalData.nome} ${professionalData.sobrenome}`}
+              name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
           </div>
         )}
         
@@ -278,91 +306,37 @@ const DisponibilizarHorario = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={`Dr. ${professionalData.nome} ${professionalData.sobrenome}`}
+              name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
+            </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {professionalData.especialidade}
+              {funcaoVoluntario || 'Profissional'}
             </Badge>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/home" className="flex items-center gap-3">
-                      <HomeIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Painel principal com resumo
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/agenda" className="flex items-center gap-3">
-                      <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Agenda</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Veja sua agenda de atendimentos
-                </TooltipContent>
-              </Tooltip>            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/historico" className="flex items-center gap-3">
-                      <History className="w-6 h-6" color="#ED4231" />
-                      <span>Histórico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Veja seu histórico de atendimentos
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/disponibilizar-horario' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/disponibilizar-horario" className="flex items-center gap-3">
-                      <Clock className="w-6 h-6" color="#ED4231" />
-                      <span>Disponibilizar Horário</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Disponibilize novos horários para atendimento
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to="/profile-form" className="flex items-center gap-3">
-                      <User className="w-6 h-6" color="#ED4231" />
-                      <span>Editar Perfil</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Edite seu perfil e foto
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
+            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
+            {Object.values(professionalNavigationItems).map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}
             {/* Botão Sair na sidebar */}            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -392,11 +366,11 @@ const DisponibilizarHorario = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={`Dr. ${professionalData.nome} ${professionalData.sobrenome}`}
+                name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`}
                 size="w-10 h-10"
                 className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200"
               />
-              <span className="font-bold text-foreground">Dr. {professionalData.nome} {professionalData.sobrenome}</span>
+              <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">              <button
                 onClick={toggleTheme}

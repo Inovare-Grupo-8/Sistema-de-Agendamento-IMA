@@ -203,6 +203,45 @@ export class VoluntarioApiService {
   }
 
   /**
+   * Busca um voluntário específico por ID
+   */
+  static async buscarVoluntarioPorId(idUsuario: number): Promise<VoluntarioListagem | null> {
+    try {
+      const response = await apiClient.get<VoluntarioListagem>(`/usuarios/${idUsuario}`);
+      
+      // Adicionar informações derivadas
+      const voluntario = {
+        ...response.data,
+        nomeCompleto: `${response.data.nome} ${response.data.sobrenome}`.trim()
+      };
+      
+      return voluntario;
+      
+    } catch (error) {
+      console.error('Erro ao buscar voluntário:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Busca dados pessoais de um voluntário específico
+   */
+  static async buscarDadosPessoaisVoluntario(usuarioId: number): Promise<{
+    nome: string;
+    sobrenome: string;
+    especialidade: string;
+    email: string;
+  }> {
+    try {
+      const response = await apiClient.get(`/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar dados pessoais do voluntário:', error);
+      throw new Error('Falha ao carregar dados do voluntário');
+    }
+  }
+
+  /**
    * Lista todos os voluntários para seleção em agendamentos
    * Retorna apenas voluntários ativos com informações simplificadas
    */

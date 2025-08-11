@@ -22,10 +22,11 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { userNavigationItems } from "@/utils/userNavigation";
+import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
 
 interface ConsultaSummary {
   total: number;
@@ -77,6 +78,20 @@ const Home = () => {
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification(); const { userData, setUserData } = useUserData();
   const { fetchPerfil } = useUserData();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText, loading: voluntarioLoading, error: voluntarioError } = useVoluntario();
+  
+  // Estado local para dados pessoais do voluntário
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    dataNascimento: ''
+  });
+
+  // Estado para dados profissionais do voluntário
+  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
 
   // Estado para o modal de cancelamento
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -105,6 +120,23 @@ const Home = () => {
       localStorage.setItem("selectedDateForBooking", selectedDate.toISOString());
     }
   }, [selectedDate]);
+  
+  // Carregar dados pessoais do voluntário
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) {
+          setDadosPessoais(dados);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados pessoais:', error);
+      }
+    };
+
+    loadDadosPessoais();
+  }, [buscarDadosPessoais]);
+  
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
@@ -717,19 +749,24 @@ const Home = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+              name={`${dadosPessoais?.nome || userData?.nome} ${dadosPessoais?.sobrenome || userData?.sobrenome}`.trim() || 'Voluntário'}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {dadosPessoais?.nome || userData?.nome} {dadosPessoais?.sobrenome || userData?.sobrenome}
+            </span>
+            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+              {funcaoVoluntario || 'Profissional'}
+            </Badge>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* Substituir os items de menu por uma iteração do userNavigationItems */}
-            {Object.values(userNavigationItems).map((item) => (
+            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
+            {Object.values(professionalNavigationItems).map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
