@@ -170,6 +170,24 @@ const Historico = () => {
 
     loadDadosPessoais();
   }, [buscarDadosPessoais]);
+  
+  // Carregar dados profissionais do voluntário
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          // Definir a função do voluntário usando o mapeamento para texto legível
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados profissionais:', error);
+      }
+    };
+
+    loadDadosProfissionais();
+  }, [buscarDadosProfissionais, mapEnumToText]);
 
   useEffect(() => {
     setLoading(true);

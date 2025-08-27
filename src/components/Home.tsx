@@ -137,6 +137,24 @@ const Home = () => {
     loadDadosPessoais();
   }, [buscarDadosPessoais]);
   
+  // Carregar dados profissionais do voluntário
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          // Definir a função do voluntário usando o mapeamento para texto legível
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados profissionais:', error);
+      }
+    };
+
+    loadDadosProfissionais();
+  }, [buscarDadosProfissionais, mapEnumToText]);
+  
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
@@ -681,6 +699,23 @@ const Home = () => {
             setProfileImage(parsedUserData.fotoUrl);
           }
         }
+        
+        // Obter dados de perfil do userProfileData
+        const userProfileData = localStorage.getItem('userProfileData');
+        if (userProfileData) {
+          const parsedProfileData = JSON.parse(userProfileData);
+          // Atualizar os dados do usuário com os dados do perfil
+          if (parsedProfileData.nome) {
+            // Criar um novo objeto com os dados atualizados
+            const updatedUserData = {
+              ...userData ? JSON.parse(userData) : {},
+              nome: parsedProfileData.nome,
+              sobrenome: parsedProfileData.sobrenome || ''
+            };
+            // Atualizar o estado
+            setUserData(updatedUserData);
+          }
+        }
       } catch (error) {
         console.error('Erro ao carregar dados do usuário:', error);
       }
@@ -694,7 +729,23 @@ const Home = () => {
       try {
         const userProfile = await fetchPerfil();
         console.log('User profile data:', userProfile);
-        // Update user data context or local state if needed
+        
+        if (userProfile && userProfile.nome) {
+          // Atualizar os dados do usuário com o perfil obtido da API
+          const updatedUserData = {
+            ...userData || {},
+            nome: userProfile.nome,
+            sobrenome: userProfile.sobrenome || ''
+          };
+          
+          // Atualizar o estado com os dados corretos
+          setUserData(updatedUserData);
+          
+          // Se houver foto, atualizar também
+          if (userProfile.fotoUrl) {
+            setProfileImage(userProfile.fotoUrl);
+          }
+        }
       } catch (error) {
         console.error('Error fetching user profile:', error);
         toast({
@@ -733,7 +784,7 @@ const Home = () => {
               className="border-2 border-[#ED4231] shadow"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+              {`${dadosPessoais?.nome || userData?.nome || 'Voluntário'} ${dadosPessoais?.sobrenome || userData?.sobrenome || ''}`.trim()}
             </span>
           </div>
         )}
@@ -804,11 +855,11 @@ const Home = () => {
         <main id="main-content" role="main" aria-label="Conteúdo principal do dashboard" className={`flex-1 w-full md:w-auto transition-all duration-500 ease-in-out ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 right-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do dashboard">            <div className="flex items-center gap-3">
           <ProfileAvatar
             profileImage={profileImage}
-            name={`${userData?.nome} ${userData?.sobrenome}`.trim() || 'Usuário'}
+            name={`${dadosPessoais?.nome || userData?.nome || 'Voluntário'} ${dadosPessoais?.sobrenome || userData?.sobrenome || ''}`.trim()}
             size="w-10 h-10"
             className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
           />
-          <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+          <span className="font-bold text-indigo-900 dark:text-gray-100">{dadosPessoais?.nome || userData?.nome || 'Voluntário'} {dadosPessoais?.sobrenome || userData?.sobrenome || ''}</span>
         </div>
           <div className="flex items-center gap-3">
             <Button
@@ -827,7 +878,7 @@ const Home = () => {
               <div className="flex flex-col">
                 <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Dashboard</h1>
                 <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-                  Bem-vindo(a), {userData?.nome}! Aqui está o resumo das suas consultas.
+                  Bem-vindo(a), {dadosPessoais?.nome || userData?.nome || 'Voluntário'}! Aqui está o resumo das suas consultas.
                 </p>
 
                 {error && <ErrorMessage message={error} />}
