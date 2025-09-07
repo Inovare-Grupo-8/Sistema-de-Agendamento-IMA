@@ -1,61 +1,11 @@
 import axios from 'axios';
-
-// API base configuration
-const API_BASE_URL = 'http://localhost:8080';
-
-// Create axios instance with base configuration
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000, // 10 seconds timeout
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to include JWT token
-apiClient.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        if (user.token) {
-          config.headers.Authorization = `Bearer ${user.token}`;
-        }
-      } catch (error) {
-        console.error('Error parsing user data from localStorage:', error);
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor to handle authentication errors
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
-      console.warn('Authentication failed, redirecting to login...');
-      localStorage.removeItem('userData');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+import { apiClient } from '@/core/http/apiClient';
+import { appointmentService } from '@composition/root';
+import type { CriarConsultaInput } from '@domain/entities/consulta';
 
 // Types for API responses
 export interface ConsultaCount {
   count: number;
-}
-
-export interface EspecialidadeDto {
-  id: number;
-  nome: string;
 }
 
 export interface EspecialidadeDto {
@@ -149,15 +99,8 @@ export class ConsultaApiService {
    * @returns Promise with consultation count
    */
   static async getConsultasDia(userType: 'voluntario' | 'assistido'): Promise<number> {
-    try {
-      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/dia`, {
-        params: { user: userType }
-      });
-      return response.data.length;
-    } catch (error) {
-      console.error('Error fetching consultas dia:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getStats(userType).then(s => s.hoje); }
+    catch (error) { throw this.handleApiError(error); }
   }
   /**
    * Get consultations count for current week
@@ -165,15 +108,8 @@ export class ConsultaApiService {
    * @returns Promise with consultation count
    */
   static async getConsultasSemana(userType: 'voluntario' | 'assistido'): Promise<number> {
-    try {
-      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/semana`, {
-        params: { user: userType }
-      });
-      return response.data.length;
-    } catch (error) {
-      console.error('Error fetching consultas semana:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getStats(userType).then(s => s.semana); }
+    catch (error) { throw this.handleApiError(error); }
   }
   /**
    * Get consultations count for current month
@@ -181,15 +117,8 @@ export class ConsultaApiService {
    * @returns Promise with consultation count
    */
   static async getConsultasMes(userType: 'voluntario' | 'assistido'): Promise<number> {
-    try {
-      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/mes`, {
-        params: { user: userType }
-      });
-      return response.data.length;
-    } catch (error) {
-      console.error('Error fetching consultas mes:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getStats(userType).then(s => s.mes); }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -197,21 +126,9 @@ export class ConsultaApiService {
    * @param userType - "voluntario" for professionals or "assistido" for users
    * @returns Promise with all consultation counts
    */
-  static async getAllConsultaStats(userType: 'voluntario' | 'assistido'): Promise<{
-    hoje: number;
-    semana: number;
-    mes: number;
-  }> {
-    try {
-      const [hoje, semana, mes] = await Promise.all([
-        this.getConsultasDia(userType),
-        this.getConsultasSemana(userType),
-        this.getConsultasMes(userType)
-      ]);      return { hoje, semana, mes };
-    } catch (error) {
-      console.error('Error fetching all consulta stats:', error);
-      throw this.handleApiError(error);
-    }
+  static async getAllConsultaStats(userType: 'voluntario' | 'assistido') {
+    try { return appointmentService.getStats(userType); }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -220,15 +137,8 @@ export class ConsultaApiService {
    * @returns Promise with array of upcoming consultations
    */
   static async getProximasConsultas(userType: 'voluntario' | 'assistido'): Promise<ConsultaOutput[]> {
-    try {
-      const response = await apiClient.get<ConsultaOutput[]>(`/consulta/consultas/3-proximas`, {
-        params: { user: userType }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching proximas consultas:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getProximas(userType) as unknown as ConsultaOutput[]; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -237,15 +147,8 @@ export class ConsultaApiService {
    * @returns Promise with array of recent consultations
    */
   static async getConsultasRecentes(userType: 'voluntario' | 'assistido'): Promise<ConsultaDto[]> {
-    try {
-      const response = await apiClient.get<ConsultaDto[]>(`/consulta/consultas/recentes`, {
-        params: { user: userType }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching consultas recentes:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getRecentes(userType) as unknown as ConsultaDto[]; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -254,15 +157,8 @@ export class ConsultaApiService {
    * @returns Promise with array of historical consultations
    */
   static async getHistoricoConsultas(userType: 'voluntario' | 'assistido'): Promise<ConsultaOutput[]> {
-    try {
-      const response = await apiClient.get<ConsultaOutput[]>(`/consulta/consultas/historico`, {
-        params: { user: userType }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching historico consultas:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getHistorico(userType) as unknown as ConsultaOutput[]; }
+    catch (error) { throw this.handleApiError(error); }
   }
   /**
    * Cancel a consultation
@@ -270,13 +166,8 @@ export class ConsultaApiService {
    * @returns Promise with the cancelled consultation
    */
   static async cancelarConsulta(id: number): Promise<ConsultaDto> {
-    try {
-      const response = await apiClient.post<ConsultaDto>(`/consulta/cancelar/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error cancelling consulta:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.cancelar(id) as unknown as ConsultaDto; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -286,21 +177,8 @@ export class ConsultaApiService {
    * @returns Promise with the updated consultation
    */
   static async adicionarAvaliacao(id: number, avaliacao: number): Promise<ConsultaDto> {
-    try {
-      const response = await apiClient.post<ConsultaDto>(
-        `/consulta/consultas/${id}/avaliacao`,
-        avaliacao.toString(),
-        {
-          headers: {
-            'Content-Type': 'text/plain'
-          }
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error adding avaliacao:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.avaliar(id, avaliacao) as unknown as ConsultaDto; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -310,21 +188,8 @@ export class ConsultaApiService {
    * @returns Promise with the updated consultation
    */
   static async adicionarFeedback(id: number, feedback: string): Promise<ConsultaDto> {
-    try {
-      const response = await apiClient.post<ConsultaDto>(
-        `/consulta/consultas/${id}/feedback`,
-        feedback,
-        {
-          headers: {
-            'Content-Type': 'text/plain'
-          }
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error adding feedback:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.feedback(id, feedback) as unknown as ConsultaDto; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -332,19 +197,9 @@ export class ConsultaApiService {
    * @param userType - "voluntario" for professionals or "assistido" for users
    * @returns Promise with evaluations and feedbacks data
    */
-  static async getAvaliacoesFeedback(userType: 'voluntario' | 'assistido'): Promise<{
-    feedbacks: any[];
-    avaliacoes: any[];
-  }> {
-    try {
-      const response = await apiClient.get(`/consulta/consultas/avaliacoes-feedback`, {
-        params: { user: userType }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching avaliacoes e feedback:', error);
-      throw this.handleApiError(error);
-    }
+  static async getAvaliacoesFeedback(userType: 'voluntario' | 'assistido') {
+    try { return appointmentService.getAvaliacoesFeedback(userType); }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -352,7 +207,7 @@ export class ConsultaApiService {
    * @param error - The error from axios
    * @returns Formatted error object
    */
-  private static handleApiError(error: any): ApiError {
+  private static handleApiError(error: unknown): ApiError {
     if (axios.isAxiosError(error)) {
       if (error.response) {
         // Server responded with error status
@@ -382,13 +237,8 @@ export class ConsultaApiService {
    * @returns Promise with next consultation data
    */
   static async getProximaConsulta(idUsuario: number): Promise<ProximaConsulta> {
-    try {
-      const response = await apiClient.get<ProximaConsulta>(`/consulta/consultas/${idUsuario}/proxima`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching próxima consulta:', error);
-      throw this.handleApiError(error);
-    }
+    try { return appointmentService.getProximaConsulta(idUsuario) as unknown as ProximaConsulta; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -398,85 +248,26 @@ export class ConsultaApiService {
    * @returns Promise with array of available time slots
    */
   static async getHorariosDisponiveis(date: string, voluntarioId: number): Promise<string[]> {
-    try {
-      const response = await apiClient.get(`/consulta/horarios-disponiveis`, {
-        params: { 
-          data: date,
-          idVoluntario: voluntarioId
-        }
-      });
-      
-      // The backend returns LocalDateTime objects, so we need to extract just the time part
-      return response.data.map((dateTime: string) => {
-        const time = new Date(dateTime).toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        return time;
-      });
-    } catch (error) {
-      console.error('Error fetching horarios disponiveis:', error);
-      throw this.handleApiError(error);
-    }
-  }  /**
+    try { return appointmentService.getHorariosDisponiveis(date, voluntarioId); }
+    catch (error) { throw this.handleApiError(error); }
+  }
+  /**
    * Create a new consultation appointment
    * @param consultaData - Data for creating the consultation
    * @returns Promise with the created consultation
    */
   static async criarConsulta(consultaData: {
     idVoluntario: number;
-    data: string; // ISO date string
-    horario: string; // Time in HH:mm format
+    data: string;
+    horario: string;
     modalidade: 'ONLINE' | 'PRESENCIAL';
     observacoes?: string;
     especialidade?: string;
   }): Promise<ConsultaOutput> {
     try {
-      // Get current user ID from localStorage
-      const userData = localStorage.getItem('userData');
-      if (!userData) {
-        throw new Error('Usuário não está logado');
-      }
-      
-      const user = JSON.parse(userData);
-      const idAssistido = user.idUsuario;
-      
-      if (!idAssistido) {
-        throw new Error('ID do usuário não encontrado');
-      }
-
-      // Combine date and time into a proper datetime string
-      const dateTime = `${consultaData.data}T${consultaData.horario}:00`;
-      
-      // Get specialization ID if specialization name is provided
-      let idEspecialidade: number | null = null;
-      if (consultaData.especialidade) {
-        idEspecialidade = await this.getEspecialidadeIdByName(consultaData.especialidade);
-        if (!idEspecialidade) {
-          console.warn(`Especialidade '${consultaData.especialidade}' não encontrada. Usando ID padrão 1.`);
-          idEspecialidade = 1; // Default specialization ID
-        }
-      } else {
-        idEspecialidade = 1; // Default specialization ID
-      }
-
-      const payload = {
-        idVoluntario: consultaData.idVoluntario,
-        idAssistido: idAssistido,
-        horario: dateTime,
-        modalidade: consultaData.modalidade,
-        local: consultaData.modalidade === 'ONLINE' ? 'Online' : 'Presencial',
-        observacoes: consultaData.observacoes || '',
-        status: 'AGENDADA',
-        idEspecialidade: idEspecialidade 
-      };
-
-      const response = await apiClient.post<ConsultaOutput>('/consulta', payload);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating consulta:', error);
-      throw this.handleApiError(error);
-    }
+      const input: CriarConsultaInput = consultaData;
+      return appointmentService.criarConsulta(input) as unknown as ConsultaOutput;
+    } catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -484,13 +275,9 @@ export class ConsultaApiService {
    * @returns Promise with array of specializations
    */
   static async getEspecialidades(): Promise<EspecialidadeDto[]> {
-    try {
-      const response = await apiClient.get<EspecialidadeDto[]>('/especialidade');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching especialidades:', error);
-      throw this.handleApiError(error);
-    }
+    // Mantido direto por ora; pode virar outro repository (Especialidade)
+    try { const r = await apiClient.get<EspecialidadeDto[]>('/especialidade'); return r.data; }
+    catch (error) { throw this.handleApiError(error); }
   }
 
   /**
@@ -502,7 +289,6 @@ export class ConsultaApiService {
       const response = await apiClient.get<ConsultaDto[]>('/consulta/consultas/todas');
       return response.data;
     } catch (error) {
-      console.error('Error fetching todas consultas:', error);
       throw this.handleApiError(error);
     }
   }
@@ -530,7 +316,6 @@ export class ConsultaApiService {
       });
       return especialidade ? especialidade.id : null;
     } catch (error) {
-      console.error('Error finding especialidade by name:', error);
       return null;
     }
   }
