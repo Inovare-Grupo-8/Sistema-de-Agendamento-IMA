@@ -10,7 +10,7 @@ import { Calendar as CalendarIcon, Clock, Activity, TrendingUp, Eye, CheckCircle
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ConsultaApiService } from "@/services/consultaApi";
+import { appointmentService } from "@composition/root";
 import ErrorMessage from "./ErrorMessage";
 
 interface ConsultasSummary {
@@ -38,17 +38,20 @@ const ConsultasUser = () => {
       setError("");
       
       try {
-        // Buscar dados de consultas da API usando 'assistido' para usuários
-        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
+  // Buscar dados de consultas usando serviço de aplicação (composição)
+  const consultaStats = await appointmentService.getStats('assistido');
         
         setConsultasSummary({
           hoje: consultaStats.hoje,
           semana: consultaStats.semana,
           mes: consultaStats.mes
         });
-          } catch (err: any) {
+          } catch (err: unknown) {
         console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");
+        const message = typeof err === 'object' && err && 'message' in (err as Record<string, unknown>)
+          ? String((err as { message?: unknown }).message)
+          : 'Erro ao carregar dados das consultas';
+        setError(message);
         
         // Manter dados zerados em caso de erro
         setConsultasSummary({
