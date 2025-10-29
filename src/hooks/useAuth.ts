@@ -28,7 +28,7 @@ export function useAuth() {
 
     const atualizarUltimoAcesso = async (usuarioId: string, token: string) => {
         try {
-            const response = await fetch(`http://localhost:8080/usuarios/${usuarioId}/ultimo-acesso`, {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/${usuarioId}/ultimo-acesso`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ export function useAuth() {
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:8080/usuarios/login', {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -554,7 +554,7 @@ export function CompletarCadastroUsuarioAssistido() {
         console.log("Buscando usuário com idUsuario:", idUsuario);
         setFetchingUser(true);
         setFetchUserError(null);
-        fetch(`http://localhost:8080/usuarios/verificar-cadastro?idUsuario=${idUsuario}`)
+        fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/verificar-cadastro?idUsuario=${idUsuario}`)
             .then(async (res) => {
                 console.log("Resposta da API:", res);
                 if (!res.ok) {
@@ -614,7 +614,7 @@ export function CompletarCadastroUsuarioAssistido() {
         if ((!idUsuario || idUsuario === '0') && formData.email && fieldStates.email === 'valid') {
             setFetchingUser(true);
             // Não mostra erro, apenas tenta preencher se encontrar
-            fetch(`http://localhost:8080/usuarios/verificar-cadastro?email=${encodeURIComponent(formData.email)}`)
+            fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/verificar-cadastro?email=${encodeURIComponent(formData.email)}`)
                 .then(async (res) => {
                     if (!res.ok) {
                         // Se não encontrou o usuário, é um usuário novo
@@ -771,7 +771,7 @@ export function CompletarCadastroUsuarioAssistido() {
                     payload.senha = passwordToShow;
                 }
                 
-                let url = 'http://localhost:8080/usuarios/fase2';
+                let url = `${import.meta.env.VITE_URL_BACKEND}/usuarios/fase2`;
                 if (idUsuario) {
                     url += `/${idUsuario}`;
                 }

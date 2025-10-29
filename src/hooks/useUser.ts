@@ -86,7 +86,7 @@ const useUser = () => {
         throw new Error('ID do usuário não encontrado');
       }
 
-      const response = await fetch(`http://localhost:8080/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
@@ -102,7 +102,7 @@ const useUser = () => {
       
       // Se houver uma foto, ajustar a URL se necessário
       if (dados.fotoUrl && !dados.fotoUrl.startsWith('http')) {
-        dados.fotoUrl = `http://localhost:8080${dados.fotoUrl}`;
+        dados.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${dados.fotoUrl}`;
       }
       
       return dados;
@@ -139,7 +139,7 @@ const useUser = () => {
       formData.append('file', file);
       formData.append('usuarioId', usuarioId.toString());
 
-      const response = await fetch(`http://localhost:8080/perfil/usuario/foto?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/foto?usuarioId=${usuarioId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token || ''}`
@@ -154,7 +154,7 @@ const useUser = () => {
 
       const result = await response.json();
       // Concatena a URL base com o caminho relativo retornado pelo servidor
-      const photoUrl = `http://localhost:8080${result.url}`;
+      const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
       return photoUrl;
     } catch (error) {
       console.error('Erro ao fazer upload da foto:', error);

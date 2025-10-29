@@ -357,7 +357,7 @@ export function CompletarCadastroVoluntario() {
     setFetchingUser(true);
     setFetchUserError(null);
     
-    fetch(`http://localhost:8080/usuarios/verificar-cadastro?idUsuario=${idUsuario}`)
+    fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/verificar-cadastro?idUsuario=${idUsuario}`)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error('Erro ao buscar dados do usuário');
@@ -419,7 +419,7 @@ export function CompletarCadastroVoluntario() {
     if ((!idUsuario || idUsuario === '0') && formData.email && fieldStates.email === 'valid') {
       setFetchingUser(true);
       
-      fetch(`http://localhost:8080/usuarios/verificar-cadastro?email=${encodeURIComponent(formData.email)}`)
+      fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/verificar-cadastro?email=${encodeURIComponent(formData.email)}`)
         .then(async (res) => {
           if (!res.ok) {
             throw new Error('Usuário não encontrado');
@@ -651,7 +651,7 @@ export function CompletarCadastroVoluntario() {
 
       const payload = getPayload();
       console.log('Enviando payload:', JSON.stringify(payload, null, 2));
-      const url = `http://localhost:8080/usuarios/voluntario/fase2/${idUsuario}`;
+      const url = `${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/fase2/${idUsuario}`;
       
       const response = await fetch(url, {
         method: 'PATCH',

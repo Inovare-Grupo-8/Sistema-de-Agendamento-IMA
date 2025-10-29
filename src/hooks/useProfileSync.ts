@@ -38,13 +38,13 @@ export const useProfileSync = () => {
       // Determinar o endpoint baseado no tipo de usuário
       switch (tipoUsuario) {
         case 'ADMINISTRADOR':
-          endpoint = `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`;
+          endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`;
           break;
         case 'VOLUNTARIO':
-          endpoint = `http://localhost:8080/perfil/voluntario?usuarioId=${usuarioId}`;
+          endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario?usuarioId=${usuarioId}`;
           break;
         case 'USUARIO_ASSISTIDO':
-          endpoint = `http://localhost:8080/perfil/usuario-assistido?usuarioId=${usuarioId}`;
+          endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/usuario-assistido?usuarioId=${usuarioId}`;
           break;
         default:
           throw new Error(`Tipo de usuário não suportado: ${tipoUsuario}`);
@@ -66,7 +66,7 @@ export const useProfileSync = () => {
       
       // Se houver uma foto, ajustar a URL
       if (data.fotoUrl && !data.fotoUrl.startsWith('http')) {
-        data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
+        data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
       }
 
       return data;

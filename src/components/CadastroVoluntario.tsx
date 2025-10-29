@@ -440,7 +440,7 @@ const CadastroVoluntario = () => {
         email: formData.email,
         cpf: formData.cpf.replace(/\D/g, ''), // Remove formatting for backend
         senha: formData.senha
-      };const response1 = await fetch('http://localhost:8080/usuarios/voluntario/fase1', {
+      };const response1 = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/fase1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -454,7 +454,7 @@ const CadastroVoluntario = () => {
       }      const fase1Result = await response1.json();
       const userId = fase1Result.idUsuario;      // Enviar credenciais por email
       try {
-        const credentialsResponse = await fetch('http://localhost:8080/usuarios/voluntario/enviar-credenciais', {
+        const credentialsResponse = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/enviar-credenciais`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

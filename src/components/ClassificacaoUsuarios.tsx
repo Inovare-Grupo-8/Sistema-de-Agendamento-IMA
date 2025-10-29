@@ -60,7 +60,7 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
   const carregarUsuariosNaoClassificados = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:8080/usuarios/nao-classificados', {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/nao-classificados`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ export function ClassificacaoUsuarios({ onUsuarioClassificado }: ClassificacaoUs
       setIsClassificando(true);
       const endpoint = tipo === 'aprovar' ? 'aprovar' : 'rejeitar';
 
-      const response = await fetch(`http://localhost:8080/usuarios/${id}/classificar/${endpoint}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/${id}/classificar/${endpoint}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

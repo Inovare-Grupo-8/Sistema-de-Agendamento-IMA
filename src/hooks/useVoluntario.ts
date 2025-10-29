@@ -90,7 +90,7 @@ export const useVoluntario = () => {
         throw new Error('ID do usuário não encontrado');
       }
 
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export const useVoluntario = () => {
         throw new Error('ID do usuário não encontrado');
       }
 
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export const useVoluntario = () => {
       }
 
       // Os dados profissionais vêm junto com os dados pessoais
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -244,7 +244,7 @@ export const useVoluntario = () => {
         biografiaProfissional: dados.biografiaProfissional
       };
 
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/dados-profissionais?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/dados-profissionais?usuarioId=${usuarioId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -283,7 +283,7 @@ export const useVoluntario = () => {
         throw new Error('ID do usuário não encontrado');
       }
 
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/endereco?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/endereco?usuarioId=${usuarioId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -337,7 +337,7 @@ export const useVoluntario = () => {
         complemento: endereco.complemento
       };
 
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/endereco?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/endereco?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -385,7 +385,7 @@ export const useVoluntario = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`http://localhost:8080/perfil/voluntario/foto?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/foto?usuarioId=${usuarioId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token || ''}`
@@ -403,8 +403,8 @@ export const useVoluntario = () => {
       
       // Construir URL completa da foto
       const photoUrl = result.url ? 
-        (result.url.startsWith('http') ? result.url : `http://localhost:8080${result.url}`) :
-        `http://localhost:8080/uploads/voluntario_user_${usuarioId}.jpg`;
+        (result.url.startsWith('http') ? result.url : `${import.meta.env.VITE_URL_BACKEND}${result.url}`) :
+        `${import.meta.env.VITE_URL_BACKEND}/uploads/voluntario_user_${usuarioId}.jpg`;
       
       return photoUrl;
     } catch (error) {

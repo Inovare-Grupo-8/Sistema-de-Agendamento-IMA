@@ -129,8 +129,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
             // Tentar buscar do backend
             const endpoint = tipoUsuario === 'assistente-social' 
-                ? `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`
-                : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
+                ? `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`
+                : `${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
             
             const response = await fetch(endpoint, {
 
@@ -166,7 +166,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             
             // Se houver uma foto, adicionar a URL base
             if (data.fotoUrl) {
-                data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
+                data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
                 console.log('🖼️ [useUserProfile] DEBUG: URL da foto processada:', data.fotoUrl);
                 
                 // Atualizar contexto de imagem
@@ -218,8 +218,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
             // Tentar enviar para o backend
             try {
                 const endpoint = tipoUsuario === 'assistente-social' 
-                    ? `http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
-                    : `http://localhost:8080/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
+                    ? `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
+                    : `${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
 
                 const response = await fetch(endpoint, {
                     method: 'PATCH',
@@ -270,7 +270,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         try {
             console.log('🔄 [useUserProfile] DEBUG: buscarEndereco iniciado');
             const { token, usuarioId, tipoUsuario } = getUserAuthData();
-            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco - tipoUsuario:', tipoUsuario);            const url = `http://localhost:8080/perfil/assistido/endereco?usuarioId=${usuarioId}`;
+            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco - tipoUsuario:', tipoUsuario);            const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistido/endereco?usuarioId=${usuarioId}`;
             console.log('🔍 [useUserProfile] DEBUG: buscarEndereco URL completa:', url);
 
             console.log('🌐 [useUserProfile] DEBUG: Fazendo requisição para buscar endereço...');
@@ -355,7 +355,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             console.log('🔍 [useUserProfile] DEBUG: Dados formatados:', enderecoInput);
 
             // ✅ CORREÇÃO: URL sempre para assistido
-            const url = `http://localhost:8080/perfil/assistido/endereco?usuarioId=${usuarioId}`;
+            const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistido/endereco?usuarioId=${usuarioId}`;
             console.log('🌐 [useUserProfile] DEBUG: URL da requisição:', url);
 
             // ✅ CORREÇÃO: Headers completos
@@ -465,7 +465,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             console.log('🔍 [uploadFoto] DEBUG: Tipo mapeado:', { original: tipoUsuario, mapeado: tipoBackend });
             
             // Usar apenas o endpoint correto para o tipo de usuário
-            const endpoint = `http://localhost:8080/perfil/${tipoBackend}/foto?usuarioId=${usuarioId}`;
+            const endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoBackend}/foto?usuarioId=${usuarioId}`;
             console.log(`🌐 [uploadFoto] DEBUG: Endpoint de upload: ${endpoint}`);
             
             const response = await fetch(endpoint, {
@@ -487,12 +487,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
                 // Construir URL da foto
                 let photoUrl;
                 if (result.url) {
-                    photoUrl = result.url.startsWith('http') ? result.url : `http://localhost:8080${result.url}`;
+                    photoUrl = result.url.startsWith('http') ? result.url : `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
                 } else if (result.fotoUrl) {
-                    photoUrl = result.fotoUrl.startsWith('http') ? result.fotoUrl : `http://localhost:8080${result.fotoUrl}`;
+                    photoUrl = result.fotoUrl.startsWith('http') ? result.fotoUrl : `${import.meta.env.VITE_URL_BACKEND}${result.fotoUrl}`;
                 } else {
                     // Fallback: assumir que foi salvo com sucesso
-                    photoUrl = `http://localhost:8080/uploads/${tipoBackend}_user_${usuarioId}.jpg`;
+                    photoUrl = `${import.meta.env.VITE_URL_BACKEND}/uploads/${tipoBackend}_user_${usuarioId}.jpg`;
                 }
                 
                 // Salvar localmente

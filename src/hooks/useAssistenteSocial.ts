@@ -49,8 +49,8 @@ export const useAssistenteSocial = () => {
 
     const atualizarUltimoAcesso = async (usuarioId: number, token: string) => {
         try {
-            const response = await fetch(`http://localhost:8080/usuarios/${usuarioId}/ultimo-acesso`, {
-                method: 'PUT',
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/${usuarioId}/ultimo-acesso`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -94,7 +94,7 @@ export const useAssistenteSocial = () => {
             // Atualizar último acesso do usuário
             await atualizarUltimoAcesso(usuarioId, token);
 
-            const url = `http://localhost:8080/perfil/assistente-social?usuarioId=${usuarioId}`;
+            const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`;
             console.log('🔍 Debug - URL:', url);
 
             const response = await fetch(url, {
@@ -115,7 +115,7 @@ export const useAssistenteSocial = () => {
             
             // Se houver uma foto, adiciona a URL base
             if (data.fotoUrl) {
-                data.fotoUrl = `http://localhost:8080${data.fotoUrl}`;
+                data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
             }
 
             console.log('🔍 Debug - Profile data:', data);
@@ -142,7 +142,7 @@ export const useAssistenteSocial = () => {
                 throw new Error('ID do usuário não encontrado');
             }
 
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ export const useAssistenteSocial = () => {
 
             console.log('Enviando dados profissionais para o backend:', dadosParaEnviar);
 
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-profissionais?usuarioId=${usuarioId}`, {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-profissionais?usuarioId=${usuarioId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -251,7 +251,7 @@ export const useAssistenteSocial = () => {
                 throw new Error('ID do usuário não encontrado');
             }
 
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -309,7 +309,7 @@ export const useAssistenteSocial = () => {
                 cep: endereco.cep,
                 numero: endereco.numero,
                 complemento: endereco.complemento || ''
-            };            const response = await fetch(`http://localhost:8080/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
+            };            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -361,7 +361,7 @@ export const useAssistenteSocial = () => {
                 throw new Error('ID do usuário não encontrado');
             }
 
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -484,7 +484,7 @@ export const useAssistenteSocial = () => {
             formData.append('file', file);
             formData.append('usuarioId', usuarioId.toString());
 
-            const response = await fetch(`http://localhost:8080/perfil/assistente-social/foto?usuarioId=${usuarioId}`, {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/foto?usuarioId=${usuarioId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token || ''}`
@@ -499,7 +499,7 @@ export const useAssistenteSocial = () => {
 
             const result = await response.json();
             // Concatena a URL base com o caminho relativo retornado pelo servidor
-            const photoUrl = `http://localhost:8080${result.url}`;
+            const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
             return photoUrl;
         } catch (error) {
             console.error('Erro ao fazer upload da foto:', error);

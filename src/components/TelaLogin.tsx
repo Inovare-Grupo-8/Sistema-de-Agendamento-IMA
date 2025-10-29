@@ -184,7 +184,7 @@ const TelaLogin: React.FC = () => {
             return;
         }        setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:8080/usuarios/login', {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -257,7 +257,7 @@ const TelaLogin: React.FC = () => {
 
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:8080/usuarios/fase1', {
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/fase1`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -411,7 +411,7 @@ const TelaLogin: React.FC = () => {
                         <input type="button" className="btn" value="Cadastrar" onClick={handleCadastro} />
                         <button 
                           className="btn-google" 
-                          onClick={() => window.location.href = 'http://localhost:8080/login/authorization/google'}
+                          onClick={() => window.location.href = `${import.meta.env.VITE_URL_BACKEND}/login/authorization/google`}
                         >
                           <img src="./image/google-icon-logo.svg" alt="" />
                         </button>

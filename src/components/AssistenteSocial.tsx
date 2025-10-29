@@ -159,7 +159,7 @@ export function AssistenteSocial() {
         });
 
         // Buscar total de usuários da API
-        const response = await fetch('http://localhost:8080/usuarios');
+        const response = await fetch('{BASE_URL}/usuarios');
         if (response.ok) {
           const usuarios = await response.json();
           setTotalUsuarios(usuarios.length);
@@ -202,7 +202,7 @@ export function AssistenteSocial() {
   // Função para atualizar contador após classificação
   const atualizarContadorUsuarios = async () => {
     try {
-      const response = await fetch('http://localhost:8080/usuarios');
+      const response = await fetch('{BASE_URL}/usuarios');
       if (response.ok) {
         const usuarios = await response.json();
         setTotalUsuarios(usuarios.length);
@@ -282,7 +282,7 @@ export function AssistenteSocial() {
     
     try {
       // Real API call to approve form
-      const response = await fetch(`http://localhost:8080/formularios/${formularioSelecionado.id}/aprovar`, {
+      const response = await fetch(`{BASE_URL}/formularios/${formularioSelecionado.id}/aprovar`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -342,7 +342,7 @@ export function AssistenteSocial() {
     
     try {
       // Real API call to reject form
-      const response = await fetch(`http://localhost:8080/formularios/${formularioSelecionado.id}/reprovar`, {
+      const response = await fetch(`{BASE_URL}/formularios/${formularioSelecionado.id}/reprovar`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

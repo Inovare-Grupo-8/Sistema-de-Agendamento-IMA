@@ -262,7 +262,7 @@ const PagamentoUser = () => {
         } : null
       };
 
-      const response = await fetch('http://localhost:8080/pagamentos', {
+      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/pagamentos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

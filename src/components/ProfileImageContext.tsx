@@ -111,16 +111,16 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
       // Mapear tipo do usuário para o endpoint correto
       let endpoint;
       if (tipoUsuario === 'USUARIO') {
-        endpoint = `http://localhost:8080/perfil/assistido/dados-pessoais?usuarioId=${usuarioId}`;
+        endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistido/dados-pessoais?usuarioId=${usuarioId}`;
       } else if (tipoUsuario === 'VOLUNTARIO' && funcao === 'ASSISTENCIA_SOCIAL') {
-        endpoint = `http://localhost:8080/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`;
+        endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`;
       } else if (tipoUsuario === 'ADMINISTRADOR') {
-        endpoint = `http://localhost:8080/perfil/administrador/dados-pessoais?usuarioId=${usuarioId}`;
+        endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/administrador/dados-pessoais?usuarioId=${usuarioId}`;
       } else if (tipoUsuario === 'VOLUNTARIO') {
-        endpoint = `http://localhost:8080/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`;
+        endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`;
       } else {
         // Fallback genérico
-        endpoint = `http://localhost:8080/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`;
+        endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`;
       }
 
       console.log('🌐 [ProfileImageContext] Endpoint da API:', endpoint);
@@ -140,7 +140,7 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         if (data.fotoUrl) {
           const fullImageUrl = data.fotoUrl.startsWith('http') 
             ? data.fotoUrl 
-            : `http://localhost:8080${data.fotoUrl}`;
+            : `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
           
           console.log('✅ [ProfileImageContext] Foto encontrada na API para usuário', usuarioId, ':', fullImageUrl);
           setProfileImage(fullImageUrl);

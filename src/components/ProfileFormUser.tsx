@@ -499,7 +499,7 @@ const ProfileFormUser = () => {
       
       // Verificar conexão com o backend primeiro
       try {
-        const healthCheck = await fetch('http://localhost:8080/health', { 
+        const healthCheck = await fetch(`${import.meta.env.VITE_URL_BACKEND}/health`, { 
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
