@@ -1,52 +1,4 @@
-import axios from 'axios';
-
-// API base configuration
-const API_BASE_URL = 'http://localhost:8080';
-
-// Create axios instance with base configuration
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000, // 10 seconds timeout
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to include JWT token
-apiClient.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        if (user.token) {
-          config.headers.Authorization = `Bearer ${user.token}`;
-        }
-      } catch (error) {
-        console.error('Error parsing user data from localStorage:', error);
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor to handle authentication errors
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
-      console.warn('Authentication failed, redirecting to login...');
-      localStorage.removeItem('userData');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+import { apiClient } from '@/core/http/apiClient';
 
 // Interface para voluntário (correspondente ao backend DTO)
 export interface VoluntarioListagem {
@@ -83,8 +35,8 @@ export class VoluntarioApiService {
       }));
       
     } catch (error) {
-      console.error('Erro ao listar voluntários:', error);
-      throw new Error('Falha ao carregar lista de voluntários');
+  // Central error logging pode ser aplicado aqui se necessário
+  throw new Error('Falha ao carregar lista de voluntários');
     }
   }
 
@@ -218,7 +170,6 @@ export class VoluntarioApiService {
       return voluntario;
       
     } catch (error) {
-      console.error('Erro ao buscar voluntário:', error);
       return null;
     }
   }
@@ -236,7 +187,6 @@ export class VoluntarioApiService {
       const response = await apiClient.get(`/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`);
       return response.data;
     } catch (error) {
-      console.error('Erro ao buscar dados pessoais do voluntário:', error);
       throw new Error('Falha ao carregar dados do voluntário');
     }
   }
@@ -263,7 +213,6 @@ export class VoluntarioApiService {
         }));
       
     } catch (error) {
-      console.error('Erro ao listar voluntários para agendamento:', error);
       throw new Error('Falha ao carregar especialistas disponíveis');
     }
   }

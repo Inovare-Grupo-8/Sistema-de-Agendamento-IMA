@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import { clearAuth, setUser as setStoredUser } from '@/core/auth/authStorage';
 
 interface User {
   id: string;
@@ -20,7 +21,7 @@ const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
 export function useAuth() {
-    const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
@@ -68,7 +69,7 @@ export function useAuth() {
               tipo: (parsedUserData.tipo === 'USUARIO' ? 'paciente' : 'profissional') as 'profissional' | 'paciente',
               token: parsedUserData.token
             };
-            setUser(userForHook);
+            setUserState(userForHook);
           }
         } catch (e) {
           console.error('Error loading userData:', e);
@@ -79,7 +80,7 @@ export function useAuth() {
         // Fallback para o sistema antigo
         try {
           const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
+          setUserState(parsedUser);
         } catch (e) {
           console.error('Error loading legacy user data:', e);
           // Clear invalid data
@@ -99,6 +100,20 @@ export function useAuth() {
     };
 
     checkAuth();
+
+    // Listener para 401 vindo do apiClient (centralizado)
+    const onUnauthorized = (_e: Event) => {
+      toast({
+        title: 'Sessão expirada',
+        description: 'Faça login novamente para continuar.',
+        variant: 'destructive'
+      });
+      clearAuth();
+      setUserState(null);
+      navigate('/login', { replace: true });
+    };
+    document.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => document.removeEventListener('auth:unauthorized', onUnauthorized);
   }, [navigate, location.pathname, isPublicRoute]);
   const login = useCallback(async (credentials: LoginCredentials) => {
     setLoading(true);
@@ -126,8 +141,16 @@ export function useAuth() {
       localStorage.removeItem('userProfileData');
       console.log('🧹 [useAuth] Dados de perfil antigos limpos após novo login');
       
-      // Salvar no localStorage
-      localStorage.setItem('userData', JSON.stringify(data));
+      // Persistir dados de autenticação
+      setStoredUser(data);
+      // Atualizar estado local no formato do hook
+      setUserState({
+        id: String(data.idUsuario),
+        nome: data.nome || '',
+        email: data.email || '',
+        tipo: (data.tipo === 'USUARIO' ? 'paciente' : 'profissional'),
+        token: data.token
+      });
       
       // 🔄 TRIGGER: Forçar atualização do contexto de imagem para novo usuário
       window.dispatchEvent(new StorageEvent('storage', {
@@ -164,7 +187,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem('userData'); // Clear new auth data too
+  clearAuth(); // Clear new auth data too
     
     // 🔄 LIMPEZA: Limpar todos os dados de perfil no logout
     localStorage.removeItem('savedProfile');
@@ -172,7 +195,7 @@ export function useAuth() {
     localStorage.removeItem('userProfileData');
     console.log('🧹 [useAuth] Todos os dados de usuário limpos no logout');
     
-    setUser(null);
+  setUserState(null);
     navigate('/login', { replace: true });
   }, [navigate]);
   // Check if user is authenticated based on both old and new auth mechanisms
