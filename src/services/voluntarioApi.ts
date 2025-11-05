@@ -63,6 +63,33 @@ export interface VoluntarioListagem {
   nomeCompleto?: string;
 }
 
+export interface SortInfo {
+  empty: boolean;
+  sorted: boolean;
+  unsorted: boolean;
+}
+
+export interface PageableInfo {
+  offset: number;
+  sort: SortInfo;
+  paged: boolean;
+  pageNumber: number;
+  pageSize: number;
+  unpaged: boolean;
+}
+
+export interface Slice<T> {
+  content: T[];
+  size: number;
+  number: number;
+  sort: SortInfo;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  pageable: PageableInfo;
+  empty: boolean;
+}
+
 // Tipos auxiliares para status
 export type VoluntarioStatus = 'ativo' | 'inativo' | 'pendente';
 
@@ -245,26 +272,57 @@ export class VoluntarioApiService {
    * Lista todos os voluntários para seleção em agendamentos
    * Retorna apenas voluntários ativos com informações simplificadas
    */
-  static async listarVoluntariosParaAgendamento(): Promise<{
-    id: number;
-    nome: string;
-    especialidade: string;
-  }[]> {
+  static async listarVoluntariosParaAgendamento(
+    page = 0,
+    size = 10,
+    sortBy = "idUsuario",
+    sortDir = "asc"
+): Promise<{
+  items: { id: number; nome: string; especialidade: string }[],
+  page: number,
+  size: number,
+  last: boolean,
+  numberOfElements: number
+}> {
+  try {
+    const slice = await this.listarVoluntariosPaginado(page, size, sortBy, sortDir);
+
+    const items = slice.content
+      .filter(v => this.determinarStatus(v) === "ativo")
+      .map(v => ({
+        id: v.idUsuario,
+        nome: v.nomeCompleto ?? `${v.nome} ${v.sobrenome}`.trim(),
+        especialidade: v.areaOrientacao ?? v.funcao ?? "Consulta Geral"
+      }));
+
+    return {
+      items,
+      page: slice.number,
+      size: slice.size,
+      last: slice.last,
+      numberOfElements: slice.numberOfElements
+    };
+  } catch (error) {
+    console.error("Erro ao listar voluntários para agendamento:", error);
+    throw new Error("Falha ao carregar especialistas disponíveis");
+  }
+}
+
+  static async listarVoluntariosPaginado(
+  page = 0,
+  size = 10,
+  sortBy = "idUsuario",
+  sortDir = "asc"
+  ): Promise<Slice<VoluntarioListagem>> {
     try {
-      const voluntarios = await this.listarVoluntarios();
-      
-      // Filtrar apenas voluntários ativos e mapear para formato simplificado
-      return voluntarios
-        .filter(voluntario => this.determinarStatus(voluntario) === 'ativo')
-        .map(voluntario => ({
-          id: voluntario.idUsuario,
-          nome: voluntario.nomeCompleto || `${voluntario.nome} ${voluntario.sobrenome}`.trim(),
-          especialidade: voluntario.areaOrientacao || voluntario.funcao || 'Consulta Geral'
-        }));
-      
+      const response = await apiClient.get(`/usuarios/voluntarios/paginado`, {
+        params: { page, size, sortBy, sortDir }
+      });
+
+      return response.data;
     } catch (error) {
-      console.error('Erro ao listar voluntários para agendamento:', error);
-      throw new Error('Falha ao carregar especialistas disponíveis');
+      console.error("Erro ao buscar voluntários paginados:", error);
+      throw new Error("Falha ao carregar voluntários");
     }
   }
 }
