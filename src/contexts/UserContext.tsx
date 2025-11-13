@@ -1,9 +1,12 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { UserData, UserContextType, defaultUserData } from '@/types/user';
+import { useState, useEffect, ReactNode } from 'react';
+import { UserData, defaultUserData } from '@/types/user';
+import { UserContext } from '@/contexts/UserContextInstance';
 
-export const UserContext = createContext<UserContextType | undefined>(undefined);
+interface UserProviderProps {
+  children: ReactNode;
+}
 
-export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const UserProvider = ({ children }: UserProviderProps) => {
   const [userData, setUserDataState] = useState<UserData>(() => {
     // Usar uma chave diferente para evitar conflito com o sistema de auth
     const savedData = localStorage.getItem("userProfileData");

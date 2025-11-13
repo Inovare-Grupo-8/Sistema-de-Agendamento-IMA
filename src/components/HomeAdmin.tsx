@@ -32,7 +32,7 @@ const HomeAdmin = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [fetchPerfil]);
   
   const handleLogout = () => {
     localStorage.removeItem('userData');

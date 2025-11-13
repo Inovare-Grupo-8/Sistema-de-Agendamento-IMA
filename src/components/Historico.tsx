@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUser } from "@/hooks/useUser";
-import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario } from "@/hooks/useVoluntario";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 
 interface HistoricoAtendimento {
@@ -141,7 +141,7 @@ const Historico = () => {
     telefone: '',
     dataNascimento: ''
   });
-  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario | null>(null);
   const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
   const navigate = useNavigate();
   
@@ -164,12 +164,28 @@ const Historico = () => {
           setDadosPessoais(dados);
         }
       } catch (error) {
-        console.error('Erro ao carregar dados pessoais:', error);
+        console.error("Erro ao carregar dados pessoais:", error);
       }
     };
 
     loadDadosPessoais();
   }, [buscarDadosPessoais]);
+
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados profissionais:", error);
+      }
+    };
+
+    loadDadosProfissionais();
+  }, [buscarDadosProfissionais, mapEnumToText]);
 
   useEffect(() => {
     setLoading(true);

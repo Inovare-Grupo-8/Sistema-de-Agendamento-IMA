@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Sun, Moon, Home as HomeIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { ConsultaDto, ProximaConsulta, ConsultaOutput } from "@/services/consultaApi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
 import { STATUS_COLORS } from "../constants/ui";
@@ -26,7 +26,7 @@ import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
-import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario } from "@/hooks/useVoluntario";
 
 interface ConsultaSummary {
   total: number;
@@ -90,7 +90,7 @@ const Home = () => {
   });
 
   // Estado para dados profissionais do voluntário
-  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario | null>(null);
   const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
 
   // Estado para o modal de cancelamento
@@ -136,6 +136,22 @@ const Home = () => {
 
     loadDadosPessoais();
   }, [buscarDadosPessoais]);
+
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados profissionais:", error);
+      }
+    };
+
+    loadDadosProfissionais();
+  }, [buscarDadosProfissionais, mapEnumToText]);
   
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
@@ -230,9 +246,10 @@ const Home = () => {
           ultimaAvaliacao: null
         });
 
-      } catch (err: any) {
-        console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");
+      } catch (err) {
+        console.error("Erro ao carregar dados das consultas:", err);
+        const message = err instanceof Error ? err.message : "Erro ao carregar dados das consultas";
+        setError(message);
 
         // Manter dados zerados em caso de erro
         const proximaData = new Date(2025, 4, 18, 10, 0);
@@ -249,24 +266,7 @@ const Home = () => {
 
     loadConsultaData();
   }, [proximasConsultas]);  // Load all consultations when component mounts
-  useEffect(() => {
-    const loadData = async () => {
-      await loadTodasConsultas();
-      // After loading próximas consultas, load histórico to calculate statistics properly
-      setTimeout(() => {
-        loadHistoricoRecente();
-      }, 100); // Small delay to ensure proximasConsultas state is updated
-    };
-    loadData();
-  }, []);
-
-  // Also reload histórico when proximasConsultas changes
-  useEffect(() => {
-    if (proximasConsultas.length >= 0) { // Check if proximasConsultas has been loaded (even if empty)
-      loadHistoricoRecente();
-    }
-  }, [proximasConsultas]);  // Function to load recent history including canceled consultations
-  const loadHistoricoRecente = async () => {
+  const loadHistoricoRecente = useCallback(async () => {
     try {
       // Load historical consultations (completed and canceled)
       const historicoData = await ConsultaApiService.getHistoricoConsultas('assistido');
@@ -275,18 +275,18 @@ const Home = () => {
       const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback('assistido');
 
       // Create maps for quick lookup
-      const avaliacoesMap = new Map();
-      const feedbacksMap = new Map();
+      const avaliacoesMap = new Map<number, number | null>();
+      const feedbacksMap = new Map<number, string | null>();
 
-      avaliacoesFeedback.avaliacoes?.forEach((avaliacao: any) => {
+      avaliacoesFeedback.avaliacoes?.forEach((avaliacao) => {
         if (avaliacao.consulta?.idConsulta) {
-          avaliacoesMap.set(avaliacao.consulta.idConsulta, avaliacao.nota);
+          avaliacoesMap.set(avaliacao.consulta.idConsulta, avaliacao.nota ?? null);
         }
       });
 
-      avaliacoesFeedback.feedbacks?.forEach((feedback: any) => {
+      avaliacoesFeedback.feedbacks?.forEach((feedback) => {
         if (feedback.consulta?.idConsulta) {
-          feedbacksMap.set(feedback.consulta.idConsulta, feedback.comentario);
+          feedbacksMap.set(feedback.consulta.idConsulta, feedback.comentario ?? null);
         }
       });
 
@@ -306,15 +306,17 @@ const Home = () => {
             data: consultaDate,
             tipo: consulta.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
             status: consulta.status.toLowerCase() as "realizada" | "cancelada" | "remarcada",
-            avaliacao: rating || undefined, // Real evaluation data from API
-            assistido: consulta.assistido // <-- Adicione esta linha!
+            avaliacao: rating ?? undefined,
+            assistido: consulta.assistido
           };
         })
         // Sort by date descending (most recent first) and take only last 5
         .sort((a, b) => b.data.getTime() - a.data.getTime())
         .slice(0, 5);
 
-      setHistoricoRecente(historicoFormatted);      // Calculate statistics for "Meu Histórico" card based on all historical data
+      setHistoricoRecente(historicoFormatted);
+
+      // Calculate statistics for "Meu Histórico" card based on all historical data
       const consultasRealizadas = historicoData.filter(consulta =>
         consulta.status.toLowerCase() === 'realizada'
       ).length;
@@ -343,8 +345,8 @@ const Home = () => {
       // Update the statistics with real data
       setAtendimentosSummary({
         realizados: consultasRealizadas,
-        canceladas: consultasCanceladas, // Now showing cancelled consultations
-        ultimaAvaliacao: ultimaAvaliacao // Real evaluation from API
+        canceladas: consultasCanceladas,
+        ultimaAvaliacao: ultimaAvaliacao
       });
 
       console.log('Histórico recente carregado:', historicoFormatted); console.log('Estatísticas atualizadas:', {
@@ -360,7 +362,25 @@ const Home = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [proximasConsultas, setAtendimentosSummary]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await loadTodasConsultas();
+      // After loading próximas consultas, load histórico to calculate statistics properly
+      setTimeout(() => {
+        loadHistoricoRecente();
+      }, 100); // Small delay to ensure proximasConsultas state is updated
+    };
+    loadData();
+  }, [loadHistoricoRecente]);
+
+  // Also reload histórico when proximasConsultas changes
+  useEffect(() => {
+    if (proximasConsultas.length >= 0) { // Check if proximasConsultas has been loaded (even if empty)
+      loadHistoricoRecente();
+    }
+  }, [loadHistoricoRecente, proximasConsultas]);  // Function to load recent history including canceled consultations
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
     try {
@@ -536,11 +556,14 @@ const Home = () => {
       setSelectedConsultaFeedback(null);
       setCurrentRating(0);
       setCurrentComment("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving feedback:', error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.";
       toast({
         title: "Erro ao salvar feedback",
-        description: error.message || "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -687,7 +710,7 @@ const Home = () => {
     };
 
     fetchUserData();
-  }, []);
+  }, [setProfileImage, setUserData]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -706,7 +729,7 @@ const Home = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [fetchPerfil]);
 
   const [voluntarioProfile, setVoluntarioProfile] = useState<{ nome: string; sobrenome: string; funcao: string; profileImage: string | null }>({ nome: '', sobrenome: '', funcao: '', profileImage: null });
 
@@ -715,7 +738,9 @@ const Home = () => {
     if (data) {
       try {
         setVoluntarioProfile(JSON.parse(data));
-      } catch { }
+      } catch (error) {
+        console.error('Erro ao parsear voluntarioProfileData do localStorage', error);
+      }
     }
   }, []);
 

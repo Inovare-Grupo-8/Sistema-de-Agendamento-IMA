@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useProfileImage } from '@/components/useProfileImage';
 
 interface UserProfileData {
@@ -17,7 +17,7 @@ export const useProfileSync = () => {
   const { profileImage, setProfileImage } = useProfileImage();
 
   // Função para buscar dados do perfil baseado no tipo de usuário
-  const fetchProfileData = async (): Promise<UserProfileData | null> => {
+  const fetchProfileData = useCallback(async (): Promise<UserProfileData | null> => {
     try {
       const userData = localStorage.getItem('userData');
       if (!userData) {
@@ -74,10 +74,10 @@ export const useProfileSync = () => {
       console.error('Erro ao buscar dados do perfil:', error);
       return null;
     }
-  };
+  }, []);
 
   // Função para sincronizar dados do perfil
-  const syncProfileData = async () => {
+  const syncProfileData = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await fetchProfileData();
@@ -94,7 +94,7 @@ export const useProfileSync = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchProfileData, setProfileImage]);
 
   // Função para obter o nome completo
   const getFullName = (): string => {
@@ -134,7 +134,7 @@ export const useProfileSync = () => {
   // Sincronizar dados na inicialização
   useEffect(() => {
     syncProfileData();
-  }, []);
+  }, [syncProfileData]);
 
   return {
     profileData,

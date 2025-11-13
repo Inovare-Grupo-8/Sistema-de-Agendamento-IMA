@@ -244,8 +244,9 @@ const TelaLogin: React.FC = () => {
                         return;
                 }
             }
-        } catch (error: any) {
-            setModalErro(error.message || 'Erro ao fazer login');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Erro ao fazer login';
+            setModalErro(message);
         } finally {
             setIsLoading(false);
         }
@@ -286,8 +287,9 @@ const TelaLogin: React.FC = () => {
                     navigate(data.idUsuario ? `/completar-cadastro-usuario?id=${data.idUsuario}` : '/completar-cadastro-usuario');
                 }
             });
-        } catch (error: any) {
-            setModalErro(error.message || 'Erro ao cadastrar');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Erro ao cadastrar';
+            setModalErro(message);
         } finally {
             setIsLoading(false);
         }

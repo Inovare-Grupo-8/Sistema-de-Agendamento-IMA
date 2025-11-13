@@ -4,7 +4,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, ArrowLeft, LogOut } from "lucide-react";
+import { Menu, Sun, Moon, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -16,6 +16,8 @@ import { useCep } from "@/hooks/useCep";
 import { useAssistenteSocial } from "@/hooks/useAssistenteSocial";
 import { LetterAvatar } from "@/components/ui/LetterAvatar";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { assistenteSocialNavItems } from "@/constants/assistenteSocialNavigation";
+import { formatters, isPhone as validatePhone } from "@/utils/validation";
 import {
   Dialog,
   DialogContent,
@@ -24,13 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-// Interface for social worker navigation items
-interface UserNavigationItem {
-  path: string;
-  label: string;
-  icon: JSX.Element;
-}
 
 // Interface for social worker form data
 interface AssistenteSocialFormData {
@@ -85,35 +80,6 @@ const assistenteSocialDataDefault: AssistenteSocialFormData = {
   avaliacaoMedia: 0
 };
 
-// Navigation items for the social worker
-export const assistenteSocialNavItems: Record<string, UserNavigationItem> = {
-  home: {
-    path: '/assistente-social',
-    label: 'Home',
-    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />,
-  },
-  classificarUsuarios: {
-    path: '/classificacao-usuarios',
-    label: 'Classificar Usuários',
-    icon: <UserCheck className="w-6 h-6" color="#ED4231" />,
-  },
-  cadastrarAssistente: {
-    path: '/cadastro-assistente',
-    label: 'Cadastrar Assistente', 
-    icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
-  },
-  cadastrarVoluntario: {
-    path: '/cadastro-voluntario',
-    label: 'Cadastrar Voluntário',
-    icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
-  },
-  perfil: {
-    path: '/profile-form-assistente-social',
-    label: 'Meu Perfil',
-    icon: <User className="w-6 h-6" color="#ED4231" />,
-  }
-};
-
 export default function ProfileFormAssistenteSocial() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -140,7 +106,7 @@ export default function ProfileFormAssistenteSocial() {
   const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
   const [originalEmail, setOriginalEmail] = useState<string>("");
   // Função para lidar com a mudança nos campos
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormChanged(true);
     const { name, value } = e.target;
       // Formatação específica para o CEP
@@ -224,7 +190,7 @@ export default function ProfileFormAssistenteSocial() {
       errors.email = "Email inválido";
     }      // Validação de telefone usando a função importada
     if (formData.telefone && formData.telefone.trim()) {
-      const phoneError = !isPhone(formData.telefone);
+      const phoneError = validatePhone(formData.telefone);
       if (phoneError) {
         errors.telefone = "Telefone inválido - use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX";
       }
@@ -310,7 +276,7 @@ export default function ProfileFormAssistenteSocial() {
     };
 
     carregarPerfil();
-  }, []);  // Reset avatar error state when profile image changes
+  }, [fetchPerfil, buscarEndereco, setProfileImage]);  // Reset avatar error state when profile image changes
   useEffect(() => {
     if (profileImage && profileImage !== 'undefined' && profileImage !== '') {
       setAvatarImageError(false);
@@ -375,8 +341,8 @@ export default function ProfileFormAssistenteSocial() {
         return;
       }      // Validação de telefone
       if (formData.telefone && formData.telefone.trim()) {
-        const phoneIsValid = isPhone(formData.telefone);
-        if (!phoneIsValid) {
+        const phoneError = validatePhone(formData.telefone);
+        if (phoneError) {
           toast({
             title: "Telefone inválido",
             description: "Por favor, use o formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX",
@@ -668,10 +634,11 @@ export default function ProfileFormAssistenteSocial() {
         ...prev,
         endereco: {
           ...prev.endereco!,
-          rua: endereco.logradouro,
+          rua: endereco.rua,
+          complemento: endereco.complemento,
           bairro: endereco.bairro,
-          cidade: endereco.localidade,
-          estado: endereco.uf,
+          cidade: endereco.cidade,
+          estado: endereco.estado,
           cep: endereco.cep
         }
       }));
@@ -985,7 +952,7 @@ export default function ProfileFormAssistenteSocial() {
                             id="genero"
                             name="genero"
                             value={formData.genero || ''}
-                            onChange={(e) => handleInputChange(e as any)}
+                            onChange={handleInputChange}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                           >
                             <option value="">Selecione...</option>
@@ -1340,45 +1307,4 @@ export default function ProfileFormAssistenteSocial() {
       </Dialog>
     </SidebarProvider>
   );
-};
-
-// Adicionando interfaces e utilitários
-interface UserNavigationItem {
-  path: string;
-  label: string;
-  icon: JSX.Element;
-}
-
-const formatters = {
-  phone: (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    
-    // Se tem mais de 11 dígitos, trunca
-    if (numbers.length > 11) {
-      return formatters.phone(numbers.slice(0, 11));
-    }
-    
-    // Formatação progressiva conforme o usuário digita
-    if (numbers.length >= 10) {
-      if (numbers.length === 11) {
-        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
-      } else {
-        return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
-      }
-    } else if (numbers.length >= 6) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
-    } else if (numbers.length >= 2) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    } else if (numbers.length > 0) {
-      return `(${numbers}`;
-    }
-    
-    return value;
-  }
-};
-
-const isPhone = (value: string) => {
-  // Regex para telefone brasileiro no formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
-  const regex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
-  return regex.test(value);
 };

@@ -46,9 +46,10 @@ const ConsultasUser = () => {
           semana: consultaStats.semana,
           mes: consultaStats.mes
         });
-          } catch (err: any) {
-        console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");
+      } catch (err) {
+        console.error("Erro ao carregar dados das consultas:", err);
+        const message = err instanceof Error ? err.message : "Erro ao carregar dados das consultas";
+        setError(message);
         
         // Manter dados zerados em caso de erro
         setConsultasSummary({

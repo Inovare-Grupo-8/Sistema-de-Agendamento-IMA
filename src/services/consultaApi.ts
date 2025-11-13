@@ -58,11 +58,6 @@ export interface EspecialidadeDto {
   nome: string;
 }
 
-export interface EspecialidadeDto {
-  id: number;
-  nome: string;
-}
-
 export interface ConsultaDto {
   idConsulta: number;
   horario: string; // ISO date string
@@ -139,6 +134,27 @@ export interface ProximaConsulta {
       profissao: string;
     };
   };
+}
+
+export interface ConsultaAvaliacao {
+  idAvaliacao?: number;
+  nota?: number | null;
+  consulta?: {
+    idConsulta?: number;
+  } | null;
+}
+
+export interface ConsultaFeedback {
+  idFeedback?: number;
+  comentario?: string | null;
+  consulta?: {
+    idConsulta?: number;
+  } | null;
+}
+
+export interface AvaliacoesFeedbackResponse {
+  feedbacks: ConsultaFeedback[];
+  avaliacoes: ConsultaAvaliacao[];
 }
 
 // API service class for consultation endpoints
@@ -332,12 +348,9 @@ export class ConsultaApiService {
    * @param userType - "voluntario" for professionals or "assistido" for users
    * @returns Promise with evaluations and feedbacks data
    */
-  static async getAvaliacoesFeedback(userType: 'voluntario' | 'assistido'): Promise<{
-    feedbacks: any[];
-    avaliacoes: any[];
-  }> {
+  static async getAvaliacoesFeedback(userType: 'voluntario' | 'assistido'): Promise<AvaliacoesFeedbackResponse> {
     try {
-      const response = await apiClient.get(`/consulta/consultas/avaliacoes-feedback`, {
+      const response = await apiClient.get<AvaliacoesFeedbackResponse>(`/consulta/consultas/avaliacoes-feedback`, {
         params: { user: userType }
       });
       return response.data;
@@ -352,7 +365,7 @@ export class ConsultaApiService {
    * @param error - The error from axios
    * @returns Formatted error object
    */
-  private static handleApiError(error: any): ApiError {
+  private static handleApiError(error: unknown): ApiError {
     if (axios.isAxiosError(error)) {
       if (error.response) {
         // Server responded with error status

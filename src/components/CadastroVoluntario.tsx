@@ -186,7 +186,7 @@ const CadastroVoluntario = () => {
     };
     
     loadData();
-  }, []);
+  }, [fetchPerfil]);
 
   // Função para validar CPF
   const validarCPF = (cpf: string) => {

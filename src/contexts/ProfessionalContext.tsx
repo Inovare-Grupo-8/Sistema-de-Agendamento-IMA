@@ -1,9 +1,13 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { ProfessionalData, ProfessionalContextType, defaultProfessionalData } from '@/types/professional';
+import { useState, useEffect, ReactNode } from 'react';
+import { ProfessionalData, defaultProfessionalData } from '@/types/professional';
 import { VoluntarioApiService } from '@/services/voluntarioApi';
+import { ProfessionalContext } from '@/contexts/ProfessionalContextInstance';
 
+interface ProfessionalProviderProps {
+  children: ReactNode;
+}
 
-export const ProfessionalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const ProfessionalProvider = ({ children }: ProfessionalProviderProps) => {
   const [professionalData, setProfessionalDataState] = useState<ProfessionalData>(() => {
     const savedData = localStorage.getItem("professionalData");
     return savedData ? { ...defaultProfessionalData, ...JSON.parse(savedData) } : defaultProfessionalData;
@@ -88,5 +92,3 @@ export const ProfessionalProvider: React.FC<{ children: ReactNode }> = ({ childr
     </ProfessionalContext.Provider>
   );
 };
-
-export const ProfessionalContext = createContext<ProfessionalContextType | undefined>(undefined);

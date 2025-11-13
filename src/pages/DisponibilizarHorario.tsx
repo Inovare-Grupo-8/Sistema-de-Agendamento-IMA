@@ -26,7 +26,7 @@ import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
-import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario } from "@/hooks/useVoluntario";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
 const DisponibilizarHorario = () => {
@@ -42,7 +42,7 @@ const DisponibilizarHorario = () => {
     telefone: '',
     dataNascimento: ''
   });
-  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario | null>(null);
   const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
 
   // Estado para armazenar a data selecionada
@@ -113,6 +113,22 @@ const DisponibilizarHorario = () => {
 
     loadDadosPessoais();
   }, [buscarDadosPessoais]);
+
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados profissionais:', error);
+      }
+    };
+
+    loadDadosProfissionais();
+  }, [buscarDadosProfissionais, mapEnumToText]);
   useEffect(() => {
     setLoading(true);
     setTimeout(() => setLoading(false), 800);

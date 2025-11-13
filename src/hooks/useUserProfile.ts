@@ -60,7 +60,27 @@ export interface UseUserProfileReturn {
 export const useUserProfile = (): UseUserProfileReturn => {
     const navigate = useNavigate();
     const { setProfileImage } = useProfileImage();// Função utilitária para buscar dados de autenticação do localStorage
-    const getUserAuthData = () => {
+
+    interface StoredUserData {
+        idUsuario?: number;
+        id?: number;
+        token?: string;
+        tipo?: string;
+        nome?: string;
+        sobrenome?: string;
+        telefone?: string;
+        email?: string;
+        [key: string]: unknown;
+    }
+
+    interface UserAuthData {
+        user: StoredUserData;
+        token?: string;
+        usuarioId: number;
+        tipoUsuario?: string;
+    }
+
+    const getUserAuthData = (): UserAuthData => {
         console.log('🔍 [useUserProfile] DEBUG: getUserAuthData iniciado');
         
         const userData = localStorage.getItem('userData');
@@ -69,15 +89,15 @@ export const useUserProfile = (): UseUserProfileReturn => {
         console.log('🔍 [useUserProfile] DEBUG: userData exists:', !!userData);
         console.log('🔍 [useUserProfile] DEBUG: userInfo exists:', !!userInfo);
         console.log('🔍 [useUserProfile] DEBUG: localStorage keys:', Object.keys(localStorage));
-        
-        let user: any = {};
+
+        let user: StoredUserData = {};
         let token: string | undefined;
         let usuarioId: number | undefined;
         let tipoUsuario: string | undefined;
         
         // Tentar buscar do userData primeiro
         if (userData) {
-            user = JSON.parse(userData);
+            user = JSON.parse(userData) as StoredUserData;
             token = user.token;
             usuarioId = user.idUsuario;
             tipoUsuario = user.tipo;
@@ -85,10 +105,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
         
         // Se não encontrou idUsuario no userData, buscar no userInfo
         if (!usuarioId && userInfo) {
-            const info = JSON.parse(userInfo);
+            const info = JSON.parse(userInfo) as StoredUserData;
             usuarioId = info.id;
             tipoUsuario = info.tipo;
-        }        console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
+        }
+
+        console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
         console.log('🔍 [useUserProfile] DEBUG: Tipo de usuário original:', tipoUsuario);
         
         if (!usuarioId) {
@@ -103,12 +125,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
     };
 
     // Função para criar dados de perfil offline (quando backend não estiver disponível)
-    const createOfflineProfile = (userAuthData: any): UserProfileOutput => {
+    const createOfflineProfile = (userAuthData: UserAuthData): UserProfileOutput => {
         const { user, usuarioId } = userAuthData;
         
         // Buscar dados salvos localmente
         const savedProfile = localStorage.getItem('savedProfile');
-        const localProfile = savedProfile ? JSON.parse(savedProfile) : {};
+        const localProfile = savedProfile ? JSON.parse(savedProfile) as Partial<UserProfileOutput> : {};
         
         return {
             idUsuario: usuarioId,

@@ -15,6 +15,26 @@ import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotifi
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
+type AssistenteSocialViewModel = {
+    idUsuario: number;
+    nome: string;
+    sobrenome: string;
+    crp: string;
+    especialidade: string;
+    telefone: string;
+    email: string;
+    fotoUrl: string;
+    endereco: {
+        rua: string;
+        numero: string;
+        complemento: string;
+        bairro: string;
+        cidade: string;
+        estado: string;
+        cep: string;
+    };
+};
+
 interface NovoAssistenteSocialData {
     nome: string;
     sobrenome: string;    email: string;
@@ -86,7 +106,7 @@ export default function CadastroAssistenteSocial() {
     const location = useLocation();
     const { fetchPerfil } = useAssistenteSocial();
     
-    const [assistenteSocialData, setAssistenteSocialData] = useState({
+    const [assistenteSocialData, setAssistenteSocialData] = useState<AssistenteSocialViewModel>({
         idUsuario: 0,
         nome: '',
         sobrenome: '',
@@ -123,14 +143,14 @@ export default function CadastroAssistenteSocial() {
                     telefone: dados.telefone || '',
                     email: dados.email || '',
                     fotoUrl: dados.fotoUrl || '',
-                    endereco: dados.endereco || {
-                        rua: '',
-                        numero: '',
-                        complemento: '',
-                        bairro: '',
-                        cidade: '',
-                        estado: '',
-                        cep: ''
+                    endereco: {
+                        rua: dados.endereco?.rua ?? '',
+                        numero: dados.endereco?.numero ?? '',
+                        complemento: dados.endereco?.complemento ?? '',
+                        bairro: dados.endereco?.bairro ?? '',
+                        cidade: dados.endereco?.cidade ?? '',
+                        estado: dados.endereco?.estado ?? '',
+                        cep: dados.endereco?.cep ?? ''
                     }
                 });
             } catch (error) {
@@ -139,7 +159,7 @@ export default function CadastroAssistenteSocial() {
         };
         
         carregarPerfil();
-    }, []);
+        }, [fetchPerfil]);
 
     const [formData, setFormData] = useState<NovoAssistenteSocialData>({
         nome: '',
@@ -341,7 +361,8 @@ export default function CadastroAssistenteSocial() {
                 telefone: `${formData.telefone.ddd}${formData.telefone.numero.replace(/\D/g, '')}`,
                 bio: formData.voluntario.bio
             };            // Get the token from userData if available
-            const token = userData?.token;
+            const storedAuthData = localStorage.getItem('userData');
+            const token = storedAuthData ? (JSON.parse(storedAuthData)?.token as string | undefined) : undefined;
             
             const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/assistentes-sociais`, {
                 method: 'POST',
@@ -385,10 +406,10 @@ export default function CadastroAssistenteSocial() {
                 ...prev,
                 endereco: {
                     ...prev.endereco!,
-                    rua: endereco.logradouro,
+                    rua: endereco.rua,
                     bairro: endereco.bairro,
-                    cidade: endereco.localidade,
-                    estado: endereco.uf,
+                    cidade: endereco.cidade,
+                    estado: endereco.estado,
                     cep: endereco.cep
                 }
             }));
