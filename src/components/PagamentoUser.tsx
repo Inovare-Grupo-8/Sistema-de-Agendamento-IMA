@@ -64,7 +64,7 @@ const PagamentoUser = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [fetchPerfil]);
 
   // Estados do formulário de pagamento
   const [paymentData, setPaymentData] = useState<PaymentData>({

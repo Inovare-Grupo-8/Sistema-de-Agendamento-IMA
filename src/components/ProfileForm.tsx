@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar, User, Clock, Menu, History, Sun, Moon, ArrowLeft, Home as HomeIcon } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -97,6 +97,7 @@ const ProfileForm = () => {
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const isLoadingRef = useRef(false);
 
   // Estado para o formulário usando apenas dados do voluntário
   const [formData, setFormData] = useState(() => ({
@@ -126,8 +127,9 @@ const ProfileForm = () => {
   
   // Função para carregar dados pessoais do voluntário
   const loadProfileData = useCallback(async () => {
-    if (isLoadingData) return; // Evita múltiplas chamadas simultâneas
-    
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+
     try {
       setIsLoadingData(true);
       setInitialLoading(true);
@@ -188,25 +190,25 @@ const ProfileForm = () => {
     } finally {
       setInitialLoading(false);
       setIsLoadingData(false);
+      isLoadingRef.current = false;
     }
-  }, [buscarDadosPessoais, buscarDadosProfissionais, buscarEndereco]);
+  }, [buscarDadosPessoais, buscarDadosProfissionais, buscarEndereco, mapEnumToText]);
 
   // Carregar dados pessoais ao montar o componente (apenas uma vez)
   useEffect(() => {
     let isMounted = true;
     
     const loadData = async () => {
-      if (isMounted && !isLoadingData) {
-        await loadProfileData();
-      }
+      if (!isMounted) return;
+      await loadProfileData();
     };
     
-    loadData();
+    void loadData();
     
     return () => {
       isMounted = false;
     };
-  }, []); // Sem dependências para carregar apenas uma vez
+  }, [loadProfileData]);
 
   // Função para lidar com a mudança nos campos
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,7 +409,7 @@ const ProfileForm = () => {
   };
 
   // Função para lidar com mudanças nos dados profissionais
-  const handleDadosProfissionaisChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleDadosProfissionaisChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setDadosProfissionais(prev => ({
       ...prev,
@@ -1177,7 +1179,7 @@ const ProfileForm = () => {
                           id="funcao"
                           name="funcao"
                           value={dadosProfissionais.funcao}
-                          onChange={(e) => handleDadosProfissionaisChange(e as any)}
+                          onChange={handleDadosProfissionaisChange}
                           className={`w-full rounded-md border ${validationErrors.funcao ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]`}
                         >
                           {!dadosProfissionais.funcao && <option value="">Selecione uma especialidade</option>}

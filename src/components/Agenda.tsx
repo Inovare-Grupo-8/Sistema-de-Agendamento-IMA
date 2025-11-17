@@ -22,7 +22,7 @@ import { AgendaCardSkeleton } from "./ui/custom-skeletons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
-import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario } from "@/hooks/useVoluntario";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import React from "react";
@@ -72,7 +72,7 @@ const Agenda = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
   
-  const [dadosProfissionais, setDadosProfissionais] = useState<any>(null);
+  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario | null>(null);
   const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
   
   // Estado local para dados pessoais do voluntário

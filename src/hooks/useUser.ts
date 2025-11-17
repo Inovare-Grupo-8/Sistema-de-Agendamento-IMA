@@ -1,5 +1,5 @@
-import { useContext } from 'react';
-import { UserContext } from '@/contexts/UserContext';
+import { useCallback, useContext } from 'react';
+import { UserContext } from '@/contexts/UserContextInstance';
 
 const useUser = () => {
   const context = useContext(UserContext);
@@ -71,7 +71,7 @@ const useUser = () => {
     });
   };
   // Função para buscar dados do perfil do usuário
-  const fetchPerfil = async () => {
+  const fetchPerfil = useCallback(async () => {
     try {
       const userData = localStorage.getItem('userData');
       if (!userData) {
@@ -110,7 +110,7 @@ const useUser = () => {
       console.error('Erro ao buscar dados do perfil:', error);
       throw error;
     }
-  };
+  }, []);
 
   const uploadFoto = async (file: File): Promise<string> => {
     try {

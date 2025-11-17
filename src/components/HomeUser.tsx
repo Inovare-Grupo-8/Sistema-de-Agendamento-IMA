@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Sun, Moon, Home as HomeIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { ProximaConsulta} from "@/services/consultaApi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
 import { STATUS_COLORS } from "../constants/ui";
@@ -110,17 +110,15 @@ const HomeUser = () => {
     especialidade: string;
     tipo: string;
     status: string;
-  } | null>(null);  // Estado para o resumo dos dados
+  } | null>(null);
   const [atendimentosSummary, setAtendimentosSummary] = useState<AtendimentoSummary>({
     realizados: 0,
     canceladas: 0,
     ultimaAvaliacao: null
-  });// Estado para as próximas consultas - carregado via API
+  });
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
-  // Estado para todas as consultas (para o calendário)
   const [todasConsultas, setTodasConsultas] = useState<Consulta[]>([]);
-  //Proxima consulta do usuario
-   const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
+  const [proximaConsulta, setProximaConsulta] = useState<ProximaConsulta | null>(null);
   
   // Adicionar useEffect para carregar a próxima consulta
   useEffect(() => {
@@ -153,48 +151,51 @@ const HomeUser = () => {
     const loadConsultaData = async () => {
       setLoading(true);
       setError("");
-      
-      try {        // Buscar dados de consultas da API
-        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
-        
-        // Para o usuário assistido, mapear os dados corretamente
-        const proximaData = proximasConsultas.length > 0 ? proximasConsultas[0].data : new Date(2025, 4, 18, 10, 0);
-        
+
+      try {
+        const consultaStats = await ConsultaApiService.getAllConsultaStats("assistido");
+
+        const proximaData = proximasConsultas.length > 0
+          ? proximasConsultas[0].data
+          : new Date(2025, 4, 18, 10, 0);
+
         setConsultasSummary({
-          total: consultaStats.hoje, // Consultas de hoje (card azul)
-          proxima: proximaData, // Próxima consulta agendada
-          mes: consultaStats.mes, // Consultas do mês (card vermelho)
-          semana: consultaStats.semana // Consultas da semana (card verde)
+          total: consultaStats.hoje,
+          proxima: proximaData,
+          mes: consultaStats.mes,
+          semana: consultaStats.semana
         });
-        
-        // Preencher dados da próxima consulta se existir
+
         if (proximasConsultas.length > 0) {
-          const proximaConsulta = proximasConsultas.find(c => 
-            c.data.toDateString() === proximaData.toDateString()
+          const proximaConsultaEncontrada = proximasConsultas.find(
+            consulta => consulta.data.toDateString() === proximaData.toDateString()
           );
-          
-          if (proximaConsulta) {
+
+          if (proximaConsultaEncontrada) {
             setProximaConsultaData({
-              profissional: proximaConsulta.profissional,
-              especialidade: proximaConsulta.especialidade,
-              tipo: proximaConsulta.tipo,
-              status: proximaConsulta.status
-            });          }        }
-          // Atualizar dados dos atendimentos com dados zerados até API estar completa
+              profissional: proximaConsultaEncontrada.profissional,
+              especialidade: proximaConsultaEncontrada.especialidade,
+              tipo: proximaConsultaEncontrada.tipo,
+              status: proximaConsultaEncontrada.status
+            });
+          }
+        }
+
+        // Atualizar dados dos atendimentos com dados zerados até API estar completa
         setAtendimentosSummary({
           realizados: 0,
           canceladas: 0,
           ultimaAvaliacao: null
         });
-        
-      } catch (err: any) {        console.error('Erro ao carregar dados das consultas:', err);
-        setError(err.message || "Erro ao carregar dados das consultas");
-        
-        // Manter dados zerados em caso de erro
-        const proximaData = new Date(2025, 4, 18, 10, 0);
+      } catch (err) {
+        console.error("Erro ao carregar dados das consultas:", err);
+        const message = err instanceof Error ? err.message : "Erro ao carregar dados das consultas";
+        setError(message);
+
+        const fallbackDate = new Date(2025, 4, 18, 10, 0);
         setConsultasSummary({
           total: 0,
-          proxima: proximaData,
+          proxima: fallbackDate,
           mes: 0,
           semana: 0
         });
@@ -204,118 +205,94 @@ const HomeUser = () => {
     };
 
     loadConsultaData();
-  }, [proximasConsultas]);  // Load all consultations when component mounts
-  useEffect(() => {
-    const loadData = async () => {
-      await loadTodasConsultas();
-      // After loading próximas consultas, load histórico to calculate statistics properly
-      setTimeout(() => {
-        loadHistoricoRecente();
-      }, 100); // Small delay to ensure proximasConsultas state is updated
-    };
-    loadData();
-  }, []);
-
-  // Also reload histórico when proximasConsultas changes
-  useEffect(() => {
-    if (proximasConsultas.length >= 0) { // Check if proximasConsultas has been loaded (even if empty)
-      loadHistoricoRecente();
-    }
-  }, [proximasConsultas]);  // Function to load recent history including canceled consultations
-  const loadHistoricoRecente = async () => {
+  }, [proximasConsultas]);
+  const loadHistoricoRecente = useCallback(async () => {
     try {
-      // Load historical consultations (completed and canceled)
-      const historicoData = await ConsultaApiService.getHistoricoConsultas('assistido');
-      
-      // Load evaluations and feedbacks from API
-      const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback('assistido');
-      
-      // Create maps for quick lookup
-      const avaliacoesMap = new Map();
-      const feedbacksMap = new Map();
-      
-      avaliacoesFeedback.avaliacoes?.forEach((avaliacao: any) => {
-        if (avaliacao.consulta?.idConsulta) {
-          avaliacoesMap.set(avaliacao.consulta.idConsulta, avaliacao.nota);
+      const historicoData = await ConsultaApiService.getHistoricoConsultas("assistido");
+      const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback("assistido");
+
+      const avaliacoesMap = new Map<number, number | null>();
+      avaliacoesFeedback.avaliacoes?.forEach(avaliacao => {
+        const idConsulta = avaliacao.consulta?.idConsulta;
+        if (idConsulta) {
+          avaliacoesMap.set(idConsulta, avaliacao.nota ?? null);
         }
       });
-      
-      avaliacoesFeedback.feedbacks?.forEach((feedback: any) => {
-        if (feedback.consulta?.idConsulta) {
-          feedbacksMap.set(feedback.consulta.idConsulta, feedback.comentario);
-        }
-      });
-      
-      // Convert API data to component format and filter for recent history
+
       const historicoFormatted: Consulta[] = historicoData
         .map(consulta => {
           const consultaDate = new Date(consulta.horario);
           const consultaId = consulta.idConsulta;
-          
-          // Get evaluation for this consultation
           const rating = avaliacoesMap.get(consultaId);
-          
+
           return {
             id: consultaId,
-            profissional: consulta.voluntario?.ficha?.nome || 'Voluntário',
-            especialidade: consulta.especialidade?.nome || 'Especialidade',
+            profissional: consulta.voluntario?.ficha?.nome || "Voluntário",
+            especialidade: consulta.especialidade?.nome || "Especialidade",
             data: consultaDate,
             tipo: consulta.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
             status: consulta.status.toLowerCase() as "realizada" | "cancelada" | "remarcada",
-            avaliacao: rating || undefined // Real evaluation data from API
+            avaliacao: rating ?? undefined
           };
         })
-        // Sort by date descending (most recent first) and take only last 5
         .sort((a, b) => b.data.getTime() - a.data.getTime())
         .slice(0, 5);
-      
-      setHistoricoRecente(historicoFormatted);      // Calculate statistics for "Meu Histórico" card based on all historical data
-      const consultasRealizadas = historicoData.filter(consulta => 
-        consulta.status.toLowerCase() === 'realizada'
+
+      setHistoricoRecente(historicoFormatted);
+
+      const consultasRealizadas = historicoData.filter(
+        consulta => consulta.status.toLowerCase() === "realizada"
       ).length;
-      
-      // Calculate cancelled consultations (both from historical data and upcoming)
-      const consultasHistoricoCanceladas = historicoData.filter(consulta => 
-        consulta.status.toLowerCase() === 'cancelada'
+
+      const consultasHistoricoCanceladas = historicoData.filter(
+        consulta => consulta.status.toLowerCase() === "cancelada"
       ).length;
-      
-      const consultasProximasCanceladas = proximasConsultas.filter(consulta => {
-        return consulta.status.toLowerCase() === 'cancelada';
-      }).length;
-      
+
+      const consultasProximasCanceladas = proximasConsultas.filter(
+        consulta => consulta.status.toLowerCase() === "cancelada"
+      ).length;
+
       const consultasCanceladas = consultasHistoricoCanceladas + consultasProximasCanceladas;
-      
-      // Get the most recent evaluation from real API data
-      let ultimaAvaliacao = null;
-      const consultasComAvaliacao = historicoFormatted.filter(c => c.avaliacao);
+
+      let ultimaAvaliacao: number | null = null;
+      const consultasComAvaliacao = historicoFormatted.filter(consulta => consulta.avaliacao != null);
       if (consultasComAvaliacao.length > 0) {
-        // Get the most recent consultation with evaluation
-        const consultaRecente = consultasComAvaliacao.sort((a, b) => 
-          new Date(b.data).getTime() - new Date(a.data).getTime()
-        )[0];
-        ultimaAvaliacao = consultaRecente.avaliacao || null;
+        const consultaRecente = consultasComAvaliacao
+          .sort((a, b) => b.data.getTime() - a.data.getTime())[0];
+        ultimaAvaliacao = consultaRecente.avaliacao ?? null;
       }
-        // Update the statistics with real data
+
       setAtendimentosSummary({
         realizados: consultasRealizadas,
-        canceladas: consultasCanceladas, // Now showing cancelled consultations
-        ultimaAvaliacao: ultimaAvaliacao // Real evaluation from API
-      });
-      
-      console.log('Histórico recente carregado:', historicoFormatted);      console.log('Estatísticas atualizadas:', {
-        realizados: consultasRealizadas,
         canceladas: consultasCanceladas,
-        ultimaAvaliacao: ultimaAvaliacao
+        ultimaAvaliacao
       });
-    } catch (error) {
-      console.error("Erro ao carregar histórico recente:", error);
+    } catch (err) {
+      console.error("Erro ao carregar histórico recente:", err);
       toast({
         title: "Erro",
         description: "Não foi possível carregar o histórico recente",
         variant: "destructive"
       });
     }
-  };
+  }, [proximasConsultas, setAtendimentosSummary]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await loadTodasConsultas();
+      setTimeout(() => {
+        loadHistoricoRecente();
+      }, 100);
+    };
+    loadData();
+  }, [loadHistoricoRecente]);
+
+  // Also reload histórico when proximasConsultas changes
+  useEffect(() => {
+    if (proximasConsultas.length >= 0) {
+      loadHistoricoRecente();
+    }
+  }, [loadHistoricoRecente, proximasConsultas]);
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
     try {
@@ -509,11 +486,14 @@ const HomeUser = () => {
       setSelectedConsultaFeedback(null);
       setCurrentRating(0);
       setCurrentComment("");
-    } catch (error: any) {
-      console.error('Error saving feedback:', error);
+    } catch (error) {
+      console.error("Error saving feedback:", error);
+      const description = error instanceof Error
+        ? error.message
+        : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.";
       toast({
         title: "Erro ao salvar feedback",
-        description: error.message || "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        description,
         variant: "destructive"
       });
     }
@@ -660,7 +640,7 @@ const HomeUser = () => {
     };
 
     fetchUserData();
-  }, []);
+  }, [setProfileImage, setUserData]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -679,7 +659,7 @@ const HomeUser = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [fetchPerfil]);
 
   const [voluntarioProfile, setVoluntarioProfile] = useState<{ nome: string; sobrenome: string; funcao: string; profileImage: string | null }>({ nome: '', sobrenome: '', funcao: '', profileImage: null });
 
@@ -688,7 +668,9 @@ const HomeUser = () => {
     if (data) {
       try {
         setVoluntarioProfile(JSON.parse(data));
-      } catch {}
+      } catch (error) {
+        console.error('Erro ao parsear voluntarioProfileData do localStorage', error);
+      }
     }
   }, []);
 

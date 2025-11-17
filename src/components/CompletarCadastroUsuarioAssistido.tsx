@@ -36,31 +36,121 @@ import {
     UserCheck,
     Save,
     Smartphone,
-    Clock,    Check
+    Clock,
+    Check
 } from "lucide-react";
 
+type FaixaSalarialOption =
+    | ""
+    | "ate-1-salario"
+    | "1-a-2-salarios"
+    | "2-a-3-salarios"
+    | "3-a-5-salarios"
+    | "5-a-10-salarios"
+    | "10-a-20-salarios"
+    | "acima-20-salarios"
+    | "prefiro-nao-informar";
+
+interface FormDataState {
+    nomeCompleto: string;
+    telefone: string;
+    dataNascimento: string;
+    cpf: string;
+    faixaSalarial: FaixaSalarialOption;
+    email: string;
+    cep: string;
+    logradouro: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    areaOrientacao: string;
+    profissao: string;
+    comoSoube: string;
+    sugestaoOutraArea: string;
+    genero: string;
+    isVoluntario: boolean;
+}
+
+type FormFieldName = keyof FormDataState;
+
+interface TelefonePayload {
+    ddd: string;
+    prefixo: string;
+    sufixo: string;
+    whatsapp: boolean;
+}
+
+interface BackendPayload {
+    nomeCompleto: string;
+    email: string;
+    cpf: string;
+    dataNascimento: string;
+    rendaMinima: number;
+    rendaMaxima: number;
+    genero: string;
+    profissao: string;
+    areaOrientacao: string;
+    comoSoube: string;
+    sugestaoOutraArea: string | null;
+    tipo: "NAO_CLASSIFICADO";
+    endereco: {
+        cep: string;
+        numero: string;
+        complemento: string | null;
+    };
+    telefone: TelefonePayload;
+    isVoluntario: boolean;
+    senha?: string;
+}
+
+const initialFormState: FormDataState = {
+    nomeCompleto: "",
+    telefone: "",
+    dataNascimento: "",
+    cpf: "",
+    faixaSalarial: "",
+    email: "",
+    cep: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+    areaOrientacao: "",
+    profissao: "",
+    comoSoube: "",
+    sugestaoOutraArea: "",
+    genero: "",
+    isVoluntario: false,
+};
+
+const initialErrorsState: Record<FormFieldName, string> = {
+    nomeCompleto: "",
+    telefone: "",
+    dataNascimento: "",
+    cpf: "",
+    faixaSalarial: "",
+    email: "",
+    cep: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+    areaOrientacao: "",
+    profissao: "",
+    comoSoube: "",
+    sugestaoOutraArea: "",
+    genero: "",
+    isVoluntario: "",
+};
+
 export function CompletarCadastroUsuarioAssistido() {
-    const [formData, setFormData] = useState({
-        nomeCompleto: "",
-        telefone: "",
-        dataNascimento: "",
-        cpf: "",
-        faixaSalarial: "",
-        email: "",
-        cep: "",
-        logradouro: "",
-        numero: "",
-        complemento: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        areaOrientacao: "",
-        profissao: "",
-        comoSoube: "",
-        sugestaoOutraArea: "",
-        genero: "",
-        isVoluntario: false,
-    });
+    const [formData, setFormData] = useState<FormDataState>(initialFormState);
 
     // State for error feedback when submitting
     const [submitError, setSubmitError] = useState<string | null>(null);    // New state to store user ID from first phase
@@ -85,13 +175,14 @@ export function CompletarCadastroUsuarioAssistido() {
     const [generatedPassword, setGeneratedPassword] = useState<string>("");
 
     const [currentStep, setCurrentStep] = useState(1);
-    const [completedFields, setCompletedFields] = useState(new Set());
+    const [completedFields, setCompletedFields] = useState(new Set<FormFieldName>());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [fieldStates, setFieldStates] = useState<Record<string, 'valid' | 'invalid' | 'default'>>({});    const [isLoading, setIsLoading] = useState({ cep: false });
+    const [fieldStates, setFieldStates] = useState<Partial<Record<FormFieldName, 'valid' | 'invalid' | 'default'>>>({});
+    const [isLoading, setIsLoading] = useState({ cep: false });
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
-    const [changedFields, setChangedFields] = useState<Set<string>>(new Set());
-    const [initialFormData, setInitialFormData] = useState<typeof formData | null>(null);
+    const [changedFields, setChangedFields] = useState<Set<FormFieldName>>(new Set<FormFieldName>());
+    const [initialFormData, setInitialFormData] = useState<FormDataState | null>(null);
     const [profissionSuggestions, setProfissionSuggestions] = useState<string[]>([]);
     const [showProfessionSuggestions, setShowProfessionSuggestions] = useState(false);
     const profissionInputRef = useRef<HTMLInputElement>(null);
@@ -120,34 +211,18 @@ export function CompletarCadastroUsuarioAssistido() {
         "Nutricionista", "Biomédico", "Terapeuta Ocupacional", "Fonoaudiólogo",
         "Assistente Social", "Pedagogo", "Economista", "Publicitário", "Chef",
         "Corretor de Imóveis", "Vendedor", "Consultor", "Analista", "Técnico"
-    ];    const [errors, setErrors] = useState({
-        nomeCompleto: "",
-        telefone: "",
-        dataNascimento: "",
-        cpf: "",
-        faixaSalarial: "",
-        email: "",
-        cep: "",
-        logradouro: "",
-        numero: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        areaOrientacao: "",
-        profissao: "",
-        comoSoube: "",
-        genero: "", // Erro para o novo campo de gênero
-        isVoluntario: "", // Erro para o campo "É voluntário?"
-    });
+    ];
+    const [errors, setErrors] = useState<Record<FormFieldName, string>>(initialErrorsState);
 
     // Carregar dados salvos ao montar o componente
-    useEffect(() => {        const savedData = localStorage.getItem('cadastro_usuario_assistido_form_data');
+    useEffect(() => {
+        const savedData = localStorage.getItem('cadastro_usuario_assistido_form_data');
         const savedTimestamp = localStorage.getItem('cadastro_usuario_assistido_form_timestamp');
 
         if (savedData) {
             try {
-                const parsedData = JSON.parse(savedData);
-                setFormData(parsedData);
+                const parsedData = JSON.parse(savedData) as Partial<FormDataState>;
+                setFormData(prev => ({ ...prev, ...parsedData }));
                 if (savedTimestamp) {
                     setLastSaved(new Date(savedTimestamp));
                 }
@@ -155,31 +230,19 @@ export function CompletarCadastroUsuarioAssistido() {
                 console.error('Erro ao carregar dados salvos:', error);
             }
         }
-    }, []);    // Intelligent auto-save that only saves changed fields
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {            if (changedFields.size > 0) {
-                // Create partial data with only changed fields
-                const changedData: any = {};
-                changedFields.forEach(fieldName => {
-                    if (fieldName in formData) {
-                        changedData[fieldName as keyof typeof formData] = formData[fieldName as keyof typeof formData];
-                    }
-                });
+    }, []);
 
-                // Save to localStorage with timestamp
-                const saveData = {
-                    ...changedData,
-                    lastModified: new Date().toISOString(),
-                    userId: idUsuario
-                };
-                  localStorage.setItem('cadastro_usuario_assistido_form_data', JSON.stringify(formData));
+    // Intelligent auto-save that only saves changed fields
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (changedFields.size > 0) {
+                localStorage.setItem('cadastro_usuario_assistido_form_data', JSON.stringify(formData));
                 localStorage.setItem('cadastro_usuario_assistido_changed_fields', JSON.stringify(Array.from(changedFields)));
                 localStorage.setItem('cadastro_usuario_assistido_form_timestamp', new Date().toISOString());
                 setLastSaved(new Date());
-                
-                // Clear changed fields after save
-                setChangedFields(new Set());
-                
+
+                setChangedFields(new Set<FormFieldName>());
+
                 console.log('Auto-saved changed fields:', Array.from(changedFields));
             }
         }, 2000); // Save 2 seconds after last change
@@ -204,7 +267,7 @@ export function CompletarCadastroUsuarioAssistido() {
     };
 
     // Validação em tempo real
-    const validateField = (fieldName: string, value: string) => {
+    const validateField = (fieldName: FormFieldName, value: string) => {
         let isValid = true;
         let errorMessage = "";
 
@@ -379,9 +442,9 @@ export function CompletarCadastroUsuarioAssistido() {
 
         return isValid;
     };    // Handler para mudanças nos campos com validação em tempo real
-    const handleFieldChange = (fieldName: string, value: string | boolean) => {
+    const handleFieldChange = <K extends FormFieldName>(fieldName: K, value: FormDataState[K]) => {
         setFormData(prev => ({ ...prev, [fieldName]: value }));
-        
+
         // Track changed fields for intelligent auto-save
         setChangedFields(prev => new Set(prev).add(fieldName));
 
@@ -399,6 +462,8 @@ export function CompletarCadastroUsuarioAssistido() {
         // Filtrar profissões se for o campo profissão
         if (fieldName === 'profissao' && typeof value === 'string') {
             filterProfessionSuggestions(value);
+        } else if (fieldName !== 'profissao') {
+            setShowProfessionSuggestions(false);
         }
     };
 
@@ -523,14 +588,14 @@ export function CompletarCadastroUsuarioAssistido() {
 
     const validateForm = () => {
         let isValid = true;
-        const fields = Object.keys(formData).filter(key =>
+        const fields = (Object.keys(formData) as FormFieldName[]).filter(key =>
             key !== 'sugestaoOutraArea' && key !== 'complemento'
         );
 
         fields.forEach(field => {
-            const value = formData[field as keyof typeof formData];
+            const value = formData[field];
             if (typeof value === 'string') {
-                const fieldIsValid = validateField(field, value);
+                const fieldIsValid = validateField(field as FormFieldName, value as string);
                 if (!fieldIsValid) isValid = false;
             } else if (typeof value === 'boolean') {
                 // Para campos booleanos obrigatórios
@@ -546,7 +611,9 @@ export function CompletarCadastroUsuarioAssistido() {
         });
 
         return isValid;
-    };    useEffect(() => {
+    };
+
+    useEffect(() => {
         if (!idUsuario) {
             console.log("idUsuario não encontrado na URL.");
             return;
@@ -572,23 +639,26 @@ export function CompletarCadastroUsuarioAssistido() {
                 // Campos que vieram do banco e não devem ser editados
                 const fieldsFromDB = new Set<string>();
                 
-                const updatedFormData = { ...formData };
-                
-                if (data.nome && data.sobrenome) {
-                    updatedFormData.nomeCompleto = `${data.nome} ${data.sobrenome}`;
-                    fieldsFromDB.add('nomeCompleto');
-                }
-                if (data.email) {
-                    updatedFormData.email = data.email;
-                    fieldsFromDB.add('email');
-                }                if (data.cpf) {
-                    updatedFormData.cpf = formatters.cpf(data.cpf);
-                    fieldsFromDB.add('cpf');
-                }
-                if (data.dataNascimento) {
-                    updatedFormData.dataNascimento = data.dataNascimento;
-                }
-                  setFormData(updatedFormData);
+                // Update form data using functional setter to avoid depending on outer `formData`
+                setFormData(prev => {
+                    const updatedFormData = { ...prev };
+                    if (data.nome && data.sobrenome) {
+                        updatedFormData.nomeCompleto = `${data.nome} ${data.sobrenome}`;
+                        fieldsFromDB.add('nomeCompleto');
+                    }
+                    if (data.email) {
+                        updatedFormData.email = data.email;
+                        fieldsFromDB.add('email');
+                    }
+                    if (data.cpf) {
+                        updatedFormData.cpf = formatters.cpf(data.cpf);
+                        fieldsFromDB.add('cpf');
+                    }
+                    if (data.dataNascimento) {
+                        updatedFormData.dataNascimento = data.dataNascimento;
+                    }
+                    return updatedFormData;
+                });
                 setReadOnlyFields(fieldsFromDB);
                 
                 // Salva dados da primeira fase
@@ -631,24 +701,26 @@ export function CompletarCadastroUsuarioAssistido() {
                     // Determinar quais campos vieram do banco e devem ser somente leitura
                     const fieldsFromDB = new Set<string>();
                     
-                    // Atualizar os dados do formulário
-                    const updatedFormData = { ...formData };
-                    
-                    if (data.nome) {
-                        fieldsFromDB.add('nomeCompleto');
-                        updatedFormData.nomeCompleto = data.sobrenome ? `${data.nome} ${data.sobrenome}` : data.nome;
-                    }
-                    if (data.email) {
-                        fieldsFromDB.add('email');
-                        updatedFormData.email = data.email;
-                    }                    if (data.cpf) {
-                        fieldsFromDB.add('cpf');
-                        updatedFormData.cpf = formatters.cpf(data.cpf);
-                    }
-                    if (data.dataNascimento) {
-                        updatedFormData.dataNascimento = data.dataNascimento;
-                    }
-                      setFormData(updatedFormData);
+                    // Atualizar os dados do formulário usando setter funcional
+                    setFormData(prev => {
+                        const updatedFormData = { ...prev };
+                        if (data.nome) {
+                            fieldsFromDB.add('nomeCompleto');
+                            updatedFormData.nomeCompleto = data.sobrenome ? `${data.nome} ${data.sobrenome}` : data.nome;
+                        }
+                        if (data.email) {
+                            fieldsFromDB.add('email');
+                            updatedFormData.email = data.email;
+                        }
+                        if (data.cpf) {
+                            fieldsFromDB.add('cpf');
+                            updatedFormData.cpf = formatters.cpf(data.cpf);
+                        }
+                        if (data.dataNascimento) {
+                            updatedFormData.dataNascimento = data.dataNascimento;
+                        }
+                        return updatedFormData;
+                    });
                     setReadOnlyFields(fieldsFromDB);
                     
                     // Salva dados da primeira fase
@@ -671,58 +743,62 @@ export function CompletarCadastroUsuarioAssistido() {
     }, [formData.email, idUsuario, fieldStates.email]);
 
     // Utility functions for payload transformation
-    const parsePhoneNumber = (phone: string) => {
-        // Extract from format "(11) 98765-4321" to ddd, prefixo, sufixo
+    const parsePhoneNumber = (phone: string): TelefonePayload => {
         const cleaned = phone.replace(/\D/g, '');
         if (cleaned.length === 11) {
             return {
                 ddd: cleaned.substring(0, 2),
                 prefixo: cleaned.substring(2, 7),
                 sufixo: cleaned.substring(7, 11),
-                whatsapp: true // Default to true, could be made configurable
+                whatsapp: true,
             };
-        } else if (cleaned.length === 10) {
+        }
+        if (cleaned.length === 10) {
             return {
                 ddd: cleaned.substring(0, 2),
                 prefixo: cleaned.substring(2, 6),
                 sufixo: cleaned.substring(6, 10),
-                whatsapp: false
+                whatsapp: false,
             };
         }
         throw new Error('Invalid phone number format');
-    };    const SALARIO_MINIMO = 1518.00;    const convertSalaryRange = (faixaSalarial: string): { rendaMinima: number; rendaMaxima: number } => {
+    };
+
+    const SALARIO_MINIMO = 1518.0;
+    const convertSalaryRange = (faixaSalarial: FaixaSalarialOption): { rendaMinima: number; rendaMaxima: number } => {
         switch (faixaSalarial) {
-            case 'ate-1-salario': 
+            case 'ate-1-salario':
                 return { rendaMinima: 0, rendaMaxima: SALARIO_MINIMO };
-            case '1-a-2-salarios': 
+            case '1-a-2-salarios':
                 return { rendaMinima: SALARIO_MINIMO, rendaMaxima: SALARIO_MINIMO * 2 };
-            case '2-a-3-salarios': 
+            case '2-a-3-salarios':
                 return { rendaMinima: SALARIO_MINIMO * 2, rendaMaxima: SALARIO_MINIMO * 3 };
-            case '3-a-5-salarios': 
+            case '3-a-5-salarios':
                 return { rendaMinima: SALARIO_MINIMO * 3, rendaMaxima: SALARIO_MINIMO * 5 };
-            case '5-a-10-salarios': 
+            case '5-a-10-salarios':
                 return { rendaMinima: SALARIO_MINIMO * 5, rendaMaxima: SALARIO_MINIMO * 10 };
-            case '10-a-20-salarios': 
+            case '10-a-20-salarios':
                 return { rendaMinima: SALARIO_MINIMO * 10, rendaMaxima: SALARIO_MINIMO * 20 };
-            case 'acima-20-salarios': 
+            case 'acima-20-salarios':
                 return { rendaMinima: SALARIO_MINIMO * 20, rendaMaxima: SALARIO_MINIMO * 30 };
-            case 'prefiro-nao-informar': 
+            case 'prefiro-nao-informar':
                 return { rendaMinima: 0, rendaMaxima: 0 };
-            default: 
+            default:
                 return { rendaMinima: 0, rendaMaxima: SALARIO_MINIMO };
         }
     };
 
-    const formatDateForBackend = (dateString: string): string => {
-        // Convert from YYYY-MM-DD to backend LocalDate format
-        return dateString; // LocalDate expects YYYY-MM-DD format
-    };    const transformToBackendPayload = (formData: any): any => {
+    const formatDateForBackend = (dateString: string): string => dateString;
+
+    const transformToBackendPayload = (formData: FormDataState): BackendPayload => {
         try {
             const telefoneData = parsePhoneNumber(formData.telefone);
             const salaryData = convertSalaryRange(formData.faixaSalarial);
-              return {
+
+            return {
                 nomeCompleto: formData.nomeCompleto,
-                email: formData.email,                cpf: formData.cpf.replace(/\D/g, ''), 
+                email: formData.email,
+                cpf: formData.cpf.replace(/\D/g, ''),
                 dataNascimento: formatDateForBackend(formData.dataNascimento),
                 rendaMinima: salaryData.rendaMinima,
                 rendaMaxima: salaryData.rendaMaxima,
@@ -731,20 +807,20 @@ export function CompletarCadastroUsuarioAssistido() {
                 areaOrientacao: formData.areaOrientacao,
                 comoSoube: formData.comoSoube,
                 sugestaoOutraArea: formData.sugestaoOutraArea || null,
-                tipo: "NAO_CLASSIFICADO",
+                tipo: 'NAO_CLASSIFICADO',
                 endereco: {
-                    cep: formData.cep.replace(/\D/g, ''), 
+                    cep: formData.cep.replace(/\D/g, ''),
                     numero: formData.numero,
-                    complemento: formData.complemento || null
+                    complemento: formData.complemento || null,
                 },
                 telefone: telefoneData,
-                isVoluntario: false
+                isVoluntario: formData.isVoluntario,
             };
         } catch (error) {
             console.error('Error transforming payload:', error);
             throw new Error('Erro ao processar dados do formulário');
         }
-    };// Updated handleSubmit function
+    };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -844,25 +920,7 @@ export function CompletarCadastroUsuarioAssistido() {
             genero: "",
             isVoluntario: false,
         });
-        setErrors({
-            nomeCompleto: "",
-            telefone: "",
-            dataNascimento: "",
-            cpf: "",
-            faixaSalarial: "",
-            email: "",
-            cep: "",
-            logradouro: "",
-            numero: "",
-            bairro: "",
-            cidade: "",
-            estado: "",
-            areaOrientacao: "",
-            profissao: "",
-            comoSoube: "",
-            genero: "",
-            isVoluntario: "",
-        });
+        setErrors(initialErrorsState);
         setFieldStates({});
         setLastSaved(null);
     };
@@ -1430,7 +1488,7 @@ export function CompletarCadastroUsuarioAssistido() {
                                                     Qual sua faixa salarial? <span className="text-red-500">*</span>
                                                 </Label>
                                                 {renderFieldWithState('faixaSalarial',
-                                                    <Select value={formData.faixaSalarial} onValueChange={(value) => handleFieldChange('faixaSalarial', value)}>
+                                                    <Select value={formData.faixaSalarial} onValueChange={(value) => handleFieldChange('faixaSalarial', value as FaixaSalarialOption)}>
                                                         <SelectTrigger className={cn(
                                                             "mt-2 h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
                                                             fieldStates.faixaSalarial === 'valid' && "border-green-500 bg-green-50/50",
@@ -2038,25 +2096,8 @@ export function CompletarCadastroUsuarioAssistido() {
                                                         genero: "", // Resetar o campo de gênero
                                                         isVoluntario: false, // Resetar o campo "É voluntário?"
                                                     });
-                                                    setFieldStates({});                                                    setErrors({
-                                                        nomeCompleto: "",
-                                                        telefone: "",
-                                                        dataNascimento: "",
-                                                        cpf: "",
-                                                        faixaSalarial: "",
-                                                        email: "",
-                                                        cep: "",
-                                                        logradouro: "",
-                                                        numero: "",
-                                                        bairro: "",
-                                                        cidade: "",
-                                                        estado: "",
-                                                        areaOrientacao: "",
-                                                        profissao: "",
-                                                        comoSoube: "",
-                                                        genero: "", // Resetar erro do campo de gênero
-                                                        isVoluntario: "", // Resetar erro do campo "É voluntário?"
-                                                    });
+                                                    setFieldStates({});
+                                                    setErrors(initialErrorsState);
                                                     setLastSaved(null);
                                                 }}
                                                 className="w-full sm:w-auto px-6 sm:px-10 h-12 sm:h-14 text-base font-medium border-2 border-gray-300/70 text-gray-700 dark:text-gray-200 dark:border-gray-600/70 hover:bg-gray-50/80 dark:hover:bg-gray-700/80 transition-all duration-300 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl"

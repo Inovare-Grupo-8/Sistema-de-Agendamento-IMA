@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calendar as CalendarIcon, User, Clock, Menu, History, Calendar, Sun, Moon, Home as HomeIcon, ArrowLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { userNavigationItems } from "@/utils/userNavigation";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -95,8 +95,9 @@ const ProfileFormUser = () => {
   const [formChanged, setFormChanged] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);// Load profile data using the new hook
-  const loadProfileData = async () => {
+  const [imageError, setImageError] = useState(false);
+
+  const loadProfileData = useCallback(async () => {
     console.log('🟢 [ProfileForm] DEBUG: loadProfileData iniciado');
     console.log('🟢 [ProfileForm] DEBUG: URL atual:', window.location.href);
     console.log('🟢 [ProfileForm] DEBUG: Timestamp:', new Date().toISOString());
@@ -198,13 +199,13 @@ const ProfileFormUser = () => {
       console.log('🏁 [ProfileForm] DEBUG: loadProfileData finalizado');
       setInitialLoading(false);
     }
-  };
+  }, [buscarEndereco, fetchPerfil, setUserData]);
   useEffect(() => {
     console.log('🚀 [ProfileForm] DEBUG: useEffect montado - iniciando carregamento do perfil');
     console.log('🚀 [ProfileForm] DEBUG: Componente montado em:', window.location.pathname);
     console.log('🚀 [ProfileForm] DEBUG: User agent:', navigator.userAgent);
     loadProfileData();
-  }, []);
+  }, [loadProfileData]);
 
   // 🔄 CORREÇÃO: Sincronizar imagem do perfil ao carregar o componente
   useEffect(() => {
@@ -624,18 +625,6 @@ const ProfileFormUser = () => {
       console.log('🔴 [ProfileForm] DEBUG: URL no momento da desmontagem:', window.location.href);
     };
   }, []);  // Interceptador para monitorar todas as tentativas de navegação
-  const interceptedNavigate = (to: string, options?: any) => {
-    console.log('🚨 [ProfileForm] DEBUG: TENTATIVA DE NAVEGAÇÃO DETECTADA!');
-    console.log('🚨 [ProfileForm] DEBUG: Destino:', to);
-    console.log('🚨 [ProfileForm] DEBUG: Opções:', options);
-    console.log('🚨 [ProfileForm] DEBUG: URL atual antes da navegação:', window.location.href);
-    console.log('🚨 [ProfileForm] DEBUG: Stack trace da navegação:', new Error().stack);
-    
-    // Chamar o navigate original
-    return navigate(to, options);
-  };
-
-
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans text-base">        {!sidebarOpen && (

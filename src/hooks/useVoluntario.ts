@@ -28,8 +28,10 @@ export const useVoluntario = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  type VoluntarioCacheValue = DadosPessoaisVoluntario | DadosProfissionaisVoluntario | null;
+
   // ✅ Cache para evitar chamadas repetidas
-  const [cache, setCache] = useState<Map<string, any>>(new Map());
+  const [cache, setCache] = useState<Map<string, VoluntarioCacheValue>>(new Map());
   
   // Função para mapear valores do backend para nomes dos enums
   const mapBackendValueToEnum = (backendValue: string): string => {
@@ -69,7 +71,7 @@ export const useVoluntario = () => {
   const buscarDadosPessoais = useCallback(async (): Promise<DadosPessoaisVoluntario | null> => {
     // ✅ Verificar cache primeiro
     if (cache.has('dadosPessoais')) {
-      return cache.get('dadosPessoais');
+      return cache.get('dadosPessoais') as DadosPessoaisVoluntario | null;
     }
     
     if (loading) return null; // ✅ Evitar chamadas simultâneas
@@ -102,10 +104,14 @@ export const useVoluntario = () => {
         throw new Error('Erro ao buscar dados pessoais');
       }
 
-      const dados = await response.json();
+      const dados = await response.json() as DadosPessoaisVoluntario;
       
       // ✅ Salvar no cache
-      setCache(prev => new Map(prev).set('dadosPessoais', dados));
+      setCache(prev => {
+        const next = new Map(prev);
+        next.set('dadosPessoais', dados);
+        return next;
+      });
       
       return dados;
     } catch (error) {
@@ -166,7 +172,7 @@ export const useVoluntario = () => {
   const buscarDadosProfissionais = useCallback(async (): Promise<DadosProfissionaisVoluntario | null> => {
     // ✅ Verificar cache primeiro
     if (cache.has('dadosProfissionais')) {
-      return cache.get('dadosProfissionais');
+      return cache.get('dadosProfissionais') as DadosProfissionaisVoluntario | null;
     }
     
     if (loading) return null; // ✅ Evitar chamadas simultâneas
@@ -200,7 +206,7 @@ export const useVoluntario = () => {
         throw new Error('Erro ao buscar dados profissionais');
       }
 
-      const dadosCompletos = await response.json();
+  const dadosCompletos = await response.json();
       
       // Extrair apenas os dados profissionais
       const dadosProfissionais: DadosProfissionaisVoluntario = {
@@ -210,7 +216,11 @@ export const useVoluntario = () => {
       };
       
       // ✅ Salvar no cache
-      setCache(prev => new Map(prev).set('dadosProfissionais', dadosProfissionais));
+      setCache(prev => {
+        const next = new Map(prev);
+        next.set('dadosProfissionais', dadosProfissionais);
+        return next;
+      });
       
       return dadosProfissionais;
     } catch (error) {

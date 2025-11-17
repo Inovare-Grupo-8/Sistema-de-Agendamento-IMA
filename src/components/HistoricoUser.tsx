@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getUserNavigationPath, userNavigationItems } from "@/utils/userNavigation";
-import { ConsultaApiService, ConsultaOutput } from "@/services/consultaApi";
+import { ConsultaApiService, ConsultaAvaliacao, ConsultaFeedback } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData"; 
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,9 @@ const HistoricoUser = () => {
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);  useEffect(() => {
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+  useEffect(() => {
     const loadHistorico = async () => {
       setLoading(true);
       setError("");
@@ -86,18 +88,20 @@ const HistoricoUser = () => {
         const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback('assistido');
         
         // Create maps for quick lookup
-        const avaliacoesMap = new Map();
-        const feedbacksMap = new Map();
-        
-        avaliacoesFeedback.avaliacoes?.forEach((avaliacao: any) => {
-          if (avaliacao.consulta?.idConsulta) {
-            avaliacoesMap.set(avaliacao.consulta.idConsulta, avaliacao.nota);
+        const avaliacoesMap = new Map<number, number | null>();
+        const feedbacksMap = new Map<number, string | null>();
+
+        avaliacoesFeedback.avaliacoes?.forEach((avaliacao: ConsultaAvaliacao) => {
+          const idConsulta = avaliacao.consulta?.idConsulta;
+          if (typeof idConsulta === "number") {
+            avaliacoesMap.set(idConsulta, avaliacao.nota ?? null);
           }
         });
-        
-        avaliacoesFeedback.feedbacks?.forEach((feedback: any) => {
-          if (feedback.consulta?.idConsulta) {
-            feedbacksMap.set(feedback.consulta.idConsulta, feedback.comentario);
+
+        avaliacoesFeedback.feedbacks?.forEach((feedback: ConsultaFeedback) => {
+          const idConsulta = feedback.consulta?.idConsulta;
+          if (typeof idConsulta === "number") {
+            feedbacksMap.set(idConsulta, feedback.comentario ?? null);
           }
         });
         
@@ -120,7 +124,7 @@ const HistoricoUser = () => {
             status: consulta.status.toLowerCase() as "realizada" | "cancelada" | "remarcada",
             duration: 50, // Default duration, can be enhanced later
             cost: 0, // Default cost, can be enhanced later  
-            feedback: rating ? { rating, comment } : undefined
+            feedback: rating != null ? { rating, comment: comment ?? undefined } : undefined
           };
         });
         
@@ -131,7 +135,7 @@ const HistoricoUser = () => {
           const proximasData = await ConsultaApiService.getProximasConsultas('assistido');
           setProximasConsultas(proximasData.length);
         } catch (err) {
-          console.error('Erro ao carregar próximas consultas:', err);
+          console.error("Erro ao carregar próximas consultas:", err);
           setProximasConsultas(0);
         }
 
@@ -147,16 +151,17 @@ const HistoricoUser = () => {
           setUltimaAvaliacao(null);
         }
         
-      } catch (err: any) {
-        console.error('Erro ao carregar histórico:', err);
-        setError(err.message || "Erro ao carregar histórico de consultas");
+      } catch (err) {
+        console.error("Erro ao carregar histórico:", err);
+        const message = err instanceof Error ? err.message : "Erro ao carregar histórico de consultas";
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
     
     loadHistorico();
-  }, []);
+  }, [fetchPerfil]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -165,12 +170,12 @@ const HistoricoUser = () => {
         console.log('User profile data:', userProfile);
         // Update user data context or local state if needed
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error("Error fetching user profile:", error);
       }
     };
 
     loadUserData();
-  }, []);
+  }, [fetchPerfil]);
 
   const handleAddFeedback = (consulta: HistoricoConsulta, rating: number, comment?: string) => {
     setHistoricoConsultas(prev => prev.map(c => {
@@ -235,11 +240,14 @@ const HistoricoUser = () => {
       setShowFeedbackModal(false);
       setCurrentRating(0);
       setCurrentComment("");
-    } catch (error: any) {
-      console.error('Error saving feedback:', error);
+    } catch (error) {
+      console.error("Error saving feedback:", error);
+      const description = error instanceof Error
+        ? error.message
+        : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.";
       toast({
         title: "Erro ao salvar feedback",
-        description: error.message || "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        description,
         variant: "destructive"
       });
     }

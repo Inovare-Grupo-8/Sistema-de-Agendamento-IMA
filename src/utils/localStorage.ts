@@ -8,7 +8,7 @@ export interface UserData {
     email: string;
     token: string; // Ensure token is included
     tipo: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 /**

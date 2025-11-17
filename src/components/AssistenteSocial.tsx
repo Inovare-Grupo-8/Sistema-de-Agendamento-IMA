@@ -63,13 +63,17 @@ interface FormularioInscricao {
   paciente: string;
   dataEnvio: Date;
   dataSubmissao: Date;
-  status: "pendente" | "em_analise" | "aprovado" | "rejeitado";
+  status: "pendente" | "em_analise" | "aprovado" | "rejeitado" | "reprovado";
   tipo: "Individual" | "Familiar" | "Grupo";
   prioridade: "baixa" | "media" | "alta";
   areaOrientacao: string;
   comoSoube: string;
   sugestaoOutraArea: string;
   isVoluntario: boolean;
+}
+
+interface UsuarioResumo {
+  tipo?: string | null;
 }
 
 // Itens de navegação para o assistente social
@@ -135,7 +139,9 @@ export function AssistenteSocial() {
   const [showAprovacaoModal, setShowAprovacaoModal] = useState(false);
   const [showReprovacaoModal, setShowReprovacaoModal] = useState(false);
   const [observacoes, setObservacoes] = useState("");
-  const [tipoCandidato, setTipoCandidato] = useState<"multidisciplinar" | "valor_social" | "">("");  const [isProcessing, setIsProcessing] = useState(false);
+  const [tipoCandidato, setTipoCandidato] = useState<"multidisciplinar" | "valor_social" | "">("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
   useEffect(() => {
     // Carregar dados reais da API
     const loadData = async () => {
@@ -161,13 +167,17 @@ export function AssistenteSocial() {
         // Buscar total de usuários da API
         const response = await fetch('{BASE_URL}/usuarios');
         if (response.ok) {
-          const usuarios = await response.json();
+          const usuarios = await response.json() as UsuarioResumo[];
           setTotalUsuarios(usuarios.length);
           
           // Contar usuários não classificados
-          const naoClassificados = usuarios.filter((usuario: any) => 
-            usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO" || !usuario.tipo
-          );
+          const naoClassificados = usuarios.filter(usuario => {
+            if (!usuario?.tipo) {
+              return true;
+            }
+
+            return usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO";
+          });
           setUsuariosNaoClassificados(naoClassificados.length);
         } else {
           console.error('Erro ao buscar usuários:', response.status);
@@ -196,21 +206,27 @@ export function AssistenteSocial() {
       setAtendimentosHoje(atendimentosDeHoje);
       setProximosAtendimentos(proximosAtend);
       setLoading(false);
-    };loadData();
-  }, []);
+    };
+
+    loadData();
+  }, [fetchPerfil, atendimentosData]);
 
   // Função para atualizar contador após classificação
   const atualizarContadorUsuarios = async () => {
     try {
       const response = await fetch('{BASE_URL}/usuarios');
       if (response.ok) {
-        const usuarios = await response.json();
+        const usuarios = await response.json() as UsuarioResumo[];
         setTotalUsuarios(usuarios.length);
         
         // Contar usuários não classificados
-        const naoClassificados = usuarios.filter((usuario: any) => 
-          usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO" || !usuario.tipo
-        );
+        const naoClassificados = usuarios.filter(usuario => {
+          if (!usuario?.tipo) {
+            return true;
+          }
+
+          return usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO";
+        });
         setUsuariosNaoClassificados(naoClassificados.length);
       }
     } catch (error) {

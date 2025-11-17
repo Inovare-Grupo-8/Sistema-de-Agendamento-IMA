@@ -1,6 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -18,17 +16,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Sun, CloudMoon, Moon, User, Clock, Menu, CalendarX, History, Home as HomeIcon, ChevronRight } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import TimeSlot from "./TimeSlot";
+import { Calendar as CalendarIcon, Sun, Moon, User, Clock, Menu, History, Home as HomeIcon, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
-import { STATUS_COLORS, MESSAGES } from "../constants/ui";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
-import { useTranslation } from "react-i18next";
-import { t } from "i18next";
-import { AgendaCardSkeleton } from "./ui/custom-skeletons";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { ConsultaApiService } from "@/services/consultaApi";
@@ -45,8 +38,6 @@ interface Consulta {
 }
 
 const AgendaUser = () => {
-  const { t } = useTranslation();
-  const [date, setDate] = useState<Date>(new Date());
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
   const [consultaDetalhes, setConsultaDetalhes] = useState<Consulta | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -62,9 +53,7 @@ const AgendaUser = () => {
   const location = useLocation();  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const listRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const [isLoading, setIsLoading] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Let's add the navigate hook for page navigation
@@ -80,19 +69,16 @@ const AgendaUser = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        setIsLoading(true);
         const userProfile = await fetchPerfil();
         console.log('User profile data:', userProfile);
       } catch (error) {
         console.error('Error fetching user profile:', error);
         setError('Failed to load user data.');
-      } finally {
-        setIsLoading(false);
-      }
+  }
     };
 
     loadUserData();
-  }, []);
+  }, [fetchPerfil]);
 
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
@@ -876,31 +862,4 @@ const AgendaUser = () => {
     </SidebarProvider>
   );
 };
-
-function AppointmentList({ appointments, onCancel, onReschedule, nextIdx }: { appointments: Appointment[]; onCancel: (time: string) => void; onReschedule: (time: string, newDate: Date, newTime: string) => void; nextIdx?: number }) {
-  if (appointments.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
-        <CalendarX className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-        <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Nenhuma consulta neste período</div>
-        <div className="text-gray-400 dark:text-gray-500 text-sm">Você ainda não possui consultas agendadas para este período.<br/>Quando houver, elas aparecerão aqui!</div>
-      </div>
-    );
-  }
-  return (
-    <div role="list" className="divide-y overflow-x-auto">
-      {appointments.map((appointment, idx) => (
-        <TimeSlot
-          key={`${appointment.time}-${idx}`}
-          appointment={appointment}
-          onCancel={onCancel}
-          onReschedule={onReschedule}
-          highlight={nextIdx === idx}
-          aria-label={`Consulta com ${appointment.name} às ${appointment.time}`}
-        />
-      ))}
-    </div>
-  );
-}
-
 export default AgendaUser;
