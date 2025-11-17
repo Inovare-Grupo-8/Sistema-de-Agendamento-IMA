@@ -46,7 +46,6 @@ const AgendarHorarioUser = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   
   // Dynamic data from API
-  const [especialistas, setEspecialistas] = useState<Array<{id: number, nome: string, especialidade: string}>>([]);
   const [datasDisponiveis, setDatasDisponiveis] = useState<Date[]>([]);
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(false);
@@ -69,27 +68,49 @@ const AgendarHorarioUser = () => {
   const [tipoConsulta, setTipoConsulta] = useState<string | null>(null);
   const [observacoes, setObservacoes] = useState<string>('');
   const [step, setStep] = useState(1); // 1: Especialista, 2: Data, 3: Horário, 4: Tipo, 5: Observações, 6: Confirmação
+  
+  // Estado para paginação
+  const [pagina, setPagina] = useState(0);
+  const [size] = useState(5);
+  const [especialistas, setEspecialistas] = useState([]);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   // Load specialists when component mounts
-  useEffect(() => {
-    const carregarEspecialistas = async () => {
+    const carregarEspecialistas = async (page = pagina) => {
       setLoadingData(true);
       try {
-        const especialistasData = await VoluntarioApiService.listarVoluntariosParaAgendamento();
-        setEspecialistas(especialistasData);
+        const data = await VoluntarioApiService.listarVoluntariosParaAgendamento(page, size);
+
+        setEspecialistas(data.items);
+        setHasNextPage(!data.last);
+        setPagina(data.page);
+
       } catch (error) {
         toast({
           title: "Erro ao carregar especialistas",
-          description: "Não foi possível carregar a lista de especialistas disponíveis.",
+          description: "Não foi possível carregar especialistas.",
           variant: "destructive",
         });
       } finally {
         setLoadingData(false);
       }
     };
-    
-    carregarEspecialistas();
+
+  useEffect(() => {
+    carregarEspecialistas(0);
   }, []);
+
+  const irParaProximaPagina = () => {
+    if (hasNextPage) {
+      carregarEspecialistas(pagina + 1);
+    }
+  };
+
+  const irParaPaginaAnterior = () => {
+    if (pagina > 0) {
+      carregarEspecialistas(pagina - 1);
+    }
+  };
 
   // Load available dates when specialist is selected
   useEffect(() => {
@@ -377,6 +398,25 @@ const AgendarHorarioUser = () => {
                           ))}
                         </RadioGroup>
                       )}
+                      <div className="flex justify-between mt-4">
+                        <Button
+                          variant="outline"
+                          onClick={irParaPaginaAnterior}
+                          disabled={pagina === 0}
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-2" />
+                          Página anterior
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={irParaProximaPagina}
+                          disabled={!hasNextPage}
+                        >
+                          Próxima página
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                     {/* Passo 2: Escolher Data */}
