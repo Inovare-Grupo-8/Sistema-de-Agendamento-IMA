@@ -1,676 +1,349 @@
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Sun, CloudMoon, Moon, Calendar as CalendarIcon, User, Clock, Menu, History, Home as HomeIcon } from "lucide-react";
+import { Sun, CloudMoon, Moon, Calendar as CalendarIcon, Clock, Menu, Filter, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import TimeSlotSection from "@/components/TimeSlotSection";
-import AgendaSummary from "@/components/AgendaSummary";
 import { toast } from "@/components/ui/use-toast";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
 import { useProfileImage } from "@/components/useProfileImage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
-import CustomTimeModal from "../components/CustomTimeModal";
 import ErrorMessage from "@/components/ErrorMessage";
-import { isValidTime, isFutureDate, getErrorMessage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
-import { STATUS_COLORS, MESSAGES } from "../constants/ui";
 import { useTranslation } from "react-i18next";
-import { DisponibilizarHorarioSkeleton } from "../components/ui/custom-skeletons";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUser } from "@/hooks/useUser";
 import { useVoluntario, DadosPessoaisVoluntario, DadosProfissionaisVoluntario } from "@/hooks/useVoluntario";
+import VoluntarioApiService from "@/services/voluntarioApi";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import { useAuth } from "@/hooks/useAuth";
 
 const DisponibilizarHorario = () => {
   const { t } = useTranslation();
-  const { userData } = useUser();
-  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
-  
-  // Estado local para dados pessoais do voluntário
-  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
-    nome: '',
-    sobrenome: '',
-    email: '',
-    telefone: '',
-    dataNascimento: ''
-  });
-  const [dadosProfissionais, setDadosProfissionais] = useState<DadosProfissionaisVoluntario | null>(null);
-  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>('');
-
-  // Estado para armazenar a data selecionada
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-
-  // Estado para armazenar o horário selecionado
-  const [selectedTime, setSelectedTime] = useState<string>("");
-
-  // Estado para o primeiro mês a ser exibido (Abril de 2025)
-  const [firstMonth, setFirstMonth] = useState<Date>(new Date(2025, 3, 1)); // Abril de 2025
-
-  // Estado para o segundo mês a ser exibido (Maio de 2025)
-  const [secondMonth, setSecondMonth] = useState<Date>(new Date(2025, 4, 1)); // Maio de 2025
-
-  // Estado para controlar a abertura do modal de confirmação
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Estado para controlar a abertura do modal de horário personalizado
-  const [isCustomTimeModalOpen, setIsCustomTimeModalOpen] = useState(false);
-
-  // Estado para armazenar o horário personalizado
-  const [customTime, setCustomTime] = useState("");
-
-  // Estado para mensagens de validação
-  const [validationMessage, setValidationMessage] = useState("");
-
-  const { profileImage } = useProfileImage();
-
-  // Estado para controlar a abertura/fechamento da sidebar
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const [formData, setFormData] = useState(() => {
-    const savedData = localStorage.getItem("profileData");
-    return savedData ? JSON.parse(savedData) : { nome: "", sobrenome: "" };
-  });
-
   const location = useLocation();
-
-  // Estado para controlar o estado de loading
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Estado para modal de confirmação de saída
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-
-  // Estado para modal de sucesso após disponibilizar horário
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-
+  const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } = useVoluntario();
+  const { logout } = useAuth();
 
-  // Referência para o resumo fixo
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({ nome: "", sobrenome: "", email: "", telefone: "", dataNascimento: "" });
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>("");
   const summaryRef = useRef<HTMLDivElement>(null);
 
-  // Skeleton loader e feedback visual
-  const [loading, setLoading] = useState(false);
-  
-  // Carregar dados pessoais do voluntário
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [activeDate, setActiveDate] = useState<Date | undefined>(undefined);
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
+  const [modalidade, setModalidade] = useState<"ONLINE" | "PRESENCIAL">("ONLINE");
+  const [localPresencial, setLocalPresencial] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
+
   useEffect(() => {
-    const loadDadosPessoais = async () => {
+    const loadDados = async () => {
       try {
-        const dados = await buscarDadosPessoais();
-        if (dados) {
-          setDadosPessoais(dados);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados pessoais:', error);
-      }
+        const p = await buscarDadosPessoais();
+        if (p) setDadosPessoais(p);
+        const prof = await buscarDadosProfissionais();
+        if (prof) setFuncaoVoluntario(mapEnumToText(prof.funcao));
+      } catch {}
     };
-
-    loadDadosPessoais();
-  }, [buscarDadosPessoais]);
-
-  useEffect(() => {
-    const loadDadosProfissionais = async () => {
+    loadDados();
+    const stored = localStorage.getItem("selectedDates");
+    if (stored) {
       try {
-        const dados = await buscarDadosProfissionais();
-        if (dados) {
-          setDadosProfissionais(dados);
-          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        const arr: string[] = JSON.parse(stored);
+        const dates = arr.map((s) => new Date(s));
+        setSelectedDates(dates);
+        const d = dates[0];
+        if (d) {
+          setActiveDate(d);
+          setCurrentMonth(new Date(d.getFullYear(), d.getMonth(), 1));
         }
-      } catch (error) {
-        console.error('Erro ao carregar dados profissionais:', error);
-      }
-    };
-
-    loadDadosProfissionais();
-  }, [buscarDadosProfissionais, mapEnumToText]);
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 800);
-  }, []);
-
-  // Função para salvar a data e o horário no localStorage
-  const saveToLocalStorage = () => {
-    if (selectedDate) {
-      localStorage.setItem("selectedDate", selectedDate.toISOString());
+      } catch {}
     }
-    if (selectedTime) {
-      localStorage.setItem("selectedTime", selectedTime);
+  }, [buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText]);
+
+  const availabilityKey = (volId: string | number) => `availabilityVoluntario:${volId}`;
+  const userId = (() => {
+    const stored = localStorage.getItem("userData");
+    if (stored) {
+      try { const parsed = JSON.parse(stored); return parsed.idUsuario ?? "default"; } catch {}
     }
+    return "default";
+  })();
+  const loadAvailability = (): Record<string, { times: string[]; modalidade: "ONLINE" | "PRESENCIAL"; local?: string }> => {
+    const raw = localStorage.getItem(availabilityKey(userId));
+    if (!raw) return {};
+    try { return JSON.parse(raw); } catch { return {}; }
+  };
+  const saveAvailability = (data: Record<string, { times: string[]; modalidade: "ONLINE" | "PRESENCIAL"; local?: string }>) => {
+    localStorage.setItem(availabilityKey(userId), JSON.stringify(data));
   };
 
-  // Carrega a data e o horário do localStorage ao montar o componente
-  useEffect(() => {
-    const storedDate = localStorage.getItem("selectedDate");
-    const storedTime = localStorage.getItem("selectedTime");
+  const handleToggleTime = (time: string) => {
+    setSelectedTimes((prev) => {
+      const exists = prev.includes(time);
+      const next = exists ? prev.filter((t) => t !== time) : [...prev, time];
+      return next.sort((a, b) => a.localeCompare(b));
+    });
+    summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
-    if (storedDate) {
-      setSelectedDate(new Date(storedDate));
-    }
-    if (storedTime) {
-      setSelectedTime(storedTime);
-    }
-  }, []);
+  const selectAllTimes = (list: string[]) => {
+    setSelectedTimes(Array.from(new Set([...selectedTimes, ...list])).sort((a, b) => a.localeCompare(b)));
+  };
+  const clearTimes = (list?: string[]) => {
+    setSelectedTimes((prev) => list ? prev.filter((t) => !list.includes(t)) : []);
+  };
 
-  // Validação para impedir a seleção de datas passadas
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date && !isFutureDate(date)) {
-      setValidationMessage("Não é possível selecionar uma data que já passou.");
+  const handleConfirm = async () => {
+    if (selectedDates.length === 0 || selectedTimes.length === 0) {
+      setValidationMessage("Selecione ao menos um dia e um horário.");
       setIsModalOpen(true);
       return;
     }
-    setSelectedDate(date);
-    setValidationMessage("");
-  };
-
-  // Função para rolar até o resumo ao selecionar horário
-  const scrollToSummary = () => {
-    if (summaryRef.current) {
-      summaryRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  };
-
-  // Função para selecionar o horário
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
-    scrollToSummary();
-  };
-
-  // Função para confirmar logout
-  const handleLogout = () => {
-    setIsLogoutModalOpen(true);
-  };
-
-  // Função para realmente sair
-  const confirmLogout = () => {
-    setIsLogoutModalOpen(false);
-    // Redirecionar ou limpar dados do usuário
-    localStorage.clear();
-    window.location.href = '/';
-  };
-
-  // Função para cancelar logout
-  const cancelLogout = () => {
-    setIsLogoutModalOpen(false);
-  };
-
-  // Função para confirmar disponibilização de horário
-  const handleConfirm = () => {
-    if (!selectedDate || !selectedTime) {
-      setValidationMessage("Por favor, selecione uma data e um horário antes de confirmar.");
+    if (modalidade === "PRESENCIAL" && !localPresencial.trim()) {
+      setValidationMessage("Informe o local para atendimento presencial.");
       setIsModalOpen(true);
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      saveToLocalStorage();
-      setValidationMessage("");
-      setIsModalOpen(false);
-      setIsLoading(false);
-      setIsSuccessModalOpen(true);
-      toast({
-        title: "Sucesso!",
-        description: `Horário disponibilizado com sucesso: ${format(selectedDate, "dd/MM/yyyy", { locale: ptBR })} às ${selectedTime}`,
-        variant: "default",
-        duration: 4000,
+    try {
+      setIsLoading(true);
+      const uid = typeof userId === "number" ? userId : Number(userId);
+      const savedCount = await VoluntarioApiService.criarDisponibilidadesParaUsuario(uid, selectedDates, selectedTimes);
+      const map = loadAvailability();
+      selectedDates.forEach((d) => {
+        const key = format(d, "yyyy-MM-dd");
+        const already = map[key]?.times || [];
+        const merged = Array.from(new Set([...already, ...selectedTimes])).sort((a, b) => a.localeCompare(b));
+        map[key] = { times: merged, modalidade, local: modalidade === "PRESENCIAL" ? localPresencial : undefined };
       });
-    }, 1200);
-  };
-
-  // Função para fechar modal de sucesso
-  const closeSuccessModal = () => {
-    setIsSuccessModalOpen(false);
-    setSelectedDate(undefined);
-    setSelectedTime("");
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const handleCancel = () => {
-    setSelectedDate(undefined);
-    setSelectedTime("");
-    setValidationMessage("");
-    setIsModalOpen(false);
-    setIsCustomTimeModalOpen(false);
-  };
-
-  const handleOtherTime = () => {
-    setIsCustomTimeModalOpen(true);
-  };
-
-  // Validação para horários personalizados no formato correto e intervalo permitido
-  const handleCustomTimeConfirm = () => {
-    if (!customTime || !isValidTime(customTime)) {
-      setValidationMessage("Por favor, insira um horário válido no formato HH:mm.");
-      setIsCustomTimeModalOpen(true);
-      return;
+      saveAvailability(map);
+      localStorage.setItem("selectedDates", JSON.stringify(selectedDates.map((d) => d.toISOString())));
+      setValidationMessage("");
+      setIsSuccessModalOpen(true);
+      toast({ title: "Disponibilidade salva", description: `${savedCount} horário(s) criados` });
+    } catch (e) {
+      setValidationMessage("Erro ao salvar disponibilidade. Tente novamente.");
+      setIsModalOpen(true);
+    } finally {
+      setIsLoading(false);
     }
-
-    const [hours, minutes] = customTime.split(":").map(Number);
-    if (hours < 6 || hours > 21 || (hours === 21 && minutes > 0)) {
-      setValidationMessage("O horário deve estar entre 06:00 e 21:00.");
-      setIsCustomTimeModalOpen(true);
-      return;
-    }
-
-    if (selectedTime) {
-      const [selectedHours] = selectedTime.split(":").map(Number);
-      if (Math.abs(hours - selectedHours) < 1) {
-        setValidationMessage("O intervalo entre os horários deve ser de pelo menos uma hora.");
-        setIsCustomTimeModalOpen(true);
-        return;
-      }
-    }
-
-    setValidationMessage("");
-    setSelectedTime(customTime);
-    setIsCustomTimeModalOpen(false);
   };
 
   const periods = [
-    { title: "Manhã", Icon: Sun, timeSlots: [
-      "06h00", "06h30", "07h00", "07h30", 
-      "08h00", "08h30", "09h00", "09h30", 
-      "10h00", "10h30", "11h00", "11h30"
-    ] },
-    { title: "Tarde", Icon: CloudMoon, timeSlots: [
-      "12h00", "12h30", "13h00", "13h30", 
-      "14h00", "14h30", "15h00", "15h30", 
-      "16h00", "16h30", "17h00", "17h30"
-    ] },
-    { title: "Noite", Icon: Moon, timeSlots: [
-      "18h00", "18h30", "19h00", "19h30", 
-      "20h00", "20h30", "21h00", "21h30"
-    ] }
+    { title: "Manhã", Icon: Sun, timeSlots: ["08:00", "09:00", "10:00", "11:00"] },
+    { title: "Tarde", Icon: CloudMoon, timeSlots: ["13:00", "14:00", "15:00", "16:00"] },
+    { title: "Noite", Icon: Moon, timeSlots: ["18:00", "19:00", "20:00", "21:00"] }
   ];
 
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
-        {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
-              <Menu className="w-7 h-7" />
-            </button>
-            <ProfileAvatar 
-              profileImage={profileImage}
-              name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`}
-              size="w-10 h-10"
-              className="border-2 border-[#ED4231] shadow"
-            />
-            <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
-          </div>
-        )}
-        
-        <div className={`transition-all duration-500 ease-in-out
-          ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
-          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>
+        <div className={`transition-all duration-500 ease-in-out ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'} bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}>
           <div className="w-full flex justify-start mb-6">
-            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
-              <Menu className="w-7 h-7" />
-            </Button>
+            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"><Menu className="w-7 h-7" /></Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar 
-              profileImage={profileImage}
-              name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'}
-              size="w-16 h-16"
-              className="border-4 border-[#EDF2FB] shadow"
-            />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
-            </span>
-            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {funcaoVoluntario || 'Profissional'}
-            </Badge>
+            <ProfileAvatar profileImage={profileImage} name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'} size="w-16 h-16" className="border-4 border-[#EDF2FB] shadow" />
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
+            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">{funcaoVoluntario || 'Profissional'}</Badge>
           </div>
-          
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* Substituir os items de menu por uma iteração do professionalNavigationItems */}
             {Object.values(professionalNavigationItems).map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]' : ''}`}>
-                      <Link to={item.path} className="flex items-center gap-3">
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
+                      <Link to={item.path} className="flex items-center gap-3">{item.icon}<span>{item.label}</span></Link>
                     </SidebarMenuButton>
                   </TooltipTrigger>
-                  <TooltipContent className="z-50">
-                    {item.label}
-                  </TooltipContent>
+                  <TooltipContent className="z-50">{item.label}</TooltipContent>
                 </Tooltip>
               </SidebarMenuItem>
             ))}
-            {/* Botão Sair na sidebar */}            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={handleLogout}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
-                    <span>Sair</span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Sair da conta
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
           </SidebarMenu>
-          
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
             <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
-            <div className="flex gap-2">
-              <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
-              <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
-            </div>
+            <div className="flex gap-2"><a href="https://inovare.com" target="_blank" rel="noreferrer" className="underline hover:text-[#ED4231]">Site</a><a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a></div>
           </div>
         </div>
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <ProfileAvatar 
-                profileImage={profileImage}
-                name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`}
-                size="w-10 h-10"
-                className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200"
-              />
+              <ProfileAvatar profileImage={profileImage} name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`} size="w-10 h-10" className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
               <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
-            <div className="flex items-center gap-3">              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-                tabIndex={0}
-                title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              >
+            <div className="flex items-center gap-3">
+              <Button onClick={toggleTheme} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>
                 {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
-              </button>
+              </Button>
+              <Button variant="outline" onClick={logout} className="px-4 py-2">Sair</Button>
             </div>
           </header>
           <div className="h-20" />
+
           <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-6">
-            <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in">{t('make_time_available')}</h1>
-            <p className="text-lg md:text-xl mb-6 text-center animate-fade-in text-gray-500">{t('choose_date_time')}</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">Disponibilizar Horário</h1>
+            <div className="flex gap-2 mt-3">
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">1. Selecionar dias</Badge>
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">2. Selecionar horários</Badge>
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">3. Revisar e salvar</Badge>
+            </div>
+            <div className="flex flex-col md:flex-row gap-2 mt-4">
+              <Button onClick={() => setModalidade('ONLINE')} variant={modalidade === 'ONLINE' ? 'default' : 'outline'}>Online</Button>
+              <Button onClick={() => setModalidade('PRESENCIAL')} variant={modalidade === 'PRESENCIAL' ? 'default' : 'outline'}>Presencial</Button>
+            </div>
+
             <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedDate?.toString() || 'no-date'}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.4 }}
-              >
+              <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
-                  {/* Coluna da esquerda: calendário e horários */}
                   <div className="flex-1 flex flex-col gap-8 min-w-0">
-                    <Card className="rounded-2xl shadow-lg p-0 animate-fade-in transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl focus-within:scale-[1.02] focus-within:shadow-xl group" role="region" aria-label="Calendário de seleção de data">
-                      <CardHeader className="flex flex-row items-center justify-between py-4 bg-[#f8fafc] rounded-t-2xl transition-colors duration-200 group-hover:bg-[#f1f5f9] group-hover:dark:bg-[#23272F]/80">
-                        <CardTitle className="text-lg md:text-xl">
-                          {selectedDate ? format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR }) : format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
-                        </CardTitle>
+                    <Card className="rounded-2xl shadow-lg p-0">
+                      <CardHeader className="flex flex-row items-center justify-between py-4 bg-[#f8fafc] rounded-t-2xl">
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} aria-label="Mês anterior"><ChevronLeft className="w-4 h-4" /></Button>
+                          <CardTitle className="text-lg md:text-xl">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</CardTitle>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} aria-label="Próximo mês"><ChevronRight className="w-4 h-4" /></Button>
+                        </div>
                       </CardHeader>
                       <CardContent className="p-0">
                         <div className="w-full flex justify-center items-center p-2 sm:p-4">
                           <div className="w-full max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl">
                             <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={handleDateSelect}
-                              showOutsideDays={true}
-                              className="w-full min-h-[340px] sm:min-h-[380px] md:min-h-[420px] rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-base sm:text-lg md:text-xl dark:bg-[#23272F] dark:border-[#444857] dark:text-gray-100 dark:[&_button]:text-gray-100 dark:[&_button]:hover:bg-[#23272F]/80 dark:[&_button]:focus:bg-[#181A20] dark:[&_button]:focus:text-white dark:[&_button]:hover:text-white"
+                              mode="multiple"
+                              selected={selectedDates}
+                              onSelect={(dates) => {
+                                const list = (dates as Date[]) || [];
+                                setSelectedDates(list);
+                                const first = list[0];
+                                setActiveDate(first);
+                                if (first) setCurrentMonth(new Date(first.getFullYear(), first.getMonth(), 1));
+                                localStorage.setItem("selectedDates", JSON.stringify(list.map((d) => d.toISOString())));
+                              }}
+                              showOutsideDays={false}
+                              className="w-full rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]"
+                              classNames={{ caption: "hidden", nav: "hidden" }}
                               locale={ptBR}
-                              aria-label="Calendário para selecionar data"
-                              aria-describedby="calendario-erro"
+                              aria-label="Calendário para selecionar datas"
                               disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                              month={currentMonth}
+                              onMonthChange={setCurrentMonth}
                             />
-                            <span id="calendario-erro" className="sr-only">{validationMessage && selectedDate === undefined ? validationMessage : ''}</span>
+                            {selectedDates.length > 0 && (
+                              <div className="px-4 pb-4 flex flex-wrap gap-2">
+                                {selectedDates.map((d) => {
+                                  const isActive = activeDate && d.toDateString() === activeDate.toDateString();
+                                  return (
+                                    <div key={d.toISOString()} className={`flex items-center gap-1 px-3 py-1 rounded-full border ${isActive ? 'bg-[#ED4231]/10 border-[#ED4231]' : 'border-gray-200'} text-sm`}>
+                                      <button className="font-semibold" onClick={() => setActiveDate(d)}>{format(d, 'dd/MM', { locale: ptBR })}</button>
+                                      <button aria-label="Remover dia" onClick={() => {
+                                        setSelectedDates((prev) => prev.filter((x) => x.toDateString() !== d.toDateString()));
+                                        const next = selectedDates.filter((x) => x.toDateString() !== d.toDateString());
+                                        localStorage.setItem("selectedDates", JSON.stringify(next.map((x) => x.toISOString())));
+                                        if (activeDate && activeDate.toDateString() === d.toDateString()) setActiveDate(next[0]);
+                                      }}><X className="w-4 h-4 text-gray-500" /></button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                    <div className="space-y-6 animate-fade-in" role="region" aria-label="Seleção de horários">
-                      {periods.map(({ title, Icon, timeSlots }) => (
-                        <div key={title} className="bg-white dark:bg-[#23272F] rounded-lg overflow-hidden border border-[#D1D5DB] dark:border-[#23272F] shadow-sm dark:shadow-none">
-                          <div className="flex items-center px-4 py-3 border-b border-[#D1D5DB] dark:border-[#23272F] bg-white dark:bg-[#23272F]">
-                            <Icon color="#ED4231" className="w-6 h-6 mr-2" aria-label={`Ícone do período ${title}`} />
-                            <span className="text-lg text-gray-800 dark:text-gray-200 font-semibold" tabIndex={0} title={`Horários do período ${title}`}>{title}</span>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span tabIndex={0} className="ml-2 cursor-pointer text-gray-400 hover:text-[#ED4231] focus:text-[#ED4231] text-base" aria-label={`Dica sobre o período ${title}`}>?</span>
-                              </TooltipTrigger>
-                              <TooltipContent className="text-base">Selecione um horário disponível para o período {title.toLowerCase()}.</TooltipContent>
-                            </Tooltip>
-                          </div>
-                          {timeSlots.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
-                              <Clock className="w-20 h-20 mb-3 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-                              <div className="text-lg text-gray-500 dark:text-gray-400 font-semibold mb-1">Nenhum horário disponível</div>
-                              <div className="text-base text-gray-400 dark:text-gray-500">Todos os horários deste período já foram reservados.<br/>Tente outro período ou volte mais tarde.</div>
+
+                    <div className="space-y-6" role="region" aria-label="Seleção de horários">
+                      {periods.map(({ title, Icon, timeSlots }) => {
+                        const savedForDate = activeDate ? loadAvailability()[format(activeDate, "yyyy-MM-dd")]?.times || [] : [];
+                        return (
+                          <div key={title} className="bg-white dark:bg-[#23272F] rounded-lg overflow-hidden border border-[#EDF2FB] dark:border-[#23272F] shadow-sm">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-[#EDF2FB] dark:border-[#23272F]">
+                              <div className="flex items-center"><Icon className="w-5 h-5 text-[#ED4231] mr-2" /><span className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</span></div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => selectAllTimes(timeSlots)}>Selecionar todos</Button>
+                                <Button variant="outline" size="sm" onClick={() => clearTimes(timeSlots)}>Limpar</Button>
+                              </div>
                             </div>
-                          ) : (
-                            <TimeSlotSection 
-                              title={title} 
-                              timeSlots={timeSlots}
-                              selectedTime={selectedTime}
-                              onSelectTime={handleTimeSelect}
-                              highlightColor={title === 'Manhã' ? 'bg-yellow-100 dark:bg-yellow-900/30' : title === 'Tarde' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30'}
-                              animateSelection
-                              aria-describedby="horarios-erro"
-                              aria-label={`Horários disponíveis para o período ${title}`}
-                              aria-selected={selectedTime ? true : false}
-                            />
-                          )}
-                        </div>
-                      ))}
+                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                              {timeSlots.map((t) => {
+                                const [hh, mm] = t.split(":");
+                                const endH = String((parseInt(hh) + 1)).padStart(2, "0");
+                                const label = `${hh}:${mm} - ${endH}:${mm}`;
+                                const disabled = savedForDate.includes(t);
+                                const active = selectedTimes.includes(t);
+                                return (
+                                  <Button key={t} variant={active ? "default" : "outline"} disabled={disabled} onClick={() => handleToggleTime(t)} className={`${active ? "bg-[#ED4231] text-white" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""} text-sm`}>{label}</Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  {/* Coluna da direita: resumo */}
+
                   <div ref={summaryRef} className="w-full lg:w-96 lg:max-w-md flex-shrink-0 mt-6 lg:mt-0 flex flex-col gap-6" role="complementary" aria-label="Resumo do horário selecionado">
-                    {/* Resumo do horário selecionado */}
-                    <div
-                      className="w-full bg-white dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-6 mb-2 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 sticky top-24 z-10 animate-fade-in text-lg"
-                      role="status"
-                      aria-live="polite"
-                      aria-describedby="resumo-erro"
-                    >
-                      {selectedDate && selectedTime ? (
+                    <div className="w-full bg-white dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-6 mb-2 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 sticky top-24 z-10">
+                      {selectedDates.length > 0 && selectedTimes.length > 0 ? (
                         <>
                           <span className="font-semibold text-indigo-900 dark:text-indigo-200 text-lg">Selecionado:</span>
-                          <div className="mt-1 text-xl">{format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })} às {selectedTime}</div>
-                          <Badge className={`ml-2 ${STATUS_COLORS.success} animate-fade-in badge-animate text-base`} aria-label={t('selected_time')}>{t('selected_time')}</Badge>
+                          <div className="mt-1 text-xl">{selectedDates.length} dia(s)</div>
+                          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">{selectedTimes.join(', ')}</div>
+                          <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">{modalidade === 'ONLINE' ? 'Online' : 'Presencial'}</Badge>
                         </>
-                      ) : (
-                        <span className="text-gray-400 text-base">Nenhum horário selecionado</span>
-                      )}
+                      ) : (<span className="text-gray-400 text-base">Nenhum horário selecionado</span>)}
                       <ErrorMessage message={validationMessage} />
-                      {validationMessage && (
-                        <span id="resumo-erro" className="text-red-500 text-base mt-2 block" role="alert">{validationMessage}</span>
-                      )}
                     </div>
-                    <AgendaSummary 
-                      selectedDate={selectedDate}
-                      selectedTime={selectedTime}
-                      onConfirm={handleConfirm}
-                      onCancel={handleCancel}
-                      highlight={!!selectedDate && !!selectedTime}
-                    />
-                    <Button 
-                      className={`w-full bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-7 mt-2 transition-all duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} shadow-md dark:shadow-none text-lg`}
-                      onClick={handleOtherTime}
-                      aria-label={t('choose_custom_time')}
-                      disabled={isLoading}
-                      aria-disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <span className="flex items-center justify-center gap-2 text-lg"><svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>{t('loading')}</span>
-                      ) : t('other_time')}
-                    </Button>
+                    {modalidade === 'PRESENCIAL' && (
+                      <Card className="rounded-lg">
+                        <CardHeader><CardTitle>Local do atendimento</CardTitle></CardHeader>
+                        <CardContent>
+                          <input value={localPresencial} onChange={(e) => setLocalPresencial(e.target.value)} placeholder="Ex.: Sala 3, Rua Exemplo 123" className="w-full py-2 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272F]" />
+                        </CardContent>
+                      </Card>
+                    )}
+                    <div className="flex gap-2">
+                      <Button onClick={handleConfirm} className="flex-1 bg-[#ED4231] hover:bg-[#c32d22] text-white py-6" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar disponibilidade'}</Button>
+                      <Button variant="outline" onClick={() => { setSelectedDates([]); setActiveDate(undefined); setSelectedTimes([]); setValidationMessage(''); }} className="flex-1 py-6">Limpar</Button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
             </AnimatePresence>
           </div>
+
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogContent className="text-center flex flex-col items-center" role="dialog" aria-modal="true">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Confirmação</DialogTitle>
-              </DialogHeader>
-              {validationMessage && (
-                <p className="text-red-500 text-sm mb-4" role="alert">{validationMessage}</p>
-              )}
-              <p className="text-sm text-gray-600 mb-4">
-                Ao clicar em confirmar, você <span className="font-semibold">declara</span> que estará disponível no dia e horário.
-              </p>
-              <DialogFooter className="flex flex-col gap-2 w-full items-center">
-                <Button className="bg-indigo-900 hover:bg-indigo-800 text-white py-2 w-3/4" onClick={closeModal} aria-label="Confirmar seleção">
-                  Confirmar
-                </Button>
-                <Button variant="outline" className="py-2 w-3/4" onClick={closeModal} aria-label="Cancelar seleção">
-                  Cancelar
-                </Button>
-              </DialogFooter>
+            <DialogContent className="text-center flex flex-col items-center">
+              <DialogHeader><DialogTitle className="text-xl font-bold">Confirmação</DialogTitle></DialogHeader>
+              {validationMessage && (<p className="text-red-500 text-sm mb-4" role="alert">{validationMessage}</p>)}
+              <div className="flex gap-2"><Button onClick={() => setIsModalOpen(false)}>OK</Button></div>
             </DialogContent>
           </Dialog>
 
-          {/* Modal de confirmação de logout */}
-          <Dialog open={isLogoutModalOpen} onOpenChange={setIsLogoutModalOpen}>
-            <DialogContent className="text-center flex flex-col items-center" role="dialog" aria-modal="true">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
-              </DialogHeader>
-              <p className="text-sm text-gray-600 mb-4">Você será desconectado da plataforma.</p>
-              <DialogFooter className="flex flex-col gap-2 w-full items-center">
-                <Button className="bg-[#ED4231] hover:bg-[#c32d22] text-white py-2 w-3/4" onClick={confirmLogout} aria-label="Confirmar saída">
-                  Sair
-                </Button>
-                <Button variant="outline" className="py-2 w-3/4" onClick={cancelLogout} aria-label="Cancelar saída">
-                  Cancelar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Modal de sucesso após disponibilizar horário */}
           <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-            <DialogContent className="text-center flex flex-col items-center" role="alertdialog" aria-modal="true">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-green-700">Horário disponibilizado!</DialogTitle>
-              </DialogHeader>
+            <DialogContent className="text-center flex flex-col items-center">
+              <DialogHeader><DialogTitle className="text-xl font-bold text-green-700">Horário disponibilizado!</DialogTitle></DialogHeader>
               <p className="text-green-700 text-lg font-semibold mb-2">Seu horário foi salvo com sucesso.</p>
-              <Button className="bg-indigo-900 dark:bg-indigo-700 hover:bg-indigo-800 dark:hover:bg-indigo-800 text-white py-2 w-3/4 mt-2 shadow-md dark:shadow-none" onClick={closeSuccessModal} aria-label="Fechar modal de sucesso" tabIndex={0} title="Fechar modal de sucesso">
-                OK
-              </Button>
+              <Button className="bg-indigo-900 hover:bg-indigo-800 text-white py-2 w-3/4 mt-2" onClick={() => setIsSuccessModalOpen(false)}>OK</Button>
             </DialogContent>
           </Dialog>
 
-          {/* Modal de horário personalizado como componente separado */}
-          <CustomTimeModal
-            open={isCustomTimeModalOpen}
-            onOpenChange={setIsCustomTimeModalOpen}
-            customTime={customTime}
-            setCustomTime={setCustomTime}
-            validationMessage={validationMessage}
-            onConfirm={handleCustomTimeConfirm}
-          />
-          {selectedDate && selectedTime && (
-            <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
-              aria-label="Voltar ao topo"
-            >
-              ↑
-            </button>
-          )}
+          <style>{`
+            .rdp-day_selected, .rdp-day_selected:focus-visible { background: #ED4231 !important; color: #fff !important; }
+            .rdp-day_disabled { opacity: 0.35; }
+          `}</style>
         </main>
       </div>
-      <style>{`
-        :focus {
-          outline: 2px solid #4F46E5;
-          outline-offset: 2px;
-        }
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0,0,0,0);
-          white-space: nowrap;
-          border-width: 0;
-        }
-        .focus:not-sr-only:focus {
-          position: static;
-          width: auto;
-          height: auto;
-          margin: 0;
-          overflow: visible;
-          clip: auto;
-          white-space: normal;
-        }
-        body.dark {
-          background: linear-gradient(135deg, #181A20 0%, #23272F 60%, #181A20 100%) !important;
-          color: #f3f4f6;
-        }
-        ::selection {
-          background: #ED4231;
-          color: #fff;
-        }
-        body.dark ::selection {
-          background: #ED4231;
-          color: #fff;
-        }
-        .dark .shadow-md, .dark .shadow-lg {
-          box-shadow: none !important;
-        }
-        .not-allowed {
-          cursor: not-allowed !important;
-          opacity: 0.5 !important;
-        }
-        .fade-in {
-          animation: fadeIn 0.4s ease-in;
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @media (max-width: 640px) {
-          .lg:flex-row {
-            flex-direction: column !important;
-          }
-          .lg:max-w-xs {
-            max-width: 100% !important;
-          }
-        }
-        .badge-animate {
-          animation: popBadge 0.4s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes popBadge {
-          0% { transform: scale(0.7); opacity: 0; }
-          60% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); }
-        }
-        :focus-visible {
-          outline: 3px solid #ED4231 !important;
-          outline-offset: 2px;
-          box-shadow: 0 0 0 2px #fff, 0 0 0 4px #ED4231;
-          transition: outline 0.2s, box-shadow 0.2s;
-        }
-      `}</style>
     </SidebarProvider>
   );
 };

@@ -46,7 +46,8 @@ const App = () => {
       script.async = true;
       script.onload = () => {
         // @ts-expect-error: VLibras is not typed in the global window object
-        if (window.VLibras) new window.VLibras.Widget('https://vlibras.gov.br/app');
+        if (window.VLibras)
+          new window.VLibras.Widget("https://vlibras.gov.br/app");
       };
       document.body.appendChild(script);
     }, 500); // Pequeno delay para garantir que o DOM está pronto
@@ -54,7 +55,9 @@ const App = () => {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>        <TooltipProvider>
+      <QueryClientProvider client={queryClient}>
+        {" "}
+        <TooltipProvider>
           <Toaster />
           <Sonner />
           <ProfileImageProvider>
@@ -65,36 +68,153 @@ const App = () => {
                     <UserNavigationProvider>
                       <Routes>
                         {/* Rotas públicas - acessíveis sem login */}
-                        <Route path="/login" element={<TelaLogin />} />                      
+                        <Route path="/login" element={<TelaLogin />} />
                         <Route path="/cadastro" element={<TelaLogin />} />
-                        <Route path="/completar-cadastro-usuario" element={<CompletarCadastroUsuarioAssistido />} />
-                        <Route path="/completar-cadastro-voluntario" element={<CompletarCadastroVoluntario />} />
-                      
-                      {/* Rotas protegidas - exigem autenticação */}
-                      {/* Rotas do usuário */}
-                      <Route path="/home-user" element={<ProtectedRoute><HomeUser /></ProtectedRoute>} />
-                      <Route path="/agenda-user" element={<ProtectedRoute><AgendaUser /></ProtectedRoute>} />
-                      <Route path="/historico-user" element={<ProtectedRoute><HistoricoUser /></ProtectedRoute>} />
-                      <Route path="/agendar-horario-user" element={<ProtectedRoute><AgendarHorarioUser /></ProtectedRoute>} />
-                      <Route path="/profile-form-user" element={<ProtectedRoute><ProfileFormUser /></ProtectedRoute>} />
-                      <Route path="/pagamento-user" element={<ProtectedRoute><PagamentoUser /></ProtectedRoute>} />
-
-                      {/* Rotas do profissional */}
-                      <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                      <Route path="/disponibilizar-horario" element={<ProtectedRoute><DisponibilizarHorario /></ProtectedRoute>} />
-                      <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
-                      <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
-                      <Route path="/profile-form" element={<ProtectedRoute><ProfileForm /></ProtectedRoute>} />                      
-
-                      {/* Rotas da assistente social */}
-                      <Route path="/assistente-social" element={<ProtectedRoute><AssistenteSocial /></ProtectedRoute>} />
-                      <Route path="/profile-form-assistente-social" element={<ProtectedRoute><ProfileFormAssistenteSocial /></ProtectedRoute>} />
-                      <Route path="/cadastro-assistente" element={<ProtectedRoute><CadastroAssistenteSocial /></ProtectedRoute>} />
-                      <Route path="/cadastro-voluntario" element={<ProtectedRoute><CadastroVoluntario /></ProtectedRoute>} />
-                      <Route path="/classificacao-usuarios" element={<ProtectedRoute><ClassificacaoUsuarios /></ProtectedRoute>} />                      {/* Redirecionamento para a home do usuário como fallback */}
-                      <Route path="/" element={<ProtectedRoute><TelaLogin /></ProtectedRoute>} />
-                      {/* Rota padrão para página não encontrada */}
-                      <Route path="*" element={<NotFound />} />                      </Routes>
+                        <Route
+                          path="/completar-cadastro-usuario"
+                          element={<CompletarCadastroUsuarioAssistido />}
+                        />
+                        <Route
+                          path="/completar-cadastro-voluntario"
+                          element={<CompletarCadastroVoluntario />}
+                        />
+                        {/* Rotas protegidas - exigem autenticação */}
+                        {/* Rotas do usuário */}
+                        <Route
+                          path="/home-user"
+                          element={
+                            <ProtectedRoute>
+                              <HomeUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/agenda-user"
+                          element={
+                            <ProtectedRoute>
+                              <AgendaUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/historico-user"
+                          element={
+                            <ProtectedRoute>
+                              <HistoricoUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/agendar-horario-user"
+                          element={
+                            <ProtectedRoute>
+                              <AgendarHorarioUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/profile-form-user"
+                          element={
+                            <ProtectedRoute>
+                              <ProfileFormUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/pagamento-user"
+                          element={
+                            <ProtectedRoute>
+                              <PagamentoUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        {/* Rotas do profissional */}
+                        <Route
+                          path="/home"
+                          element={
+                            <ProtectedRoute>
+                              <Home />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/disponibilizar-horario"
+                          element={
+                            <ProtectedRoute>
+                              <DisponibilizarHorario />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/agenda"
+                          element={
+                            <ProtectedRoute>
+                              <Agenda />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/historico"
+                          element={
+                            <ProtectedRoute>
+                              <Historico />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/profile-form"
+                          element={
+                            <ProtectedRoute>
+                              <ProfileForm />
+                            </ProtectedRoute>
+                          }
+                        />
+                        {/* Rotas da assistente social */}
+                        <Route
+                          path="/assistente-social"
+                          element={
+                            <ProtectedRoute>
+                              <AssistenteSocial />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/profile-form-assistente-social"
+                          element={
+                            <ProtectedRoute>
+                              <ProfileFormAssistenteSocial />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/cadastro-assistente"
+                          element={
+                            <ProtectedRoute>
+                              <CadastroAssistenteSocial />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/cadastro-voluntario"
+                          element={
+                            <ProtectedRoute>
+                              <CadastroVoluntario />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/classificacao-usuarios"
+                          element={
+                            <ProtectedRoute>
+                              <ClassificacaoUsuarios />
+                            </ProtectedRoute>
+                          }
+                        />
+                        {/* Rota raiz - redireciona para login */}
+                        <Route path="/" element={<TelaLogin />} />
+                        {/* Rota padrão para página não encontrada */}
+                        <Route path="*" element={<NotFound />} />{" "}
+                      </Routes>
                     </UserNavigationProvider>
                   </AuthGuard>
                 </Router>

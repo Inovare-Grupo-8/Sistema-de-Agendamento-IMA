@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Clock,
+  User,
+  Calendar as CalendarIcon,
+  Video,
+  MapPin,
+} from "lucide-react";
 import { useState } from "react";
 
 interface Appointment {
@@ -23,6 +31,8 @@ interface Appointment {
   type: string;
   serviceType: string;
   period: string;
+  status: "confirmed" | "pending" | "cancelled";
+  priority?: "high" | "medium" | "low";
 }
 
 interface TimeSlotProps {
@@ -32,7 +42,12 @@ interface TimeSlotProps {
   highlight?: boolean;
 }
 
-const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotProps) => {
+const TimeSlot = ({
+  appointment,
+  onCancel,
+  onReschedule,
+  highlight,
+}: TimeSlotProps) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -40,9 +55,18 @@ const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotPr
   const [selectedTime, setSelectedTime] = useState<string>();
 
   const timeSlots = [
-    "09:00", "10:00", "11:00", "12:00",
-    "13:00", "14:00", "15:00", "16:00",
-    "17:00", "18:00", "19:00", "20:00"
+    "09:00",
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00",
+    "20:00",
   ];
 
   const handleReschedule = () => {
@@ -52,29 +76,87 @@ const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotPr
     }
   };
 
+  const statusColors = {
+    confirmed:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    pending:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+    cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  };
+
+  const statusLabels = {
+    confirmed: "Confirmado",
+    pending: "Pendente",
+    cancelled: "Cancelado",
+  };
+
   return (
-    <div className={`px-4 py-3 flex items-center justify-between ${highlight ? 'ring-2 ring-green-500 ring-offset-2 dark:ring-green-400 bg-green-50 dark:bg-green-900/30 transition-all duration-300' : ''}`}>
-      <div className="grid grid-cols-4 gap-4 flex-1">
-        <span className="text-gray-900 dark:text-[#f8fafc] font-semibold">{appointment.time}</span>
-        <span className="text-gray-700 dark:text-[#a5b4fc] font-semibold">{appointment.name}</span>
-        <span className="text-gray-600 dark:text-[#cbd5e1]">{appointment.type}</span>
-        <span className="text-gray-500 dark:text-[#cbd5e1]">{appointment.serviceType}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="destructive"
-          onClick={() => setIsCancelDialogOpen(true)}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          Cancelar
-        </Button>
-        <Button 
-          variant="secondary"
-          onClick={() => setIsRescheduleDialogOpen(true)}
-          className="bg-[#1A1466] hover:bg-[#13104d]"
-        >
-          Reagendar
-        </Button>
+    <div
+      className={`p-4 transition-all duration-300 ${
+        highlight
+          ? "bg-green-50 dark:bg-green-900/20 border-l-4 border-l-green-500"
+          : "hover:bg-gray-50 dark:hover:bg-[#23272F]/50"
+      }`}
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        {/* Informações principais */}
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Clock className="w-5 h-5 text-[#ED4231]" />
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
+              {appointment.time}
+            </span>
+            <Badge
+              className={`${
+                statusColors[appointment.status]
+              } px-3 py-1 rounded-full text-xs font-medium`}
+            >
+              {statusLabels[appointment.status]}
+            </Badge>
+            {highlight && (
+              <Badge className="bg-[#ED4231] text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
+                Próximo
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <User className="w-5 h-5 text-gray-500" />
+            <span className="font-medium text-gray-800 dark:text-gray-200">
+              {appointment.name}
+            </span>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-2 md:gap-6 text-sm text-gray-600 dark:text-gray-400">
+            <span className="flex items-center gap-1">
+              {appointment.serviceType.toLowerCase().includes("online") ? (
+                <Video className="w-4 h-4" />
+              ) : (
+                <MapPin className="w-4 h-4" />
+              )}
+              {appointment.serviceType}
+            </span>
+            <span>{appointment.type}</span>
+          </div>
+        </div>
+
+        {/* Botões de ação */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => setIsRescheduleDialogOpen(true)}
+            className="flex-1 md:flex-none border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231] hover:text-white transition-colors"
+          >
+            Reagendar
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setIsCancelDialogOpen(true)}
+            className="flex-1 md:flex-none bg-red-600 hover:bg-red-700"
+          >
+            Cancelar
+          </Button>
+        </div>
       </div>
 
       {/* Cancel Dialog */}
@@ -83,14 +165,24 @@ const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotPr
           <DialogHeader>
             <DialogTitle>Cancelar consulta</DialogTitle>
             <DialogDescription>
-              Você tem certeza que deseja cancelar a consulta de {appointment.name} às {appointment.time}?
+              Você tem certeza que deseja cancelar a consulta de{" "}
+              {appointment.name} às {appointment.time}?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(false)}
+            >
               Voltar
             </Button>
-            <Button variant="destructive" onClick={() => { setIsCancelDialogOpen(false); onCancel(appointment.time); }}>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setIsCancelDialogOpen(false);
+                onCancel(appointment.time);
+              }}
+            >
               Cancelar consulta
             </Button>
           </DialogFooter>
@@ -98,12 +190,16 @@ const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotPr
       </Dialog>
 
       {/* Reschedule Dialog */}
-      <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+      <Dialog
+        open={isRescheduleDialogOpen}
+        onOpenChange={setIsRescheduleDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reagendar consulta</DialogTitle>
             <DialogDescription>
-              Escolha uma nova data e horário para a consulta de {appointment.name}
+              Escolha uma nova data e horário para a consulta de{" "}
+              {appointment.name}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 flex flex-col space-y-4">
@@ -127,10 +223,13 @@ const TimeSlot = ({ appointment, onCancel, onReschedule, highlight }: TimeSlotPr
             </Select>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsRescheduleDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsRescheduleDialogOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleReschedule}
               className="bg-[#1A1466] hover:bg-[#13104d]"
               disabled={!selectedDate || !selectedTime}

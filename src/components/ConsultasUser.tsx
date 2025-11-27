@@ -1,12 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getUserNavigationPath } from "@/utils/userNavigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { Calendar as CalendarIcon, Clock, Activity, TrendingUp, Eye, CheckCircle } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  Activity,
+  TrendingUp,
+  Eye,
+  CheckCircle,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,12 +40,12 @@ const ConsultasUser = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   // Estado para as estatísticas das consultas
   const [consultasSummary, setConsultasSummary] = useState<ConsultasSummary>({
     hoje: 0,
     semana: 0,
-    mes: 0
+    mes: 0,
   });
 
   // Carregar dados das consultas via API
@@ -36,26 +53,43 @@ const ConsultasUser = () => {
     const loadConsultaStats = async () => {
       setLoading(true);
       setError("");
-      
+
       try {
-        // Buscar dados de consultas da API usando 'assistido' para usuários
-        const consultaStats = await ConsultaApiService.getAllConsultaStats('assistido');
-        
+        // Buscar userId do localStorage
+        const userDataStr = localStorage.getItem("userData");
+        if (!userDataStr) {
+          throw new Error("Usuário não está logado");
+        }
+        const user = JSON.parse(userDataStr);
+        const userId = user.idUsuario;
+
+        if (!userId) {
+          throw new Error("ID do usuário não encontrado");
+        }
+
+        // Buscar dados de consultas da API usando userId
+        const consultaStats = await ConsultaApiService.getAllConsultaStats(
+          userId
+        );
+
         setConsultasSummary({
           hoje: consultaStats.hoje,
           semana: consultaStats.semana,
-          mes: consultaStats.mes
+          mes: consultaStats.mes,
         });
       } catch (err) {
         console.error("Erro ao carregar dados das consultas:", err);
-        const message = err instanceof Error ? err.message : "Erro ao carregar dados das consultas";
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Erro ao carregar dados das consultas";
         setError(message);
-        
+
         // Manter dados zerados em caso de erro
         setConsultasSummary({
           hoje: 0,
           semana: 0,
-          mes: 0
+          mes: 0,
         });
       } finally {
         setLoading(false);
@@ -69,7 +103,7 @@ const ConsultasUser = () => {
     <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
       {/* Add breadcrumb navigation at the top of the content */}
       {getUserNavigationPath(location.pathname)}
-      
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">
@@ -112,7 +146,7 @@ const ConsultasUser = () => {
                 <Skeleton className="h-4 w-24" />
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
@@ -122,7 +156,9 @@ const ConsultasUser = () => {
                   {consultasSummary.hoje}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {consultasSummary.hoje === 1 ? 'consulta agendada' : 'consultas agendadas'}
+                  {consultasSummary.hoje === 1
+                    ? "consulta agendada"
+                    : "consultas agendadas"}
                 </p>
               </motion.div>
             )}
@@ -152,7 +188,7 @@ const ConsultasUser = () => {
                 <Skeleton className="h-4 w-24" />
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
@@ -162,7 +198,9 @@ const ConsultasUser = () => {
                   {consultasSummary.semana}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {consultasSummary.semana === 1 ? 'consulta agendada' : 'consultas agendadas'}
+                  {consultasSummary.semana === 1
+                    ? "consulta agendada"
+                    : "consultas agendadas"}
                 </p>
               </motion.div>
             )}
@@ -192,7 +230,7 @@ const ConsultasUser = () => {
                 <Skeleton className="h-4 w-24" />
               </div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
@@ -202,7 +240,9 @@ const ConsultasUser = () => {
                   {consultasSummary.mes}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {consultasSummary.mes === 1 ? 'consulta agendada' : 'consultas agendadas'}
+                  {consultasSummary.mes === 1
+                    ? "consulta agendada"
+                    : "consultas agendadas"}
                 </p>
               </motion.div>
             )}
@@ -219,31 +259,41 @@ const ConsultasUser = () => {
               <Activity className="w-5 h-5 text-[#ED4231]" />
               Ações Rápidas
             </CardTitle>
-            <CardDescription>Acesse rapidamente as funcionalidades principais</CardDescription>
+            <CardDescription>
+              Acesse rapidamente as funcionalidades principais
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link 
-              to="/agendar-consulta" 
+            <Link
+              to="/agendar-consulta"
               className="block w-full p-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors group"
             >
               <div className="flex items-center gap-3">
                 <CalendarIcon className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
                 <div>
-                  <h3 className="font-medium text-blue-900 dark:text-blue-300">Agendar Nova Consulta</h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-400">Reserve uma nova consulta</p>
+                  <h3 className="font-medium text-blue-900 dark:text-blue-300">
+                    Agendar Nova Consulta
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    Reserve uma nova consulta
+                  </p>
                 </div>
               </div>
             </Link>
-            
-            <Link 
-              to="/historico-user" 
+
+            <Link
+              to="/historico-user"
               className="block w-full p-3 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-colors group"
             >
               <div className="flex items-center gap-3">
                 <Eye className="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" />
                 <div>
-                  <h3 className="font-medium text-green-900 dark:text-green-300">Ver Histórico</h3>
-                  <p className="text-sm text-green-700 dark:text-green-400">Consulte seu histórico completo</p>
+                  <h3 className="font-medium text-green-900 dark:text-green-300">
+                    Ver Histórico
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    Consulte seu histórico completo
+                  </p>
                 </div>
               </div>
             </Link>
@@ -257,7 +307,9 @@ const ConsultasUser = () => {
               <CheckCircle className="w-5 h-5 text-[#ED4231]" />
               Resumo Geral
             </CardTitle>
-            <CardDescription>Informações importantes sobre suas consultas</CardDescription>
+            <CardDescription>
+              Informações importantes sobre suas consultas
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
@@ -270,11 +322,17 @@ const ConsultasUser = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded">
                   <span className="text-sm font-medium">Total geral:</span>
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                    {consultasSummary.hoje + consultasSummary.semana + consultasSummary.mes} consultas
+                  <Badge
+                    variant="outline"
+                    className="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                  >
+                    {consultasSummary.hoje +
+                      consultasSummary.semana +
+                      consultasSummary.mes}{" "}
+                    consultas
                   </Badge>
                 </div>
-                
+
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   <p>• Mantenha suas consultas organizadas</p>
                   <p>• Receba lembretes automáticos</p>

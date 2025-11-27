@@ -1,23 +1,85 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  SidebarProvider,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Link, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus, Search, Filter, AlertCircle, EyeOff, Shield, Lock } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  User,
+  Clock,
+  Menu,
+  History,
+  ChevronRight,
+  Users,
+  UserCheck,
+  Activity,
+  Sun,
+  Moon,
+  Home as HomeIcon,
+  Phone,
+  Mail,
+  MessageSquare,
+  FileText,
+  Check,
+  X,
+  Eye,
+  ThumbsUp,
+  ThumbsDown,
+  AlertTriangle,
+  UserPlus,
+  Search,
+  Filter,
+  AlertCircle,
+  EyeOff,
+  Shield,
+  Lock,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import VoluntarioApiService, { VoluntarioListagem, VoluntarioStatus } from "@/services/voluntarioApi";
+import VoluntarioApiService, {
+  VoluntarioListagem,
+  VoluntarioStatus,
+} from "@/services/voluntarioApi";
 import { useAssistenteSocial } from "@/hooks/useAssistenteSocial";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 
@@ -54,28 +116,28 @@ const assistenteSocialNavItems = [
   {
     path: "/assistente-social",
     label: "Home",
-    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />
+    icon: <HomeIcon className="w-6 h-6" color="#ED4231" />,
   },
   {
     path: "/classificacao-usuarios",
     label: "Classificar Usuários",
-    icon: <UserCheck className="w-6 h-6" color="#ED4231" />
+    icon: <UserCheck className="w-6 h-6" color="#ED4231" />,
   },
   {
-    path: '/cadastro-assistente',
-    label: 'Cadastrar Assistente', 
+    path: "/cadastro-assistente",
+    label: "Cadastrar Assistente",
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
   },
   {
-    path: '/cadastro-voluntario',
-    label: 'Cadastrar Voluntário',
+    path: "/cadastro-voluntario",
+    label: "Cadastrar Voluntário",
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
   },
   {
     path: "/profile-form-assistente-social",
     label: "Meu Perfil",
-    icon: <User className="w-6 h-6" color="#ED4231" />
-  }
+    icon: <User className="w-6 h-6" color="#ED4231" />,
+  },
 ];
 
 const CadastroVoluntario = () => {
@@ -85,10 +147,11 @@ const CadastroVoluntario = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  
+
   // Estado para dados do assistente social (substituindo dados mockados)
-  const [assistenteSocialData, setAssistenteSocialData] = useState<AssistenteSocialData | null>(null);
-  
+  const [assistenteSocialData, setAssistenteSocialData] =
+    useState<AssistenteSocialData | null>(null);
+
   // Estados para formulário de cadastro
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -98,21 +161,23 @@ const CadastroVoluntario = () => {
     telefone: "",
     cpf: "",
     senha: "",
-    confirmarSenha: ""
+    confirmarSenha: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
-    // Estados para lista de voluntários
+  // Estados para lista de voluntários
   const [voluntarios, setVoluntarios] = useState<Voluntario[]>([]);
-  const [voluntariosOriginal, setVoluntariosOriginal] = useState<VoluntarioListagem[]>([]);
+  const [voluntariosOriginal, setVoluntariosOriginal] = useState<
+    VoluntarioListagem[]
+  >([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [passwordStrength, setPasswordStrength] = useState({
     score: 0,
-    feedback: ""
+    feedback: "",
   });
-  
+
   // Estados para controle da interface
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -123,23 +188,24 @@ const CadastroVoluntario = () => {
     try {
       setLoadingVoluntarios(true);
       const dadosApi = await VoluntarioApiService.listarVoluntarios();
-      setVoluntariosOriginal(dadosApi);      // Converter dados da API para o formato do componente
-      const voluntariosConvertidos: Voluntario[] = dadosApi.map(vol => ({
+      setVoluntariosOriginal(dadosApi); // Converter dados da API para o formato do componente
+      const voluntariosConvertidos: Voluntario[] = dadosApi.map((vol) => ({
         id: vol.idUsuario.toString(),
         nome: vol.nome,
         sobrenome: vol.sobrenome,
         email: vol.email,
         telefone: "Não informado", // Telefone não retornado pela API
         funcao: vol.funcao,
-        areaOrientacao: vol.areaOrientacao,        especialidade: vol.funcao || vol.areaOrientacao || "Não especificado",
+        areaOrientacao: vol.areaOrientacao,
+        especialidade: vol.funcao || vol.areaOrientacao || "Não especificado",
         status: VoluntarioApiService.determinarStatus(vol),
         dataRegistro: new Date(vol.dataCadastro),
-        ultimoAcesso: vol.ultimoAcesso ? new Date(vol.ultimoAcesso) : undefined
+        ultimoAcesso: vol.ultimoAcesso ? new Date(vol.ultimoAcesso) : undefined,
       }));
-      
+
       setVoluntarios(voluntariosConvertidos);
     } catch (error) {
-      console.error('Erro ao carregar voluntários:', error);
+      console.error("Erro ao carregar voluntários:", error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar a lista de voluntários.",
@@ -159,43 +225,43 @@ const CadastroVoluntario = () => {
         // Carregar dados do assistente social e voluntários em paralelo
         const [perfilData] = await Promise.all([
           fetchPerfil(),
-          carregarVoluntarios()
+          carregarVoluntarios(),
         ]);
-        
+
         // Mapear dados do perfil para o formato local
         if (perfilData) {
           setAssistenteSocialData({
             id: perfilData.idUsuario.toString(),
             nome: perfilData.nome,
             sobrenome: perfilData.sobrenome,
-            crp: perfilData.crp || 'CRP não informado',
-            especialidade: perfilData.especialidade || 'Assistência Social',
-            telefone: perfilData.telefone || 'Não informado',
+            crp: perfilData.crp || "CRP não informado",
+            especialidade: perfilData.especialidade || "Assistência Social",
+            telefone: perfilData.telefone || "Não informado",
             email: perfilData.email,
             disponivel: true,
             proximaDisponibilidade: new Date(Date.now() + 24 * 60 * 60 * 1000), // Próximo dia útil
             atendimentosRealizados: 0, // Será obtido de outra API posteriormente
-            avaliacaoMedia: 0 // Será obtido de outra API posteriormente
+            avaliacaoMedia: 0, // Será obtido de outra API posteriormente
           });
         }
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+        console.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, [fetchPerfil]);
 
   // Função para validar CPF
   const validarCPF = (cpf: string) => {
-    const cpfLimpo = cpf.replace(/\D/g, '');
+    const cpfLimpo = cpf.replace(/\D/g, "");
     if (cpfLimpo.length !== 11) return false;
-    
+
     // Verificar se todos os dígitos são iguais
     if (/^(\d)\1{10}$/.test(cpfLimpo)) return false;
-    
+
     // Validação dos dígitos verificadores
     let soma = 0;
     for (let i = 0; i < 9; i++) {
@@ -204,7 +270,7 @@ const CadastroVoluntario = () => {
     let resto = (soma * 10) % 11;
     if (resto === 10 || resto === 11) resto = 0;
     if (resto !== parseInt(cpfLimpo.charAt(9))) return false;
-    
+
     soma = 0;
     for (let i = 0; i < 10; i++) {
       soma += parseInt(cpfLimpo.charAt(i)) * (11 - i);
@@ -258,7 +324,7 @@ const CadastroVoluntario = () => {
   // Função para validar campo em tempo real
   const validarCampo = (campo: string, valor: string) => {
     let erro = "";
-    
+
     switch (campo) {
       case "email":
         if (valor && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) {
@@ -270,47 +336,52 @@ const CadastroVoluntario = () => {
           erro = "CPF inválido";
         }
         break;
-      case "telefone":
-        if (valor && !/^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(valor)) {
-          erro = "Formato: (11) 99999-9999";
+      case "telefone": {
+        const cleanPhone = valor.replace(/\D/g, "");
+        if (
+          valor &&
+          (cleanPhone.length !== 11 || !/^\(\d{2}\)\s9\d{5}-\d{4}$/.test(valor))
+        ) {
+          erro = "Telefone deve ter 11 dígitos. Formato: (11) 94555-5555";
         }
         break;
+      }
       case "confirmarSenha":
         if (valor && valor !== formData.senha) {
           erro = "As senhas não coincidem";
         }
         break;
     }
-    
-    setFieldErrors(prev => ({
+
+    setFieldErrors((prev) => ({
       ...prev,
-      [campo]: erro
+      [campo]: erro,
     }));
   };
 
   // Função para formatar CPF
   const formatarCPF = (valor: string) => {
-    const apenasNumeros = valor.replace(/\D/g, '');
+    const apenasNumeros = valor.replace(/\D/g, "");
     return apenasNumeros
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
       .slice(0, 14);
   };
 
   // Função para formatar telefone
   const formatarTelefone = (valor: string) => {
-    const apenasNumeros = valor.replace(/\D/g, '');
+    const apenasNumeros = valor.replace(/\D/g, "");
     return apenasNumeros
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4,5})(\d{4})/, '$1-$2')
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4,5})(\d{4})/, "$1-$2")
       .slice(0, 15);
   };
 
   // Handler para mudanças nos campos
   const handleFieldChange = (campo: string, valor: string) => {
     let valorFormatado = valor;
-    
+
     if (campo === "cpf") {
       valorFormatado = formatarCPF(valor);
     } else if (campo === "telefone") {
@@ -319,9 +390,9 @@ const CadastroVoluntario = () => {
       const strength = calcularForcaSenha(valor);
       setPasswordStrength(strength);
     }
-    
-    setFormData(prev => ({ ...prev, [campo]: valorFormatado }));
-    
+
+    setFormData((prev) => ({ ...prev, [campo]: valorFormatado }));
+
     // Validar campo após um pequeno delay
     setTimeout(() => {
       validarCampo(campo, valorFormatado);
@@ -348,12 +419,13 @@ const CadastroVoluntario = () => {
 
     if (!formData.nome.trim()) erros.push("Nome é obrigatório");
     if (!formData.sobrenome.trim()) erros.push("Sobrenome é obrigatório");
-    
+
     if (!formData.email.trim()) {
       erros.push("Email é obrigatório");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       erros.push("Email inválido");
-    }    if (!formData.cpf.trim()) {
+    }
+    if (!formData.cpf.trim()) {
       erros.push("CPF é obrigatório");
     } else if (!validarCPF(formData.cpf)) {
       erros.push("CPF inválido");
@@ -363,7 +435,8 @@ const CadastroVoluntario = () => {
       erros.push("Senha é obrigatória");
     } else if (formData.senha.length < 6) {
       erros.push("Senha deve ter pelo menos 6 caracteres");
-    }    if (formData.senha !== formData.confirmarSenha) {
+    }
+    if (formData.senha !== formData.confirmarSenha) {
       erros.push("As senhas não coincidem");
     }
 
@@ -377,7 +450,9 @@ const CadastroVoluntario = () => {
     }
 
     // Verificar se email já existe
-    const emailExiste = voluntarios.some(vol => vol.email.toLowerCase() === formData.email.toLowerCase());
+    const emailExiste = voluntarios.some(
+      (vol) => vol.email.toLowerCase() === formData.email.toLowerCase()
+    );
     if (emailExiste) {
       toast({
         title: "Erro de validação",
@@ -388,31 +463,39 @@ const CadastroVoluntario = () => {
     }
 
     return true;
-  };  // Função para validar step atual
+  }; // Função para validar step atual
   const validarStep = (step: number) => {
     switch (step) {
       case 1:
-        return formData.nome.trim() && formData.sobrenome.trim() && formData.email.trim() && 
-               /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && 
-               formData.cpf.trim() && validarCPF(formData.cpf);
+        return (
+          formData.nome.trim() &&
+          formData.sobrenome.trim() &&
+          formData.email.trim() &&
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
+          formData.cpf.trim() &&
+          validarCPF(formData.cpf)
+        );
       case 2:
-        return formData.senha.length >= 6 && formData.senha === formData.confirmarSenha;
+        return (
+          formData.senha.length >= 6 &&
+          formData.senha === formData.confirmarSenha
+        );
       default:
         return true;
     }
-  };// Navegação entre steps
+  }; // Navegação entre steps
   const proximoStep = () => {
     if (validarStep(currentStep)) {
       if (currentStep === 3) {
         // Se estamos no step 3 (revisão), mostrar modal de credenciais
         setShowCredentialsModal(true);
       } else {
-        setCurrentStep(prev => Math.min(prev + 1, 3));
+        setCurrentStep((prev) => Math.min(prev + 1, 3));
       }
     }
   };
   const stepAnterior = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   // Função para confirmar envio das credenciais
@@ -424,7 +507,7 @@ const CadastroVoluntario = () => {
   // Função para submeter formulário
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validarFormulario()) {
       setShowConfirmModal(true);
     }
@@ -432,61 +515,77 @@ const CadastroVoluntario = () => {
   // Função para confirmar cadastro
   const confirmarCadastro = async () => {
     setIsProcessing(true);
-    
-    try {      // Primeira fase: cadastro básico
+
+    try {
+      // Primeira fase: cadastro básico
       const primeiraFaseData = {
         nome: formData.nome,
         sobrenome: formData.sobrenome,
         email: formData.email,
-        cpf: formData.cpf.replace(/\D/g, ''), // Remove formatting for backend
-        senha: formData.senha
-      };const response1 = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/fase1`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(primeiraFaseData),
-      });
+        cpf: formData.cpf.replace(/\D/g, ""), // Remove formatting for backend
+        senha: formData.senha,
+      };
+      const response1 = await fetch(
+        `${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/primeira-fase`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(primeiraFaseData),
+        }
+      );
 
       if (!response1.ok) {
         const errorData = await response1.json();
-        throw new Error(errorData.message || 'Erro ao cadastrar primeira fase');
-      }      const fase1Result = await response1.json();
-      const userId = fase1Result.idUsuario;      // Enviar credenciais por email
+        throw new Error(errorData.message || "Erro ao cadastrar primeira fase");
+      }
+      const fase1Result = await response1.json();
+      const userId = fase1Result.idUsuario; // Enviar credenciais por email
       try {
-        const credentialsResponse = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/enviar-credenciais`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            nome: formData.nome,
-            senha: formData.senha
-          }),
-        });
+        const credentialsResponse = await fetch(
+          `${
+            import.meta.env.VITE_URL_BACKEND
+          }/usuarios/voluntario/credenciais?email=${encodeURIComponent(
+            formData.email
+          )}&nome=${encodeURIComponent(
+            formData.nome
+          )}&senha=${encodeURIComponent(formData.senha)}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!credentialsResponse.ok) {
           const errorData = await credentialsResponse.json().catch(() => ({}));
-          console.warn('Erro ao enviar credenciais por email:', errorData.message || 'Erro desconhecido');
-          
+          console.warn(
+            "Erro ao enviar credenciais por email:",
+            errorData.message || "Erro desconhecido"
+          );
+
           toast({
             title: "Aviso",
-            description: "Cadastro realizado com sucesso, mas houve falha no envio do email de credenciais.",
+            description:
+              "Cadastro realizado com sucesso, mas houve falha no envio do email de credenciais.",
             variant: "default",
           });
         } else {
-          console.log('Credenciais enviadas por email com sucesso');
+          console.log("Credenciais enviadas por email com sucesso");
         }
       } catch (emailError) {
-        console.warn('Erro ao enviar email de credenciais:', emailError);
-        
+        console.warn("Erro ao enviar email de credenciais:", emailError);
+
         toast({
-          title: "Aviso", 
-          description: "Cadastro realizado com sucesso, mas houve falha no envio do email de credenciais.",
+          title: "Aviso",
+          description:
+            "Cadastro realizado com sucesso, mas houve falha no envio do email de credenciais.",
           variant: "default",
         });
-      }      toast({
+      }
+      toast({
         title: "Primeira fase concluída!",
         description: `${formData.nome}, você receberá um email para completar seu cadastro.`,
         variant: "default",
@@ -503,17 +602,19 @@ const CadastroVoluntario = () => {
         telefone: "",
         cpf: "",
         senha: "",
-        confirmarSenha: ""
+        confirmarSenha: "",
       });
-      
+
       setCurrentStep(1);
       setShowConfirmModal(false);
-      
     } catch (error) {
-      console.error('Erro ao cadastrar voluntário:', error);
+      console.error("Erro ao cadastrar voluntário:", error);
       toast({
         title: "Erro ao cadastrar",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao cadastrar o voluntário. Tente novamente.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro ao cadastrar o voluntário. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -554,7 +655,9 @@ const CadastroVoluntario = () => {
       <div className="min-h-screen w-full flex items-center justify-center bg-[#EDF2FB] dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#ED4231]"></div>
-          <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Carregando...</p>
+          <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
+            Carregando...
+          </p>
         </div>
       </div>
     );
@@ -566,69 +669,126 @@ const CadastroVoluntario = () => {
         {/* Sidebar comprimida para mobile */}
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
-            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+            >
               <Menu className="w-7 h-7" />
-            </Button>            <ProfileAvatar 
+            </Button>{" "}
+            <ProfileAvatar
               profileImage={profileImage}
-              name={assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Assistente Social'}
+              name={
+                assistenteSocialData
+                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                  : "Assistente Social"
+              }
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Carregando...'}
+              {assistenteSocialData
+                ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                : "Carregando..."}
             </span>
           </div>
         )}
-        
+
         {/* Sidebar */}
-        <div className={`transition-all duration-500 ease-in-out
-          ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
+        <div
+          className={`transition-all duration-500 ease-in-out
+          ${
+            sidebarOpen
+              ? "opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72"
+              : "opacity-0 -translate-x-full w-0"
+          }
           bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}
+        >
           <div className="w-full flex justify-start mb-6">
-            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+            >
               <Menu className="w-7 h-7" />
             </Button>
           </div>
-            <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar 
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar
               profileImage={profileImage}
-              name={assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Assistente Social'}
+              name={
+                assistenteSocialData
+                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                  : "Assistente Social"
+              }
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Carregando...'}
+              {assistenteSocialData
+                ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                : "Carregando..."}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {assistenteSocialData?.especialidade || 'Assistência Social'}
+              {assistenteSocialData?.especialidade || "Assistência Social"}
             </Badge>
+
+            <Button
+              onClick={toggleTheme}
+              className="mt-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+              aria-label={
+                theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
+              }
+            >
+              {theme === "dark" ? (
+                <Sun className="w-5 h-5 text-yellow-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-800" />
+              )}
+            </Button>
           </div>
-          
+
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {assistenteSocialNavItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <SidebarMenuButton
+                      asChild
+                      className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                        location.pathname === item.path
+                          ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                          : ""
+                      }`}
+                    >
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </TooltipTrigger>
-                  <TooltipContent className="z-50">
-                    {item.label}
-                  </TooltipContent>
+                  <TooltipContent className="z-50">{item.label}</TooltipContent>
                 </Tooltip>
-              </SidebarMenuItem>            ))}
-              <SidebarMenuItem>
+              </SidebarMenuItem>
+            ))}
+            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
                     <div className="flex items-center gap-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="#ED4231"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9"
+                        />
+                      </svg>
                       <span>Sair</span>
                     </div>
                   </SidebarMenuButton>
@@ -637,46 +797,83 @@ const CadastroVoluntario = () => {
               </Tooltip>
             </SidebarMenuItem>
           </SidebarMenu>
-          
+
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
-            <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
+            <span>
+              &copy; {new Date().getFullYear()} Desenvolvido por Inovare
+            </span>
             <div className="flex gap-2">
-              <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
-              <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
+              <a
+                href="https://inovare.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[#ED4231]"
+              >
+                Site
+              </a>
+              <a
+                href="mailto:contato@inovare.com"
+                className="underline hover:text-[#ED4231]"
+              >
+                Contato
+              </a>
             </div>
           </div>
         </div>
 
         {/* Conteúdo principal */}
-        <main className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
+        <main
+          className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${
+            sidebarOpen ? "" : "ml-0"
+          }`}
+        >
           {/* Header */}
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
-            <div className="flex items-center gap-3">              <ProfileAvatar 
+            <div className="flex items-center gap-3">
+              {" "}
+              <ProfileAvatar
                 profileImage={profileImage}
-                name={assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Assistente Social'}
+                name={
+                  assistenteSocialData
+                    ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                    : "Assistente Social"
+                }
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Carregando...'}
+                {assistenteSocialData
+                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                  : "Carregando..."}
               </span>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button
                 onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                aria-label={
+                  theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
+                }
               >
-                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-800" />
+                )}
               </Button>
             </div>
           </header>
 
           <div className="max-w-6xl mx-auto p-2 sm:p-4 md:p-8 pt-24 sm:pt-28 md:pt-24">
             <div className="flex flex-col">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Cadastro de Voluntários</h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">Cadastre novos voluntários para atuar no sistema</p>              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">
+                Cadastro de Voluntários
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Cadastre novos voluntários para atuar no sistema
+              </p>{" "}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Formulário de cadastro */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -692,26 +889,38 @@ const CadastroVoluntario = () => {
                       <CardDescription>
                         Preencha os dados do voluntário para criar o acesso
                       </CardDescription>
-                        {/* Stepper */}
+                      {/* Stepper */}
                       <div className="flex items-center justify-between mt-4">
                         {[1, 2, 3].map((step) => (
                           <div key={step} className="flex items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                              step < currentStep ? 'bg-green-500 text-white' :
-                              step === currentStep ? 'bg-[#ED4231] text-white' :
-                              'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
-                            }`}>
-                              {step < currentStep ? <Check className="w-4 h-4" /> : step}
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
+                                step < currentStep
+                                  ? "bg-green-500 text-white"
+                                  : step === currentStep
+                                  ? "bg-[#ED4231] text-white"
+                                  : "bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                              }`}
+                            >
+                              {step < currentStep ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                step
+                              )}
                             </div>
                             {step < 3 && (
-                              <div className={`w-full h-0.5 mx-2 transition-all duration-300 ${
-                                step < currentStep ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
-                              }`} />
+                              <div
+                                className={`w-full h-0.5 mx-2 transition-all duration-300 ${
+                                  step < currentStep
+                                    ? "bg-green-500"
+                                    : "bg-gray-200 dark:bg-gray-700"
+                                }`}
+                              />
                             )}
                           </div>
                         ))}
                       </div>
-                      
+
                       <div className="text-sm text-gray-600 dark:text-gray-400 text-center mt-2">
                         {currentStep === 1 && "Dados Pessoais"}
                         {currentStep === 2 && "Credenciais de Acesso"}
@@ -735,9 +944,13 @@ const CadastroVoluntario = () => {
                                   id="nome"
                                   type="text"
                                   value={formData.nome}
-                                  onChange={(e) => handleFieldChange('nome', e.target.value)}
+                                  onChange={(e) =>
+                                    handleFieldChange("nome", e.target.value)
+                                  }
                                   placeholder="Nome do voluntário"
-                                  className={`mt-1 ${fieldErrors.nome ? 'border-red-500' : ''}`}
+                                  className={`mt-1 ${
+                                    fieldErrors.nome ? "border-red-500" : ""
+                                  }`}
                                   required
                                 />
                                 {fieldErrors.nome && (
@@ -747,16 +960,25 @@ const CadastroVoluntario = () => {
                                   </p>
                                 )}
                               </div>
-                              
+
                               <div>
                                 <Label htmlFor="sobrenome">Sobrenome *</Label>
                                 <Input
                                   id="sobrenome"
                                   type="text"
                                   value={formData.sobrenome}
-                                  onChange={(e) => handleFieldChange('sobrenome', e.target.value)}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      "sobrenome",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="Sobrenome do voluntário"
-                                  className={`mt-1 ${fieldErrors.sobrenome ? 'border-red-500' : ''}`}
+                                  className={`mt-1 ${
+                                    fieldErrors.sobrenome
+                                      ? "border-red-500"
+                                      : ""
+                                  }`}
                                   required
                                 />
                                 {fieldErrors.sobrenome && (
@@ -767,16 +989,21 @@ const CadastroVoluntario = () => {
                                 )}
                               </div>
                             </div>
-
                             <div>
-                              <Label htmlFor="email">Email Profissional *</Label>
+                              <Label htmlFor="email">
+                                Email Profissional *
+                              </Label>
                               <Input
                                 id="email"
                                 type="email"
                                 value={formData.email}
-                                onChange={(e) => handleFieldChange('email', e.target.value)}
+                                onChange={(e) =>
+                                  handleFieldChange("email", e.target.value)
+                                }
                                 placeholder="email@voluntario.com"
-                                className={`mt-1 ${fieldErrors.email ? 'border-red-500' : ''}`}
+                                className={`mt-1 ${
+                                  fieldErrors.email ? "border-red-500" : ""
+                                }`}
                                 required
                               />
                               {fieldErrors.email && (
@@ -785,16 +1012,21 @@ const CadastroVoluntario = () => {
                                   {fieldErrors.email}
                                 </p>
                               )}
-                            </div>                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            </div>{" "}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <Label htmlFor="cpf">CPF *</Label>
                                 <Input
                                   id="cpf"
                                   type="text"
                                   value={formData.cpf}
-                                  onChange={(e) => handleFieldChange('cpf', e.target.value)}
+                                  onChange={(e) =>
+                                    handleFieldChange("cpf", e.target.value)
+                                  }
                                   placeholder="000.000.000-00"
-                                  className={`mt-1 ${fieldErrors.cpf ? 'border-red-500' : ''}`}
+                                  className={`mt-1 ${
+                                    fieldErrors.cpf ? "border-red-500" : ""
+                                  }`}
                                   required
                                 />
                                 {fieldErrors.cpf && (
@@ -823,47 +1055,70 @@ const CadastroVoluntario = () => {
                                   id="senha"
                                   type={showPassword ? "text" : "password"}
                                   value={formData.senha}
-                                  onChange={(e) => handleFieldChange('senha', e.target.value)}
+                                  onChange={(e) =>
+                                    handleFieldChange("senha", e.target.value)
+                                  }
                                   placeholder="Mínimo 6 caracteres"
-                                  className={`mt-1 pr-10 ${fieldErrors.senha ? 'border-red-500' : ''}`}
+                                  className={`mt-1 pr-10 ${
+                                    fieldErrors.senha ? "border-red-500" : ""
+                                  }`}
                                   required
-                                />                                <Button
+                                />{" "}
+                                <Button
                                   type="button"
                                   onClick={() => setShowPassword(!showPassword)}
                                   className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 h-8 w-8 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                  {showPassword ? <EyeOff className="w-4 h-4 text-[#ED4231]" /> : <Eye className="w-4 h-4 text-[#ED4231]" />}
+                                  {showPassword ? (
+                                    <EyeOff className="w-4 h-4 text-[#ED4231]" />
+                                  ) : (
+                                    <Eye className="w-4 h-4 text-[#ED4231]" />
+                                  )}
                                 </Button>
                               </div>
-                              
+
                               {/* Indicador de força da senha */}
                               {formData.senha && (
                                 <div className="mt-2">
                                   <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm text-gray-600 dark:text-gray-400">Força da senha:</span>
-                                    <span className={`text-sm font-medium ${
-                                      passwordStrength.score <= 1 ? 'text-red-500' :
-                                      passwordStrength.score === 2 ? 'text-yellow-500' :
-                                      passwordStrength.score === 3 ? 'text-blue-500' :
-                                      'text-green-500'
-                                    }`}>
+                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                      Força da senha:
+                                    </span>
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        passwordStrength.score <= 1
+                                          ? "text-red-500"
+                                          : passwordStrength.score === 2
+                                          ? "text-yellow-500"
+                                          : passwordStrength.score === 3
+                                          ? "text-blue-500"
+                                          : "text-green-500"
+                                      }`}
+                                    >
                                       {passwordStrength.feedback}
                                     </span>
                                   </div>
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div
                                       className={`h-2 rounded-full transition-all duration-300 ${
-                                        passwordStrength.score <= 1 ? 'bg-red-500' :
-                                        passwordStrength.score === 2 ? 'bg-yellow-500' :
-                                        passwordStrength.score === 3 ? 'bg-blue-500' :
-                                        'bg-green-500'
+                                        passwordStrength.score <= 1
+                                          ? "bg-red-500"
+                                          : passwordStrength.score === 2
+                                          ? "bg-yellow-500"
+                                          : passwordStrength.score === 3
+                                          ? "bg-blue-500"
+                                          : "bg-green-500"
                                       }`}
-                                      style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                                      style={{
+                                        width: `${
+                                          (passwordStrength.score / 4) * 100
+                                        }%`,
+                                      }}
                                     />
                                   </div>
                                 </div>
                               )}
-                              
+
                               {fieldErrors.senha && (
                                 <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />
@@ -871,24 +1126,44 @@ const CadastroVoluntario = () => {
                                 </p>
                               )}
                             </div>
-                            
+
                             <div>
-                              <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
+                              <Label htmlFor="confirmarSenha">
+                                Confirmar Senha *
+                              </Label>
                               <div className="relative">
                                 <Input
                                   id="confirmarSenha"
-                                  type={showConfirmPassword ? "text" : "password"}
+                                  type={
+                                    showConfirmPassword ? "text" : "password"
+                                  }
                                   value={formData.confirmarSenha}
-                                  onChange={(e) => handleFieldChange('confirmarSenha', e.target.value)}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      "confirmarSenha",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="Confirme a senha"
-                                  className={`mt-1 pr-10 ${fieldErrors.confirmarSenha ? 'border-red-500' : ''}`}
+                                  className={`mt-1 pr-10 ${
+                                    fieldErrors.confirmarSenha
+                                      ? "border-red-500"
+                                      : ""
+                                  }`}
                                   required
-                                />                                <Button
+                                />{" "}
+                                <Button
                                   type="button"
-                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                  onClick={() =>
+                                    setShowConfirmPassword(!showConfirmPassword)
+                                  }
                                   className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 h-8 w-8 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                  {showConfirmPassword ? <EyeOff className="w-4 h-4 text-[#ED4231]" /> : <Eye className="w-4 h-4 text-[#ED4231]" />}
+                                  {showConfirmPassword ? (
+                                    <EyeOff className="w-4 h-4 text-[#ED4231]" />
+                                  ) : (
+                                    <Eye className="w-4 h-4 text-[#ED4231]" />
+                                  )}
                                 </Button>
                               </div>
                               {fieldErrors.confirmarSenha && (
@@ -898,7 +1173,8 @@ const CadastroVoluntario = () => {
                                 </p>
                               )}
                             </div>
-                          </motion.div>                        )}
+                          </motion.div>
+                        )}
 
                         {/* Step 3: Revisão */}
                         {currentStep === 3 && (
@@ -909,11 +1185,28 @@ const CadastroVoluntario = () => {
                             className="space-y-4"
                           >
                             <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Revise os dados:</h4>                              <div className="space-y-2 text-sm">
-                                <div><strong>Nome:</strong> {formData.nome} {formData.sobrenome}</div>
-                                <div><strong>Email:</strong> {formData.email}</div>
-                                {formData.telefone && <div><strong>Telefone:</strong> {formData.telefone}</div>}
-                                {formData.cpf && <div><strong>CPF:</strong> {formData.cpf}</div>}
+                              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+                                Revise os dados:
+                              </h4>{" "}
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <strong>Nome:</strong> {formData.nome}{" "}
+                                  {formData.sobrenome}
+                                </div>
+                                <div>
+                                  <strong>Email:</strong> {formData.email}
+                                </div>
+                                {formData.telefone && (
+                                  <div>
+                                    <strong>Telefone:</strong>{" "}
+                                    {formData.telefone}
+                                  </div>
+                                )}
+                                {formData.cpf && (
+                                  <div>
+                                    <strong>CPF:</strong> {formData.cpf}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </motion.div>
@@ -932,9 +1225,9 @@ const CadastroVoluntario = () => {
                               Anterior
                             </Button>
                           )}
-                          
+
                           <div className="flex-1" />
-                            {currentStep < 3 ? (
+                          {currentStep < 3 ? (
                             <Button
                               type="button"
                               onClick={proximoStep}
@@ -945,7 +1238,7 @@ const CadastroVoluntario = () => {
                               <ChevronRight className="w-4 h-4" />
                             </Button>
                           ) : (
-                            <Button 
+                            <Button
                               type="button"
                               onClick={proximoStep}
                               disabled={!validarStep(currentStep)}
@@ -959,7 +1252,7 @@ const CadastroVoluntario = () => {
                       </form>
                     </CardContent>
                   </Card>
-                </motion.div>                
+                </motion.div>
                 {/* Lista de voluntários cadastrados */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
@@ -973,16 +1266,30 @@ const CadastroVoluntario = () => {
                         Voluntários Cadastrados
                       </CardTitle>
                       <CardDescription>
-                        {voluntarios.filter(vol => {
-                          const matchSearch = vol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            vol.sobrenome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            vol.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
-                          const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
-                          return matchSearch && matchStatus;
-                        }).length} voluntário{voluntarios.length !== 1 ? 's' : ''} encontrado{voluntarios.length !== 1 ? 's' : ''}
+                        {
+                          voluntarios.filter((vol) => {
+                            const matchSearch =
+                              vol.nome
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              vol.sobrenome
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              vol.email
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              vol.especialidade
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase());
+                            const matchStatus =
+                              statusFilter === "todos" ||
+                              vol.status === statusFilter;
+                            return matchSearch && matchStatus;
+                          }).length
+                        }{" "}
+                        voluntário{voluntarios.length !== 1 ? "s" : ""}{" "}
+                        encontrado{voluntarios.length !== 1 ? "s" : ""}
                       </CardDescription>
-                      
                       {/* Filtros e busca */}
                       <div className="space-y-3 mt-4">
                         <div className="relative">
@@ -994,10 +1301,13 @@ const CadastroVoluntario = () => {
                             className="pl-10"
                           />
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <Filter className="w-4 h-4 text-gray-500" />
-                          <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <Select
+                            value={statusFilter}
+                            onValueChange={setStatusFilter}
+                          >
                             <SelectTrigger className="w-32">
                               <SelectValue />
                             </SelectTrigger>
@@ -1005,95 +1315,143 @@ const CadastroVoluntario = () => {
                               <SelectItem value="todos">Todos</SelectItem>
                               <SelectItem value="ativo">Ativos</SelectItem>
                               <SelectItem value="inativo">Inativos</SelectItem>
-                              <SelectItem value="pendente">Pendentes</SelectItem>
+                              <SelectItem value="pendente">
+                                Pendentes
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>                    </CardHeader>                    <CardContent>
+                      </div>{" "}
+                    </CardHeader>{" "}
+                    <CardContent>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
                         {loadingVoluntarios ? (
                           <div className="flex items-center justify-center py-8">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
-                            <span className="ml-3 text-sm text-gray-500">Carregando voluntários...</span>
+                            <span className="ml-3 text-sm text-gray-500">
+                              Carregando voluntários...
+                            </span>
                           </div>
                         ) : (
                           <>
                             {voluntarios
-                              .filter(vol => {
-                                const matchSearch = vol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                  vol.sobrenome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                  vol.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                  vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
-                                const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
-                            return matchSearch && matchStatus;
-                          })                          .map((voluntario) => (
-                          <motion.div 
-                            key={voluntario.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:shadow-md"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                                {voluntario.nome} {voluntario.sobrenome}
-                              </h4>
-                              <div className="flex items-center gap-2">
-                                <Badge className={getStatusColor(voluntario.status)}>
-                                  {getStatusText(voluntario.status)}
-                                </Badge>
-                                {voluntario.status === "ativo" && (
-                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              .filter((vol) => {
+                                const matchSearch =
+                                  vol.nome
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase()) ||
+                                  vol.sobrenome
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase()) ||
+                                  vol.email
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase()) ||
+                                  vol.especialidade
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase());
+                                const matchStatus =
+                                  statusFilter === "todos" ||
+                                  vol.status === statusFilter;
+                                return matchSearch && matchStatus;
+                              })
+                              .map((voluntario) => (
+                                <motion.div
+                                  key={voluntario.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:shadow-md"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                      {voluntario.nome} {voluntario.sobrenome}
+                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        className={getStatusColor(
+                                          voluntario.status
+                                        )}
+                                      >
+                                        {getStatusText(voluntario.status)}
+                                      </Badge>
+                                      {voluntario.status === "ativo" && (
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                                    <div className="flex items-center gap-1">
+                                      <Mail className="w-3 h-3" />
+                                      <p>{voluntario.email}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      <p>{voluntario.especialidade}</p>
+                                    </div>{" "}
+                                    <div className="flex items-center gap-1">
+                                      <CalendarIcon className="w-3 h-3" />
+                                      <p>
+                                        Cadastrado em:{" "}
+                                        {formatarData(voluntario.dataRegistro)}
+                                      </p>
+                                    </div>
+                                    {voluntario.ultimoAcesso && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        <p>
+                                          Último acesso:{" "}
+                                          {formatarData(
+                                            voluntario.ultimoAcesso
+                                          )}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {!voluntario.ultimoAcesso && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        <p className="text-yellow-600 dark:text-yellow-400">
+                                          Nunca acessou
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              ))}
+
+                            {voluntarios.filter((vol) => {
+                              const matchSearch =
+                                vol.nome
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()) ||
+                                vol.sobrenome
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()) ||
+                                vol.email
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase()) ||
+                                vol.especialidade
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase());
+                              const matchStatus =
+                                statusFilter === "todos" ||
+                                vol.status === statusFilter;
+                              return matchSearch && matchStatus;
+                            }).length === 0 && (
+                              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                <p className="text-sm">
+                                  Nenhum voluntário encontrado
+                                </p>
+                                {searchTerm && (
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setSearchTerm("")}
+                                    className="text-[#ED4231] text-xs mt-1"
+                                  >
+                                    Limpar busca
+                                  </Button>
                                 )}
                               </div>
-                            </div>
-                            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                              <div className="flex items-center gap-1">
-                                <Mail className="w-3 h-3" />
-                                <p>{voluntario.email}</p>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                <p>{voluntario.especialidade}</p>
-                              </div>                              <div className="flex items-center gap-1">
-                                <CalendarIcon className="w-3 h-3" />
-                                <p>Cadastrado em: {formatarData(voluntario.dataRegistro)}</p>
-                              </div>
-                              {voluntario.ultimoAcesso && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  <p>Último acesso: {formatarData(voluntario.ultimoAcesso)}</p>
-                                </div>
-                              )}
-                              {!voluntario.ultimoAcesso && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  <p className="text-yellow-600 dark:text-yellow-400">Nunca acessou</p>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                        
-                        {voluntarios.filter(vol => {
-                          const matchSearch = vol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            vol.sobrenome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            vol.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            vol.especialidade.toLowerCase().includes(searchTerm.toLowerCase());
-                          const matchStatus = statusFilter === "todos" || vol.status === statusFilter;
-                          return matchSearch && matchStatus;
-                        }).length === 0 && (
-                          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Nenhum voluntário encontrado</p>
-                            {searchTerm && (                              <Button
-                                variant="outline"
-                                onClick={() => setSearchTerm("")}
-                                className="text-[#ED4231] text-xs mt-1"
-                              >
-                                Limpar busca
-                              </Button>                            )}
-                          </div>
-                        )}
+                            )}
                           </>
                         )}
                       </div>
@@ -1106,7 +1464,10 @@ const CadastroVoluntario = () => {
         </main>
 
         {/* Modal de Credenciais */}
-        <Dialog open={showCredentialsModal} onOpenChange={setShowCredentialsModal}>
+        <Dialog
+          open={showCredentialsModal}
+          onOpenChange={setShowCredentialsModal}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -1114,18 +1475,22 @@ const CadastroVoluntario = () => {
                 Envio de Credenciais
               </DialogTitle>
               <DialogDescription>
-                As credenciais de acesso serão enviadas por email para o voluntário.
+                As credenciais de acesso serão enviadas por email para o
+                voluntário.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-2">
                   <Mail className="w-4 h-4" />
-                  <span className="text-sm font-medium">Email de Confirmação</span>
+                  <span className="text-sm font-medium">
+                    Email de Confirmação
+                  </span>
                 </div>
                 <p className="text-sm text-blue-600 dark:text-blue-300">
-                  Um email será enviado para <strong>{formData.email}</strong> contendo:
+                  Um email será enviado para <strong>{formData.email}</strong>{" "}
+                  contendo:
                 </p>
                 <ul className="text-sm text-blue-600 dark:text-blue-300 mt-2 ml-4 list-disc">
                   <li>Link de acesso ao sistema</li>
@@ -1133,7 +1498,7 @@ const CadastroVoluntario = () => {
                   <li>Instruções para primeiro acesso</li>
                 </ul>
               </div>
-              
+
               <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
                   <AlertTriangle className="w-4 h-4" />
@@ -1144,12 +1509,15 @@ const CadastroVoluntario = () => {
                 </p>
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCredentialsModal(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowCredentialsModal(false)}
+              >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={confirmarEnvioCredenciais}
                 className="bg-[#ED4231] hover:bg-[#D63626] text-white"
               >
@@ -1169,35 +1537,50 @@ const CadastroVoluntario = () => {
                 Confirmar Cadastro
               </DialogTitle>
               <DialogDescription>
-                Confirme os dados do novo voluntário antes de finalizar o cadastro.
+                Confirme os dados do novo voluntário antes de finalizar o
+                cadastro.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Dados do Voluntário:</h4>                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                  <p><strong>Nome:</strong> {formData.nome} {formData.sobrenome}</p>
-                  <p><strong>Email:</strong> {formData.email}</p>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Dados do Voluntário:
+                </h4>{" "}
+                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  <p>
+                    <strong>Nome:</strong> {formData.nome} {formData.sobrenome}
+                  </p>
+                  <p>
+                    <strong>Email:</strong> {formData.email}
+                  </p>
                 </div>
               </div>
-              
+
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                   <Lock className="w-4 h-4" />
-                  <span className="text-sm font-medium">Credenciais de Acesso</span>
+                  <span className="text-sm font-medium">
+                    Credenciais de Acesso
+                  </span>
                 </div>
                 <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
-                  O voluntário receberá as credenciais de acesso por email após o cadastro.
+                  O voluntário receberá as credenciais de acesso por email após
+                  o cadastro.
                 </p>
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowConfirmModal(false)} disabled={isProcessing}>
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmModal(false)}
+                disabled={isProcessing}
+              >
                 Cancelar
               </Button>
-              <Button 
-                onClick={confirmarCadastro} 
+              <Button
+                onClick={confirmarCadastro}
                 disabled={isProcessing}
                 className="bg-[#ED4231] hover:bg-[#D63626] text-white"
               >

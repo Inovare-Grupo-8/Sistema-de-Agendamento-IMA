@@ -1,11 +1,33 @@
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  SidebarProvider,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Link, useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, Search, Star, Filter, FileText, Sun, Moon, Home as HomeIcon } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  User,
+  Clock,
+  Menu,
+  History,
+  Search,
+  Star,
+  Filter,
+  FileText,
+  Sun,
+  Moon,
+  Home as HomeIcon,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
@@ -16,17 +38,51 @@ import { AgendaCardSkeleton } from "./ui/custom-skeletons";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getUserNavigationPath, userNavigationItems } from "@/utils/userNavigation";
-import { ConsultaApiService, ConsultaAvaliacao, ConsultaFeedback } from "@/services/consultaApi";
-import { useUserData } from "@/hooks/useUserData"; 
+import {
+  getUserNavigationPath,
+  userNavigationItems,
+} from "@/utils/userNavigation";
+import {
+  ConsultaApiService,
+  ConsultaAvaliacao,
+  ConsultaFeedback,
+} from "@/services/consultaApi";
+import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Download, Eye, MessageSquare, TrendingUp, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import {
+  Download,
+  Eye,
+  MessageSquare,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+} from "lucide-react";
 
 interface HistoricoConsulta {
   id: string; // Adicionar ID único
@@ -51,24 +107,28 @@ const HistoricoUser = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
-  const [selectedConsulta, setSelectedConsulta] = useState<HistoricoConsulta | null>(null);
+  const [selectedConsulta, setSelectedConsulta] =
+    useState<HistoricoConsulta | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [currentRating, setCurrentRating] = useState(0);
   const [currentComment, setCurrentComment] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "rating" | "type">("date");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");  const [isExporting, setIsExporting] = useState(false);
-  const [historicoConsultas, setHistoricoConsultas] = useState<HistoricoConsulta[]>([]);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isExporting, setIsExporting] = useState(false);
+  const [historicoConsultas, setHistoricoConsultas] = useState<
+    HistoricoConsulta[]
+  >([]);
   const [proximasConsultas, setProximasConsultas] = useState<number>(0);
   const [ultimaAvaliacao, setUltimaAvaliacao] = useState<number | null>(null);
 
   const { profileImage } = useProfileImage();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+
   // Use the userData hook to get synchronized user data
   const { userData, fetchPerfil } = useUserData();
 
-  const location = useLocation();  
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
@@ -79,24 +139,41 @@ const HistoricoUser = () => {
     const loadHistorico = async () => {
       setLoading(true);
       setError("");
-      
+
       try {
+        // Buscar userId do localStorage
+        const userDataStr = localStorage.getItem("userData");
+        if (!userDataStr) {
+          throw new Error("Usuário não está logado");
+        }
+        const user = JSON.parse(userDataStr);
+        const userId = user.idUsuario;
+
+        if (!userId) {
+          throw new Error("ID do usuário não encontrado");
+        }
+
         // Load historical consultations
-        const historicoData = await ConsultaApiService.getHistoricoConsultas('assistido');
-        
+        const historicoData = await ConsultaApiService.getHistoricoConsultas(
+          userId
+        );
+
         // Load evaluations and feedbacks
-        const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback('assistido');
-        
+        const avaliacoesFeedback =
+          await ConsultaApiService.getAvaliacoesFeedback(userId, "assistido");
+
         // Create maps for quick lookup
         const avaliacoesMap = new Map<number, number | null>();
         const feedbacksMap = new Map<number, string | null>();
 
-        avaliacoesFeedback.avaliacoes?.forEach((avaliacao: ConsultaAvaliacao) => {
-          const idConsulta = avaliacao.consulta?.idConsulta;
-          if (typeof idConsulta === "number") {
-            avaliacoesMap.set(idConsulta, avaliacao.nota ?? null);
+        avaliacoesFeedback.avaliacoes?.forEach(
+          (avaliacao: ConsultaAvaliacao) => {
+            const idConsulta = avaliacao.consulta?.idConsulta;
+            if (typeof idConsulta === "number") {
+              avaliacoesMap.set(idConsulta, avaliacao.nota ?? null);
+            }
           }
-        });
+        );
 
         avaliacoesFeedback.feedbacks?.forEach((feedback: ConsultaFeedback) => {
           const idConsulta = feedback.consulta?.idConsulta;
@@ -104,35 +181,47 @@ const HistoricoUser = () => {
             feedbacksMap.set(idConsulta, feedback.comentario ?? null);
           }
         });
-        
+
         // Convert API data to component format
-        const historicoFormatted: HistoricoConsulta[] = historicoData.map(consulta => {
-          const consultaDate = new Date(consulta.horario);
-          const consultaId = consulta.idConsulta;
-          
-          // Get evaluation and feedback for this consultation
-          const rating = avaliacoesMap.get(consultaId);
-          const comment = feedbacksMap.get(consultaId);
-          
-          return {
-            id: consultaId.toString(),
-            date: consultaDate,
-            time: consulta.horario.split('T')[1]?.substring(0, 5) || '00:00',
-            name: consulta.voluntario?.ficha?.nome || 'Voluntário',
-            type: consulta.especialidade?.nome || 'Especialidade',
-            serviceType: consulta.modalidade,
-            status: consulta.status.toLowerCase() as "realizada" | "cancelada" | "remarcada",
-            duration: 50, // Default duration, can be enhanced later
-            cost: 0, // Default cost, can be enhanced later  
-            feedback: rating != null ? { rating, comment: comment ?? undefined } : undefined
-          };
-        });
-        
+        const historicoFormatted: HistoricoConsulta[] = historicoData.map(
+          (consulta) => {
+            const consultaDate = new Date(consulta.horario);
+            const consultaId = consulta.idConsulta;
+
+            // Get evaluation and feedback for this consultation
+            const rating = avaliacoesMap.get(consultaId);
+            const comment = feedbacksMap.get(consultaId);
+
+            return {
+              id: consultaId.toString(),
+              date: consultaDate,
+              time: consulta.horario.split("T")[1]?.substring(0, 5) || "00:00",
+              name: consulta.voluntario?.ficha?.nome || "Voluntário",
+              type: consulta.especialidade?.nome || "Especialidade",
+              serviceType: consulta.modalidade,
+              status: consulta.status.toLowerCase() as
+                | "realizada"
+                | "cancelada"
+                | "remarcada",
+              duration: 50, // Default duration, can be enhanced later
+              cost: 0, // Default cost, can be enhanced later
+              feedback:
+                rating != null
+                  ? { rating, comment: comment ?? undefined }
+                  : undefined,
+            };
+          }
+        );
+
         setHistoricoConsultas(historicoFormatted);
 
         // Load upcoming consultations count
         try {
-          const proximasData = await ConsultaApiService.getProximasConsultas('assistido');
+          // userId já está disponível no escopo
+          const proximasData = await ConsultaApiService.getProximasConsultas(
+            userId,
+            "assistido"
+          );
           setProximasConsultas(proximasData.length);
         } catch (err) {
           console.error("Erro ao carregar próximas consultas:", err);
@@ -140,26 +229,30 @@ const HistoricoUser = () => {
         }
 
         // Extract last evaluation from historical data
-        const consultasComAvaliacao = historicoFormatted.filter(c => c.feedback?.rating);
+        const consultasComAvaliacao = historicoFormatted.filter(
+          (c) => c.feedback?.rating
+        );
         if (consultasComAvaliacao.length > 0) {
           // Get the most recent consultation with evaluation
-          const consultaRecente = consultasComAvaliacao.sort((a, b) => 
-            new Date(b.date).getTime() - new Date(a.date).getTime()
+          const consultaRecente = consultasComAvaliacao.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           )[0];
           setUltimaAvaliacao(consultaRecente.feedback?.rating || null);
         } else {
           setUltimaAvaliacao(null);
         }
-        
       } catch (err) {
         console.error("Erro ao carregar histórico:", err);
-        const message = err instanceof Error ? err.message : "Erro ao carregar histórico de consultas";
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Erro ao carregar histórico de consultas";
         setError(message);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadHistorico();
   }, [fetchPerfil]);
 
@@ -167,7 +260,7 @@ const HistoricoUser = () => {
     const loadUserData = async () => {
       try {
         const userProfile = await fetchPerfil();
-        console.log('User profile data:', userProfile);
+        console.log("User profile data:", userProfile);
         // Update user data context or local state if needed
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -177,20 +270,29 @@ const HistoricoUser = () => {
     loadUserData();
   }, [fetchPerfil]);
 
-  const handleAddFeedback = (consulta: HistoricoConsulta, rating: number, comment?: string) => {
-    setHistoricoConsultas(prev => prev.map(c => {
-      if (c.date.getTime() === consulta.date.getTime() && c.time === consulta.time) {
-        return {
-          ...c,
-          feedback: { rating, comment }
-        };
-      }
-      return c;
-    }));
+  const handleAddFeedback = (
+    consulta: HistoricoConsulta,
+    rating: number,
+    comment?: string
+  ) => {
+    setHistoricoConsultas((prev) =>
+      prev.map((c) => {
+        if (
+          c.date.getTime() === consulta.date.getTime() &&
+          c.time === consulta.time
+        ) {
+          return {
+            ...c,
+            feedback: { rating, comment },
+          };
+        }
+        return c;
+      })
+    );
     toast({
       title: "Feedback enviado!",
       description: "Obrigado pela sua avaliação.",
-      variant: "default"
+      variant: "default",
     });
   };
 
@@ -210,31 +312,45 @@ const HistoricoUser = () => {
       toast({
         title: "Avaliação obrigatória",
         description: "Por favor, selecione pelo menos uma estrela.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
       // Send evaluation to API
-      await ConsultaApiService.adicionarAvaliacao(parseInt(selectedConsulta.id), currentRating);
-      
+      await ConsultaApiService.adicionarAvaliacao(
+        parseInt(selectedConsulta.id),
+        currentRating
+      );
+
       // Send feedback comment if provided
       if (currentComment?.trim()) {
-        await ConsultaApiService.adicionarFeedback(parseInt(selectedConsulta.id), currentComment.trim());
+        await ConsultaApiService.adicionarFeedback(
+          parseInt(selectedConsulta.id),
+          currentComment.trim()
+        );
       }
 
       // Update local state
-      setHistoricoConsultas(prev => prev.map(c => 
-        c.id === selectedConsulta.id 
-          ? { ...c, feedback: { rating: currentRating, comment: currentComment || undefined } }
-          : c
-      ));
+      setHistoricoConsultas((prev) =>
+        prev.map((c) =>
+          c.id === selectedConsulta.id
+            ? {
+                ...c,
+                feedback: {
+                  rating: currentRating,
+                  comment: currentComment || undefined,
+                },
+              }
+            : c
+        )
+      );
 
       toast({
         title: "Feedback salvo!",
         description: "Obrigado pela sua avaliação.",
-        variant: "default"
+        variant: "default",
       });
 
       setShowFeedbackModal(false);
@@ -242,35 +358,46 @@ const HistoricoUser = () => {
       setCurrentComment("");
     } catch (error) {
       console.error("Error saving feedback:", error);
-      const description = error instanceof Error
-        ? error.message
-        : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.";
+      const description =
+        error instanceof Error
+          ? error.message
+          : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.";
       toast({
         title: "Erro ao salvar feedback",
         description,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const exportHistory = async () => {    setIsExporting(true);
-    
+  const exportHistory = async () => {
+    setIsExporting(true);
+
     try {
       // Obter dados do histórico via API
-      const response = await fetch('/api/historico/exportar', {
-        method: 'GET',
+      const response = await fetch("/api/historico/exportar", {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao exportar histórico');
+        throw new Error("Erro ao exportar histórico");
       }
 
       const csvContent = [
-        ["Data", "Horário", "Profissional", "Especialidade", "Tipo", "Status", "Avaliação", "Valor"],
-        ...filteredHistorico.map(consulta => [
+        [
+          "Data",
+          "Horário",
+          "Profissional",
+          "Especialidade",
+          "Tipo",
+          "Status",
+          "Avaliação",
+          "Valor",
+        ],
+        ...filteredHistorico.map((consulta) => [
           format(consulta.date, "dd/MM/yyyy"),
           consulta.time,
           consulta.name,
@@ -278,25 +405,32 @@ const HistoricoUser = () => {
           consulta.serviceType,
           consulta.status,
           consulta.feedback?.rating || "N/A",
-          consulta.cost ? `R$ ${consulta.cost}` : "N/A"
-        ])
-      ].map(row => row.join(",")).join("\n");
+          consulta.cost ? `R$ ${consulta.cost}` : "N/A",
+        ]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");      link.href = URL.createObjectURL(blob);
-      link.download = `historico-consultas-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `historico-consultas-${format(
+        new Date(),
+        "yyyy-MM-dd"
+      )}.csv`;
       link.click();
 
       toast({
         title: "Histórico exportado!",
         description: "O arquivo foi baixado com sucesso.",
-        variant: "default"
+        variant: "default",
       });
     } catch (error) {
       toast({
         title: "Erro ao exportar",
-        description: "Ocorreu um erro ao exportar o histórico. Tente novamente.",
-        variant: "destructive"
+        description:
+          "Ocorreu um erro ao exportar o histórico. Tente novamente.",
+        variant: "destructive",
       });
     }
 
@@ -304,34 +438,46 @@ const HistoricoUser = () => {
   };
 
   const filteredHistorico = historicoConsultas
-    .filter(consulta => {
+    .filter((consulta) => {
       // Filtro por período
       if (selectedPeriod !== "all") {
         const now = new Date();
         const consultaDate = new Date(consulta.date);
-        
+
         let compareDate;
         switch (selectedPeriod) {
           case "month": {
-            compareDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            compareDate = new Date(
+              now.getFullYear(),
+              now.getMonth() - 1,
+              now.getDate()
+            );
             break;
           }
           case "3months": {
-            compareDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+            compareDate = new Date(
+              now.getFullYear(),
+              now.getMonth() - 3,
+              now.getDate()
+            );
             break;
           }
           case "year": {
-            compareDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            compareDate = new Date(
+              now.getFullYear() - 1,
+              now.getMonth(),
+              now.getDate()
+            );
             break;
           }
         }
-        
+
         if (compareDate && consultaDate < compareDate) return false;
       }
 
       // Filtro por status
       if (filterStatus && consulta.status !== filterStatus) return false;
-      
+
       // Filtro por texto de busca
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -339,15 +485,17 @@ const HistoricoUser = () => {
           consulta.name.toLowerCase().includes(searchLower) ||
           consulta.type.toLowerCase().includes(searchLower) ||
           consulta.serviceType.toLowerCase().includes(searchLower) ||
-          format(consulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }).toLowerCase().includes(searchLower)
+          format(consulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+            .toLowerCase()
+            .includes(searchLower)
         );
       }
-      
+
       return true;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case "date": {
           comparison = a.date.getTime() - b.date.getTime();
@@ -364,74 +512,113 @@ const HistoricoUser = () => {
           break;
         }
       }
-      
+
       return sortOrder === "desc" ? -comparison : comparison;
     });
 
   // Estatísticas do histórico
   const stats = {
     total: historicoConsultas.length,
-    realizadas: historicoConsultas.filter(c => c.status === "realizada").length,
-    canceladas: historicoConsultas.filter(c => c.status === "cancelada").length,
+    realizadas: historicoConsultas.filter((c) => c.status === "realizada")
+      .length,
+    canceladas: historicoConsultas.filter((c) => c.status === "cancelada")
+      .length,
     avgRating: historicoConsultas
-      .filter(c => c.feedback?.rating)
-      .reduce((acc, c, _, arr) => acc + (c.feedback?.rating || 0) / arr.length, 0),
+      .filter((c) => c.feedback?.rating)
+      .reduce(
+        (acc, c, _, arr) => acc + (c.feedback?.rating || 0) / arr.length,
+        0
+      ),
     totalSpent: historicoConsultas
-      .filter(c => c.status === "realizada" && c.cost)
-      .reduce((acc, c) => acc + (c.cost || 0), 0)
+      .filter((c) => c.status === "realizada" && c.cost)
+      .reduce((acc, c) => acc + (c.cost || 0), 0),
   };
 
   // Add statusColors definition
   const statusColors: Record<string, string> = {
-    realizada: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    realizada:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
     cancelada: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    remarcada: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+    remarcada:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   };
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen w-full flex flex-col md:flex-row text-base md:text-lg bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans`}>
+      <div
+        className={`min-h-screen w-full flex flex-col md:flex-row text-base md:text-lg bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans`}
+      >
         {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 shadow-md backdrop-blur-md">            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 shadow-md backdrop-blur-md">
+            {" "}
+            <Button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+              aria-label="Abrir menu lateral"
+              tabIndex={0}
+              title="Abrir menu lateral"
+            >
               <Menu className="w-7 h-7" />
             </Button>
-            <ProfileAvatar 
+            <ProfileAvatar
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={userData?.nome || "User"}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             {/* Update to use userData from hook */}
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-bold text-indigo-900 text-sm md:text-lg">
+              {userData.nome} {userData.sobrenome}
+            </span>
           </div>
         )}
-        <div className={`transition-all duration-500 ease-in-out
-          ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
+        <div
+          className={`transition-all duration-500 ease-in-out
+          ${
+            sidebarOpen
+              ? "opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72"
+              : "opacity-0 -translate-x-full w-0"
+          }
           bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}
+        >
           <div className="w-full flex justify-start mb-6">
-            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+            >
               <Menu className="w-7 h-7" />
             </Button>
-          </div>          <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar 
+          </div>{" "}
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={userData?.nome || "User"}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             {/* Update to use userData from hook */}
-            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">
+              {userData.nome} {userData.sobrenome}
+            </span>
           </div>
-          
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Uniform sidebar navigation using the items from userNavigationItems */}
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === userNavigationItems.home.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to={userNavigationItems.home.path} className="flex items-center gap-3">
+                  <SidebarMenuButton
+                    asChild
+                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                      location.pathname === userNavigationItems.home.path
+                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      to={userNavigationItems.home.path}
+                      className="flex items-center gap-3"
+                    >
                       {userNavigationItems.home.icon}
                       <span>{userNavigationItems.home.label}</span>
                     </Link>
@@ -445,8 +632,18 @@ const HistoricoUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === userNavigationItems.agenda.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to={userNavigationItems.agenda.path} className="flex items-center gap-3">
+                  <SidebarMenuButton
+                    asChild
+                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                      location.pathname === userNavigationItems.agenda.path
+                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      to={userNavigationItems.agenda.path}
+                      className="flex items-center gap-3"
+                    >
                       {userNavigationItems.agenda.icon}
                       <span>{userNavigationItems.agenda.label}</span>
                     </Link>
@@ -460,8 +657,18 @@ const HistoricoUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === userNavigationItems.historico.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to={userNavigationItems.historico.path} className="flex items-center gap-3">
+                  <SidebarMenuButton
+                    asChild
+                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                      location.pathname === userNavigationItems.historico.path
+                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      to={userNavigationItems.historico.path}
+                      className="flex items-center gap-3"
+                    >
                       {userNavigationItems.historico.icon}
                       <span>{userNavigationItems.historico.label}</span>
                     </Link>
@@ -475,8 +682,18 @@ const HistoricoUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === userNavigationItems.agendar.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to={userNavigationItems.agendar.path} className="flex items-center gap-3">
+                  <SidebarMenuButton
+                    asChild
+                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                      location.pathname === userNavigationItems.agendar.path
+                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      to={userNavigationItems.agendar.path}
+                      className="flex items-center gap-3"
+                    >
                       {userNavigationItems.agendar.icon}
                       <span>{userNavigationItems.agendar.label}</span>
                     </Link>
@@ -490,8 +707,18 @@ const HistoricoUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === userNavigationItems.perfil.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                    <Link to={userNavigationItems.perfil.path} className="flex items-center gap-3">
+                  <SidebarMenuButton
+                    asChild
+                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                      location.pathname === userNavigationItems.perfil.path
+                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      to={userNavigationItems.perfil.path}
+                      className="flex items-center gap-3"
+                    >
                       {userNavigationItems.perfil.icon}
                       <span>{userNavigationItems.perfil.label}</span>
                     </Link>
@@ -501,11 +728,28 @@ const HistoricoUser = () => {
                   Edite seu perfil e foto
                 </TooltipContent>
               </Tooltip>
-            </SidebarMenuItem>            <SidebarMenuItem>
+            </SidebarMenuItem>{" "}
+            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                  <SidebarMenuButton
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                    onClick={() => setShowLogoutDialog(true)}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="#ED4231"
+                      className="w-6 h-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9"
+                      />
+                    </svg>
                     <span>Sair</span>
                   </SidebarMenuButton>
                 </TooltipTrigger>
@@ -513,34 +757,73 @@ const HistoricoUser = () => {
               </Tooltip>
             </SidebarMenuItem>
           </SidebarMenu>
-          
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
-            <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
+            <span>
+              &copy; {new Date().getFullYear()} Desenvolvido por Inovare
+            </span>
             <div className="flex gap-2">
-              <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
-              <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
+              <a
+                href="https://inovare.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[#ED4231]"
+              >
+                Site
+              </a>
+              <a
+                href="mailto:contato@inovare.com"
+                className="underline hover:text-[#ED4231]"
+              >
+                Contato
+              </a>
             </div>
           </div>
         </div>
 
-        <main id="main-content" role="main" aria-label="Conteúdo principal do histórico" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho do histórico">
+        <main
+          id="main-content"
+          role="main"
+          aria-label="Conteúdo principal do histórico"
+          className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${
+            sidebarOpen ? "" : "ml-0"
+          }`}
+        >
+          {" "}
+          <header
+            className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]"
+            role="banner"
+            aria-label="Cabeçalho do histórico"
+          >
             <div className="flex items-center gap-3">
-              <ProfileAvatar 
+              <ProfileAvatar
                 profileImage={profileImage}
-                name={userData?.nome || 'User'}
+                name={userData?.nome || "User"}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               {/* Update to use userData from hook */}
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{t('name')} {userData.nome} {userData.sobrenome}</span>
-            </div>            <div className="flex items-center gap-3">              <Button
+              <span className="font-bold text-indigo-900 dark:text-gray-100">
+                {t("name")} {userData.nome} {userData.sobrenome}
+              </span>
+            </div>{" "}
+            <div className="flex items-center gap-3">
+              {" "}
+              <Button
                 onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                aria-label={
+                  theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
+                }
                 tabIndex={0}
-                title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                title={
+                  theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
+                }
               >
-                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-800" />
+                )}
               </Button>
             </div>
           </header>
@@ -549,7 +832,7 @@ const HistoricoUser = () => {
             <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
               {/* Add proper navigation breadcrumb */}
               {getUserNavigationPath(location.pathname)}
-                {/* Rest of the component content */}
+              {/* Rest of the component content */}
               <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-6">
                 Histórico de Consultas
               </h1>
@@ -576,7 +859,6 @@ const HistoricoUser = () => {
                     </div>
                   </CardContent>
                 </Card>
-
                 {/* Próximas Consultas */}
                 <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="pb-2">
@@ -597,7 +879,6 @@ const HistoricoUser = () => {
                     </div>
                   </CardContent>
                 </Card>
-
                 {/* Última Avaliação */}
                 <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="pb-2">
@@ -622,7 +903,8 @@ const HistoricoUser = () => {
                       </span>
                     </div>
                   </CardContent>
-                </Card>              </div>
+                </Card>{" "}
+              </div>
             </div>
 
             {/* {!formData.nome && (
@@ -641,7 +923,10 @@ const HistoricoUser = () => {
               >
                 <div className="w-full flex flex-col md:flex-row gap-4 mb-6">
                   <div className="relative flex-grow">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
+                    <Search
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                      size={18}
+                    />
                     <input
                       type="text"
                       placeholder="Buscar consulta, profissional, especialidade..."
@@ -651,12 +936,22 @@ const HistoricoUser = () => {
                     />
                   </div>
 
-                  <div className="flex gap-2">                    <Tooltip>
+                  <div className="flex gap-2">
+                    {" "}
+                    <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          onClick={() => setFilterStatus(filterStatus === "realizada" ? null : "realizada")}
-                          variant={filterStatus === "realizada" ? "default" : "outline"}
-                          className={`flex items-center gap-2 ${filterStatus === "realizada" ? "bg-[#ED4231]" : ""}`}
+                          onClick={() =>
+                            setFilterStatus(
+                              filterStatus === "realizada" ? null : "realizada"
+                            )
+                          }
+                          variant={
+                            filterStatus === "realizada" ? "default" : "outline"
+                          }
+                          className={`flex items-center gap-2 ${
+                            filterStatus === "realizada" ? "bg-[#ED4231]" : ""
+                          }`}
                         >
                           <FileText size={16} />
                           <span>Realizadas</span>
@@ -665,12 +960,21 @@ const HistoricoUser = () => {
                       <TooltipContent side="top">
                         <p>Filtrar apenas consultas realizadas</p>
                       </TooltipContent>
-                    </Tooltip>                    <Tooltip>
+                    </Tooltip>{" "}
+                    <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          onClick={() => setFilterStatus(filterStatus === "cancelada" ? null : "cancelada")}
-                          variant={filterStatus === "cancelada" ? "default" : "outline"}
-                          className={`flex items-center gap-2 ${filterStatus === "cancelada" ? "bg-[#ED4231]" : ""}`}
+                          onClick={() =>
+                            setFilterStatus(
+                              filterStatus === "cancelada" ? null : "cancelada"
+                            )
+                          }
+                          variant={
+                            filterStatus === "cancelada" ? "default" : "outline"
+                          }
+                          className={`flex items-center gap-2 ${
+                            filterStatus === "cancelada" ? "bg-[#ED4231]" : ""
+                          }`}
                         >
                           <FileText size={16} />
                           <span>Canceladas</span>
@@ -683,24 +987,44 @@ const HistoricoUser = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4" role="region" aria-label="Lista de consultas históricas" ref={listRef}>
+                <div
+                  className="space-y-4"
+                  role="region"
+                  aria-label="Lista de consultas históricas"
+                  ref={listRef}
+                >
                   {loading ? (
-                    <div className="space-y-4" aria-busy="true" aria-live="polite">
-                      {[...Array(3)].map((_, i) => <AgendaCardSkeleton key={i} />)}
+                    <div
+                      className="space-y-4"
+                      aria-busy="true"
+                      aria-live="polite"
+                    >
+                      {[...Array(3)].map((_, i) => (
+                        <AgendaCardSkeleton key={i} />
+                      ))}
                     </div>
                   ) : error ? (
                     <ErrorMessage message={error} />
                   ) : filteredHistorico.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
-                      <History className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600" aria-hidden="true" />
-                      <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">Nenhuma consulta encontrada</div>
-                      <div className="text-gray-400 dark:text-gray-500 text-sm">Não há registros que correspondam à sua busca.</div>
+                      <History
+                        className="w-20 h-20 mb-4 text-gray-300 dark:text-gray-600"
+                        aria-hidden="true"
+                      />
+                      <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-2">
+                        Nenhuma consulta encontrada
+                      </div>
+                      <div className="text-gray-400 dark:text-gray-500 text-sm">
+                        Não há registros que correspondam à sua busca.
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {filteredHistorico.map((consulta, index) => (
                         <motion.div
-                          key={`${format(consulta.date, "yyyy-MM-dd")}-${consulta.time}`}
+                          key={`${format(consulta.date, "yyyy-MM-dd")}-${
+                            consulta.time
+                          }`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -711,21 +1035,41 @@ const HistoricoUser = () => {
                               <div className="flex items-center gap-2">
                                 <CalendarIcon className="w-5 h-5 text-[#ED4231]" />
                                 <span className="font-medium text-gray-800 dark:text-gray-200">
-                                  {format(consulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} às {consulta.time}
+                                  {format(
+                                    consulta.date,
+                                    "dd 'de' MMMM 'de' yyyy",
+                                    { locale: ptBR }
+                                  )}{" "}
+                                  às {consulta.time}
                                 </span>
                               </div>
-                              <Badge className={`${statusColors[consulta.status]} px-3 py-1 rounded-full text-xs font-medium`}>
-                                {consulta.status === "realizada" ? "Realizada" : 
-                                 consulta.status === "cancelada" ? "Cancelada" : "Remarcada"}
+                              <Badge
+                                className={`${
+                                  statusColors[consulta.status]
+                                } px-3 py-1 rounded-full text-xs font-medium`}
+                              >
+                                {consulta.status === "realizada"
+                                  ? "Realizada"
+                                  : consulta.status === "cancelada"
+                                  ? "Cancelada"
+                                  : "Remarcada"}
                               </Badge>
                             </div>
-                            
+
                             <div className="flex flex-col">
-                              <span className="text-lg font-medium text-gray-900 dark:text-gray-100">{consulta.name}</span>
+                              <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                {consulta.name}
+                              </span>
                               <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 mt-1">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">{consulta.type}</span>
-                                <span className="hidden md:inline text-gray-400 dark:text-gray-500">•</span>
-                                <span className="text-sm text-gray-600 dark:text-gray-400">{consulta.serviceType}</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  {consulta.type}
+                                </span>
+                                <span className="hidden md:inline text-gray-400 dark:text-gray-500">
+                                  •
+                                </span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  {consulta.serviceType}
+                                </span>
                               </div>
                             </div>
 
@@ -735,23 +1079,39 @@ const HistoricoUser = () => {
                                   <div>
                                     <div className="flex items-center justify-between mb-2">
                                       <div className="flex items-center gap-1">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sua avaliação:</span>
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                          Sua avaliação:
+                                        </span>
                                         <div className="flex gap-1 ml-2">
                                           {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star 
-                                              key={star} 
-                                              size={16} 
-                                              fill={star <= (consulta.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
-                                              stroke={star <= (consulta.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
+                                            <Star
+                                              key={star}
+                                              size={16}
+                                              fill={
+                                                star <=
+                                                (consulta.feedback?.rating || 0)
+                                                  ? "#ED4231"
+                                                  : "transparent"
+                                              }
+                                              stroke={
+                                                star <=
+                                                (consulta.feedback?.rating || 0)
+                                                  ? "#ED4231"
+                                                  : "#94A3B8"
+                                              }
                                             />
                                           ))}
                                         </div>
-                                        <span className="text-sm text-gray-500 ml-2">({consulta.feedback.rating}/5)</span>
+                                        <span className="text-sm text-gray-500 ml-2">
+                                          ({consulta.feedback.rating}/5)
+                                        </span>
                                       </div>
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => openFeedbackModal(consulta)}
+                                        onClick={() =>
+                                          openFeedbackModal(consulta)
+                                        }
                                         className="text-xs"
                                       >
                                         Editar
@@ -767,10 +1127,13 @@ const HistoricoUser = () => {
                                 ) : (
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                      Como foi sua experiência com esta consulta?
+                                      Como foi sua experiência com esta
+                                      consulta?
                                     </span>
                                     <Button
-                                      onClick={() => openFeedbackModal(consulta)}
+                                      onClick={() =>
+                                        openFeedbackModal(consulta)
+                                      }
                                       variant="outline"
                                       className="w-fit bg-gradient-to-r from-[#ED4231] to-[#c32d22] text-white border-none hover:from-[#c32d22] hover:to-[#a02419] transition-all duration-200"
                                     >
@@ -790,10 +1153,13 @@ const HistoricoUser = () => {
               </motion.div>
             </AnimatePresence>
 
-            {filteredHistorico.length > 5 && (              <Tooltip>
+            {filteredHistorico.length > 5 && (
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    onClick={() =>
+                      window.scrollTo({ top: 0, behavior: "smooth" })
+                    }
                     className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
                     aria-label="Voltar ao topo"
                   >
@@ -832,22 +1198,32 @@ const HistoricoUser = () => {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div>
-                        <span className="font-medium">Profissional:</span> {selectedConsulta.name}
+                        <span className="font-medium">Profissional:</span>{" "}
+                        {selectedConsulta.name}
                       </div>
                       <div>
-                        <span className="font-medium">Especialidade:</span> {selectedConsulta.type}
+                        <span className="font-medium">Especialidade:</span>{" "}
+                        {selectedConsulta.type}
                       </div>
                       <div>
-                        <span className="font-medium">Data:</span> {format(selectedConsulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        <span className="font-medium">Data:</span>{" "}
+                        {format(
+                          selectedConsulta.date,
+                          "dd 'de' MMMM 'de' yyyy",
+                          { locale: ptBR }
+                        )}
                       </div>
                       <div>
-                        <span className="font-medium">Horário:</span> {selectedConsulta.time}
+                        <span className="font-medium">Horário:</span>{" "}
+                        {selectedConsulta.time}
                       </div>
                       <div>
-                        <span className="font-medium">Duração:</span> {selectedConsulta.duration || 50} minutos
+                        <span className="font-medium">Duração:</span>{" "}
+                        {selectedConsulta.duration || 50} minutos
                       </div>
                       <div>
-                        <span className="font-medium">Tipo:</span> {selectedConsulta.serviceType}
+                        <span className="font-medium">Tipo:</span>{" "}
+                        {selectedConsulta.serviceType}
                       </div>
                     </CardContent>
                   </Card>
@@ -860,16 +1236,23 @@ const HistoricoUser = () => {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div>
-                        <span className="font-medium">Valor:</span> 
+                        <span className="font-medium">Valor:</span>
                         <span className="text-green-600 dark:text-green-400 ml-2">
                           R$ {selectedConsulta.cost || "N/A"}
                         </span>
                       </div>
                       <div>
                         <span className="font-medium">Status:</span>
-                        <Badge className={`${statusColors[selectedConsulta.status]} ml-2`}>
-                          {selectedConsulta.status === "realizada" ? "Realizada" : 
-                           selectedConsulta.status === "cancelada" ? "Cancelada" : "Remarcada"}
+                        <Badge
+                          className={`${
+                            statusColors[selectedConsulta.status]
+                          } ml-2`}
+                        >
+                          {selectedConsulta.status === "realizada"
+                            ? "Realizada"
+                            : selectedConsulta.status === "cancelada"
+                            ? "Cancelada"
+                            : "Remarcada"}
                         </Badge>
                       </div>
                       {selectedConsulta.feedback && (
@@ -877,11 +1260,21 @@ const HistoricoUser = () => {
                           <span className="font-medium">Sua avaliação:</span>
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <Star 
-                                key={star} 
-                                size={16} 
-                                fill={star <= (selectedConsulta.feedback?.rating || 0) ? "#ED4231" : "transparent"} 
-                                stroke={star <= (selectedConsulta.feedback?.rating || 0) ? "#ED4231" : "#94A3B8"} 
+                              <Star
+                                key={star}
+                                size={16}
+                                fill={
+                                  star <=
+                                  (selectedConsulta.feedback?.rating || 0)
+                                    ? "#ED4231"
+                                    : "transparent"
+                                }
+                                stroke={
+                                  star <=
+                                  (selectedConsulta.feedback?.rating || 0)
+                                    ? "#ED4231"
+                                    : "#94A3B8"
+                                }
                               />
                             ))}
                           </div>
@@ -899,7 +1292,9 @@ const HistoricoUser = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-700 dark:text-gray-300">{selectedConsulta.prescription}</p>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        {selectedConsulta.prescription}
+                      </p>
                     </CardContent>
                   </Card>
                 )}
@@ -922,7 +1317,10 @@ const HistoricoUser = () => {
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowDetailsModal(false)}
+              >
                 Fechar
               </Button>
             </DialogFooter>
@@ -935,13 +1333,14 @@ const HistoricoUser = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg">
                 <Star className="w-6 h-6 text-[#ED4231]" />
-                {selectedConsulta?.feedback ? "Editar Avaliação" : "Avaliar Consulta"}
+                {selectedConsulta?.feedback
+                  ? "Editar Avaliação"
+                  : "Avaliar Consulta"}
               </DialogTitle>
               <DialogDescription className="text-base">
-                {selectedConsulta?.feedback 
+                {selectedConsulta?.feedback
                   ? `Atualize sua avaliação da consulta com ${selectedConsulta?.name}`
-                  : `Como foi sua experiência com ${selectedConsulta?.name}?`
-                }
+                  : `Como foi sua experiência com ${selectedConsulta?.name}?`}
               </DialogDescription>
             </DialogHeader>
 
@@ -953,12 +1352,20 @@ const HistoricoUser = () => {
                     <User className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{selectedConsulta?.name}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedConsulta?.type}</p>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedConsulta?.name}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedConsulta?.type}
+                    </p>
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedConsulta && format(selectedConsulta.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} às {selectedConsulta?.time}
+                  {selectedConsulta &&
+                    format(selectedConsulta.date, "dd 'de' MMMM 'de' yyyy", {
+                      locale: ptBR,
+                    })}{" "}
+                  às {selectedConsulta?.time}
                 </div>
               </div>
 
@@ -973,11 +1380,11 @@ const HistoricoUser = () => {
                       key={star}
                       onClick={() => setCurrentRating(star)}
                       className="focus:outline-none transition-all duration-200 hover:scale-110 focus:scale-110"
-                      title={`${star} estrela${star > 1 ? 's' : ''}`}
+                      title={`${star} estrela${star > 1 ? "s" : ""}`}
                     >
-                      <Star 
-                        size={40} 
-                        fill={star <= currentRating ? "#ED4231" : "transparent"} 
+                      <Star
+                        size={40}
+                        fill={star <= currentRating ? "#ED4231" : "transparent"}
                         stroke={star <= currentRating ? "#ED4231" : "#94A3B8"}
                         className="cursor-pointer transition-colors duration-200"
                       />
@@ -1038,8 +1445,8 @@ const HistoricoUser = () => {
             </div>
 
             <DialogFooter className="gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowFeedbackModal(false);
                   setCurrentRating(selectedConsulta?.feedback?.rating || 0);
@@ -1049,7 +1456,7 @@ const HistoricoUser = () => {
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={saveFeedback}
                 disabled={currentRating === 0}
                 className="bg-[#ED4231] hover:bg-[#d53a2a] px-6 min-w-[120px]"

@@ -306,8 +306,36 @@ export class VoluntarioApiService {
     console.error("Erro ao listar voluntários para agendamento:", error);
     throw new Error("Falha ao carregar especialistas disponíveis");
   }
-}
 
+  }
+  static async criarDisponibilidade(dataHorario: string, usuarioId: number): Promise<void> {
+    await apiClient.post(`/disponibilidade`, { dataHorario, usuarioId });
+  }
+
+  static async criarDisponibilidadesParaUsuario(
+    usuarioId: number,
+    datas: Date[],
+    horarios: string[]
+  ): Promise<number> {
+    const dateStrings = datas.map((d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    });
+
+    const payloads: { dataHorario: string; usuarioId: number }[] = [];
+    for (const dateStr of dateStrings) {
+      for (const h of horarios) {
+        payloads.push({ dataHorario: `${dateStr}T${h}:00`, usuarioId });
+      }
+    }
+
+    const requests = payloads.map((p) => this.criarDisponibilidade(p.dataHorario, p.usuarioId));
+    const results = await Promise.allSettled(requests);
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
+    return successCount;
+  }
   static async listarVoluntariosPaginado(
   page = 0,
   size = 10,
