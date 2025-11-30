@@ -125,7 +125,7 @@ export function useAuth() {
       try {
         const base = import.meta.env.VITE_URL_BACKEND || "/api";
         const response = await fetch(
-          `${base}/usuarios/autenticar`,
+          `${base}/usuarios/login`,
           {
             method: "POST",
             headers: {
