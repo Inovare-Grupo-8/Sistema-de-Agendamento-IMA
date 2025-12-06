@@ -3,12 +3,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "../TelaLogin.css";
 import ModalErro from "./ui/ModalErro";
 import ModalConfirmacao from "./ui/ModalConfirmacao";
-import { Locate } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 
 const TelaLogin: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); 
 
   const isCadastro = location.pathname === "/cadastro";
   const [isSignUpMode, setIsSignUpMode] = useState(isCadastro);
@@ -25,18 +23,25 @@ const TelaLogin: React.FC = () => {
     if (userData) {
       try {
         const user = JSON.parse(userData);
+        console.log("🔄 [TelaLogin] Usuário já logado:", { tipo: user.tipo, funcao: user.funcao, classificacao: user.classificacao });
+        
         // Redirecionar baseado no tipo de usuário
-        if (user.tipo === "ADMINISTRADOR") {
-          navigate("/home-admin", { replace: true });
-        } else if (
+        // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
+        if (
           user.tipo === "VOLUNTARIO" &&
           user.funcao === "ASSISTENCIA_SOCIAL"
         ) {
+          // Assistente Social
           navigate("/assistente-social", { replace: true });
-        } else if (user.tipo === "VOLUNTARIO") {
-          navigate("/home", { replace: true });
-        } else if (user.tipo === "USUARIO") {
+        } else if (user.tipo === "ADMINISTRADOR") {
+          // Administrador
+          navigate("/assistente-social", { replace: true });
+        } else if (user.tipo === "GRATUIDADE" || user.tipo === "VALOR_SOCIAL") {
+          // Usuário assistido
           navigate("/home-user", { replace: true });
+        } else if (user.tipo === "VOLUNTARIO") {
+          // Voluntário profissional
+          navigate("/home", { replace: true });
         }
       } catch (error) {
         console.error("Erro ao verificar usuário logado:", error);
@@ -212,6 +217,29 @@ const TelaLogin: React.FC = () => {
     }
   };
 
+  // Função auxiliar para atualizar último acesso
+  const atualizarUltimoAcesso = async (usuarioId: string, token: string) => {
+    try {
+      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const response = await fetch(
+        `${base}/usuarios/${usuarioId}/ultimo-acesso`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Erro ao atualizar último acesso:", response.status);
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar último acesso:", error);
+    }
+  };
+
   // Login
   const handleLogin = async () => {
     if (!loginEmail || !loginSenha) {
@@ -224,10 +252,63 @@ const TelaLogin: React.FC = () => {
       setModalErro(erroEmail);
       return;
     }
+    
     setIsLoading(true);
     try {
-      const { login } = useAuth();
-      await login({ email: loginEmail, password: loginSenha });
+      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      console.log("🔐 [Login] Tentando login com:", { email: loginEmail, url: `${base}/usuarios/login` });
+      
+      const response = await fetch(`${base}/usuarios/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: loginEmail, senha: loginSenha }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ [Login] Erro:", response.status, errorData);
+        throw new Error(errorData.message || "Email ou senha inválidos");
+      }
+
+      const data = await response.json();
+      console.log("✅ [Login] Dados completos do usuário:", data);
+      console.log("🔀 [Login] Redirecionamento - tipo:", data.tipo, "funcao:", data.funcao, "classificacao:", data.classificacao);
+
+      // Atualizar último acesso
+      await atualizarUltimoAcesso(data.idUsuario, data.token);
+
+      // Limpar dados de perfil antigos
+      localStorage.removeItem("savedProfile");
+      localStorage.removeItem("profileData");
+      localStorage.removeItem("userProfileData");
+
+      // Salvar no localStorage
+      localStorage.setItem("userData", JSON.stringify(data));
+
+      // Redirecionar com base no tipo de usuário
+      // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
+      if (data.tipo === "VOLUNTARIO" && data.funcao === "ASSISTENCIA_SOCIAL") {
+        // Assistente Social (VOLUNTARIO + funcao ASSISTENCIA_SOCIAL)
+        console.log("➡️ Redirecionando para: /assistente-social (Assistente Social)");
+        navigate("/assistente-social", { replace: true });
+      } else if (data.tipo === "ADMINISTRADOR") {
+        // Administrador do sistema
+        console.log("➡️ Redirecionando para: /assistente-social (Administrador)");
+        navigate("/assistente-social", { replace: true });
+      } else if (data.tipo === "GRATUIDADE" || data.tipo === "VALOR_SOCIAL") {
+        // Usuário assistido (GRATUIDADE ou VALOR_SOCIAL)
+        console.log("➡️ Redirecionando para: /home-user (Usuário Assistido -", data.tipo + ")");
+        navigate("/home-user", { replace: true });
+      } else if (data.tipo === "VOLUNTARIO") {
+        // Voluntário profissional (médico, psicólogo, etc.) - sem funcao ASSISTENCIA_SOCIAL
+        console.log("➡️ Redirecionando para: /home (Profissional Voluntário)");
+        navigate("/home", { replace: true });
+      } else {
+        console.error("⚠️ [Login] Tipo não reconhecido:", data.tipo);
+        navigate("/login", { replace: true });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao fazer login";
       setModalErro(message);
@@ -299,7 +380,10 @@ const TelaLogin: React.FC = () => {
       <div className="forms-container">
         <div className="signin-signup">
           {/* Login Form */}
-          <form className="sign-in-form" onSubmit={(e) => e.preventDefault()}>
+          <form className="sign-in-form" onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}>
             <h2 className="title">LOGIN</h2>
             <div className="input-field">
               <i className="fas fa-envelope"></i>
@@ -341,7 +425,10 @@ const TelaLogin: React.FC = () => {
             </button>
           </form>{" "}
           {/* Cadastro Form */}
-          <form className="sign-up-form" onSubmit={(e) => e.preventDefault()}>
+          <form className="sign-up-form" onSubmit={(e) => {
+            e.preventDefault();
+            handleCadastro();
+          }}>
             <h2 className="title">CADASTRAR</h2>
             <div className="input-field">
               <i className="fas fa-user"></i>

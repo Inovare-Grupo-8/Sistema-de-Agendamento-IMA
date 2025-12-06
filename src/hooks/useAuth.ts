@@ -124,6 +124,8 @@ export function useAuth() {
 
       try {
         const base = import.meta.env.VITE_URL_BACKEND || "/api";
+        console.log("🔐 [useAuth] Tentando login com:", { email: credentials.email, url: `${base}/usuarios/login` });
+        
         const response = await fetch(
           `${base}/usuarios/login`,
           {
@@ -136,7 +138,9 @@ export function useAuth() {
         );
 
         if (!response.ok) {
-          throw new Error("Credenciais inválidas");
+          const errorData = await response.json().catch(() => ({}));
+          console.error("❌ [useAuth] Erro no login:", response.status, errorData);
+          throw new Error(errorData.message || "Email ou senha inválidos");
         }
 
         const data = await response.json();
@@ -167,15 +171,56 @@ export function useAuth() {
         );
 
         // Redirecionar com base no tipo de usuário
-        if (data.tipo === "ADMINISTRADOR") {
-          navigate("/home-admin");
-        } else if (
+        console.log("🔀 [useAuth] Redirecionando usuário:", { 
+          tipo: data.tipo, 
+          funcao: data.funcao,
+          classificacao: data.classificacao 
+        });
+        
+        /**
+         * REGRAS DE REDIRECIONAMENTO POR TIPO DE USUÁRIO:
+         * Valores do campo 'tipo' no banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
+         * 
+         * 1. Assistente Social → /assistente-social
+         *    - tipo: "VOLUNTARIO" + funcao: "ASSISTENCIA_SOCIAL"
+         *    - Rotas: /assistente-social, /cadastro-assistente, /classificacao-usuarios,
+         *             /profile-form-assistente-social, /cadastro-voluntario
+         * 
+         * 2. Administrador → /assistente-social
+         *    - tipo: "ADMINISTRADOR"
+         *    - Mesmas rotas da Assistente Social
+         * 
+         * 3. Usuário Assistido → /home-user
+         *    - tipo: "GRATUIDADE" ou "VALOR_SOCIAL"
+         *    - Rotas: /home-user, /agenda-user, /historico-user,
+         *             /agendar-horario-user, /profile-form-user, /pagamento-user
+         * 
+         * 4. Voluntário Profissional → /home
+         *    - tipo: "VOLUNTARIO" (sem funcao ASSISTENCIA_SOCIAL)
+         *    - Exemplo: médico, psicólogo, nutricionista, etc.
+         *    - Rotas: /home, /disponibilizar-horario, /agenda, /historico, /profile-form
+         */
+        
+        // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
+        if (
           data.tipo === "VOLUNTARIO" &&
           data.funcao === "ASSISTENCIA_SOCIAL"
         ) {
+          // Assistente Social
           navigate("/assistente-social");
-        } else if (data.tipo === "USUARIO") {
+        } else if (data.tipo === "ADMINISTRADOR") {
+          // Administrador
+          navigate("/assistente-social");
+        } else if (data.tipo === "GRATUIDADE" || data.tipo === "VALOR_SOCIAL") {
+          // Usuário assistido
           navigate("/home-user");
+        } else if (data.tipo === "VOLUNTARIO") {
+          // Voluntário profissional (médico, psicólogo, etc.)
+          navigate("/home");
+        } else {
+          // Fallback: se não identificar o tipo, redirecionar para login
+          console.error("⚠️ [useAuth] Tipo de usuário não reconhecido:", data.tipo);
+          navigate("/login");
         }
 
         return data;
