@@ -196,86 +196,78 @@ const HomeUser = () => {
   }, []);
   // Estado para histórico recente - carregado via API
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
-  // Carregar dados das consultas via API
-  useEffect(() => {
-    const loadConsultaData = async () => {
-      setLoading(true);
-      setError("");
+  
+  // Carregar dados das consultas via API - usando useCallback para evitar loops
+  const loadConsultaData = useCallback(async (consultas: Consulta[]) => {
+    try {
+      // Buscar userId do localStorage
+      const userDataStr = localStorage.getItem("userData");
+      if (!userDataStr) {
+        throw new Error("Usuário não está logado");
+      }
+      const user = JSON.parse(userDataStr);
+      const userId = user.idUsuario;
 
-      try {
-        // Buscar userId do localStorage
-        const userDataStr = localStorage.getItem("userData");
-        if (!userDataStr) {
-          throw new Error("Usuário não está logado");
-        }
-        const user = JSON.parse(userDataStr);
-        const userId = user.idUsuario;
+      if (!userId) {
+        throw new Error("ID do usuário não encontrado");
+      }
 
-        if (!userId) {
-          throw new Error("ID do usuário não encontrado");
-        }
+      const consultaStats = await ConsultaApiService.getAllConsultaStats(
+        userId
+      );
 
-        const consultaStats = await ConsultaApiService.getAllConsultaStats(
-          userId
+      const proximaData =
+        consultas.length > 0
+          ? consultas[0].data
+          : new Date(2025, 4, 18, 10, 0);
+
+      setConsultasSummary({
+        total: consultaStats.hoje,
+        proxima: proximaData,
+        mes: consultaStats.mes,
+        semana: consultaStats.semana,
+      });
+
+      if (consultas.length > 0) {
+        const proximaConsultaEncontrada = consultas.find(
+          (consulta) =>
+            consulta.data.toDateString() === proximaData.toDateString()
         );
 
-        const proximaData =
-          proximasConsultas.length > 0
-            ? proximasConsultas[0].data
-            : new Date(2025, 4, 18, 10, 0);
-
-        setConsultasSummary({
-          total: consultaStats.hoje,
-          proxima: proximaData,
-          mes: consultaStats.mes,
-          semana: consultaStats.semana,
-        });
-
-        if (proximasConsultas.length > 0) {
-          const proximaConsultaEncontrada = proximasConsultas.find(
-            (consulta) =>
-              consulta.data.toDateString() === proximaData.toDateString()
-          );
-
-          if (proximaConsultaEncontrada) {
-            setProximaConsultaData({
-              profissional: proximaConsultaEncontrada.profissional,
-              especialidade: proximaConsultaEncontrada.especialidade,
-              tipo: proximaConsultaEncontrada.tipo,
-              status: proximaConsultaEncontrada.status,
-            });
-          }
+        if (proximaConsultaEncontrada) {
+          setProximaConsultaData({
+            profissional: proximaConsultaEncontrada.profissional,
+            especialidade: proximaConsultaEncontrada.especialidade,
+            tipo: proximaConsultaEncontrada.tipo,
+            status: proximaConsultaEncontrada.status,
+          });
         }
-
-        // Atualizar dados dos atendimentos com dados zerados até API estar completa
-        setAtendimentosSummary({
-          realizados: 0,
-          canceladas: 0,
-          ultimaAvaliacao: null,
-        });
-      } catch (err) {
-        console.error("Erro ao carregar dados das consultas:", err);
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Erro ao carregar dados das consultas";
-        setError(message);
-
-        const fallbackDate = new Date(2025, 4, 18, 10, 0);
-        setConsultasSummary({
-          total: 0,
-          proxima: fallbackDate,
-          mes: 0,
-          semana: 0,
-        });
-      } finally {
-        setLoading(false);
       }
-    };
 
-    loadConsultaData();
-  }, [proximasConsultas]);
-  const loadHistoricoRecente = useCallback(async () => {
+      // Atualizar dados dos atendimentos com dados zerados até API estar completa
+      setAtendimentosSummary({
+        realizados: 0,
+        canceladas: 0,
+        ultimaAvaliacao: null,
+      });
+    } catch (err) {
+      console.error("Erro ao carregar dados das consultas:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Erro ao carregar dados das consultas";
+      setError(message);
+
+      const fallbackDate = new Date(2025, 4, 18, 10, 0);
+      setConsultasSummary({
+        total: 0,
+        proxima: fallbackDate,
+        mes: 0,
+        semana: 0,
+      });
+    }
+  }, []);
+  const loadHistoricoRecente = useCallback(async (consultas: Consulta[]) => {
     try {
       // Buscar userId do localStorage
       const userDataStr = localStorage.getItem("userData");
@@ -340,7 +332,7 @@ const HomeUser = () => {
         (consulta) => consulta.status.toLowerCase() === "cancelada"
       ).length;
 
-      const consultasProximasCanceladas = proximasConsultas.filter(
+      const consultasProximasCanceladas = consultas.filter(
         (consulta) => consulta.status.toLowerCase() === "cancelada"
       ).length;
 
@@ -365,77 +357,61 @@ const HomeUser = () => {
       });
     } catch (err) {
       console.error("Erro ao carregar histórico recente:", err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar o histórico recente",
-        variant: "destructive",
-      });
+      // Removido toast para evitar re-renderizações
     }
-  }, [proximasConsultas, setAtendimentosSummary]);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
-      await loadTodasConsultas();
-      setTimeout(() => {
-        loadHistoricoRecente();
-      }, 100);
+      setLoading(true);
+      setError("");
+      
+      try {
+        // 1. Primeiro carregar todas as consultas
+        const consultasData = await ConsultaApiService.getTodasConsultas();
+        
+        const consultasConvertidas: Consulta[] = consultasData.map(
+          (consultaDto) => ({
+            id: consultaDto.idConsulta,
+            profissional:
+              consultaDto.nomeVoluntario || "Profissional não informado",
+            especialidade:
+              consultaDto.nomeEspecialidade || "Especialidade não informada",
+            data: new Date(consultaDto.horario),
+            tipo:
+              consultaDto.modalidade === "ONLINE"
+                ? "Consulta Online"
+                : "Consulta Presencial",
+            status: consultaDto.status.toLowerCase(),
+          })
+        );
+
+        setTodasConsultas(consultasConvertidas);
+
+        const agora = new Date();
+        const consultasFuturas = consultasConvertidas
+          .filter((consulta) => consulta.data > agora)
+          .sort((a, b) => a.data.getTime() - b.data.getTime());
+
+        setProximasConsultas(consultasFuturas);
+        
+        // 2. Depois carregar estatísticas usando as consultas carregadas
+        await loadConsultaData(consultasFuturas);
+        
+        // 3. Por último carregar o histórico usando as consultas carregadas
+        await loadHistoricoRecente(consultasFuturas);
+        
+        console.log(`${consultasFuturas.length} próximas consultas carregadas`);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        setError("Erro ao carregar dados das consultas");
+      } finally {
+        setLoading(false);
+      }
     };
+    
     loadData();
-  }, [loadHistoricoRecente]);
-
-  // Also reload histórico when proximasConsultas changes
-  useEffect(() => {
-    if (proximasConsultas.length >= 0) {
-      loadHistoricoRecente();
-    }
-  }, [loadHistoricoRecente, proximasConsultas]);
-  // Function to load all consultations and order them by date
-  const loadTodasConsultas = async () => {
-    try {
-      const consultasData = await ConsultaApiService.getTodasConsultas();
-
-      // Convert ConsultaDto to Consulta format for compatibility with existing component
-      const consultasConvertidas: Consulta[] = consultasData.map(
-        (consultaDto) => ({
-          id: consultaDto.idConsulta,
-          profissional:
-            consultaDto.nomeVoluntario || "Profissional não informado",
-          especialidade:
-            consultaDto.nomeEspecialidade || "Especialidade não informada",
-          data: new Date(consultaDto.horario),
-          tipo:
-            consultaDto.modalidade === "ONLINE"
-              ? "Consulta Online"
-              : "Consulta Presencial",
-          status: consultaDto.status.toLowerCase(),
-        })
-      );
-
-      // Save all consultations for calendar
-      setTodasConsultas(consultasConvertidas);
-
-      // Filter upcoming consultations (future dates only) and sort by date (nearest first)
-      const agora = new Date();
-      const consultasFuturas = consultasConvertidas
-        .filter((consulta) => consulta.data > agora)
-        .sort((a, b) => a.data.getTime() - b.data.getTime());
-
-      setProximasConsultas(consultasFuturas);
-
-      toast({
-        title: "Consultas carregadas",
-        description: `${consultasFuturas.length} próximas consultas encontradas`,
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Erro ao carregar todas as consultas:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as consultas",
-        variant: "destructive",
-      });
-    }
-  };
+  }, [loadConsultaData, loadHistoricoRecente]);
 
   const statusColors: Record<string, string> = {
     agendada:
@@ -645,7 +621,7 @@ const HomeUser = () => {
 
       // Reload histórico recente to get updated evaluation data
       setTimeout(() => {
-        loadHistoricoRecente();
+        loadHistoricoRecente(proximasConsultas);
       }, 100);
 
       toast({
@@ -732,13 +708,15 @@ const HomeUser = () => {
         }
       } catch (error) {
         console.error("Erro ao recarregar estatísticas:", error);
-      } // Reload all consultations to reflect the change
-      await loadTodasConsultas();
+      }
+
+      // Atualizar consultas localmente removendo a cancelada
+      const consultasAtualizadas = proximasConsultas.filter(c => c.id !== consultaParaCancelar.id);
+      setProximasConsultas(consultasAtualizadas);
 
       // Reload recent history to show the canceled consultation
-      // This will automatically recalculate statistics due to useEffect
       setTimeout(() => {
-        loadHistoricoRecente();
+        loadHistoricoRecente(consultasAtualizadas);
       }, 100);
 
       toast({
