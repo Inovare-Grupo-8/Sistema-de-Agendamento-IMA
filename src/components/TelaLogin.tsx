@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 const TelaLogin: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth(); 
 
   const isCadastro = location.pathname === "/cadastro";
   const [isSignUpMode, setIsSignUpMode] = useState(isCadastro);
@@ -226,7 +227,6 @@ const TelaLogin: React.FC = () => {
     }
     setIsLoading(true);
     try {
-      const { login } = useAuth();
       await login({ email: loginEmail, password: loginSenha });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao fazer login";

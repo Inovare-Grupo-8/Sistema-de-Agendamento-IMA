@@ -124,6 +124,8 @@ export function useAuth() {
 
       try {
         const base = import.meta.env.VITE_URL_BACKEND || "/api";
+        console.log("🔐 [useAuth] Tentando login com:", { email: credentials.email, url: `${base}/usuarios/login` });
+        
         const response = await fetch(
           `${base}/usuarios/login`,
           {
@@ -136,7 +138,9 @@ export function useAuth() {
         );
 
         if (!response.ok) {
-          throw new Error("Credenciais inválidas");
+          const errorData = await response.json().catch(() => ({}));
+          console.error("❌ [useAuth] Erro no login:", response.status, errorData);
+          throw new Error(errorData.message || "Email ou senha inválidos");
         }
 
         const data = await response.json();
