@@ -1,4 +1,5 @@
 import { createContext, useState, ReactNode, useEffect } from "react";
+import { buildBackendUrl, resolvePerfilPath } from "@/lib/utils";
 
 interface ProfileImageContextType {
   profileImage: string;
@@ -147,26 +148,9 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
       );
 
       // Mapear tipo do usuário para o endpoint correto
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
-      let endpoint;
-      if (tipoUsuario === "USUARIO" || tipoUsuario === "assistido") {
-        endpoint = `${base}/perfil/assistido/dados-pessoais?usuarioId=${usuarioId}`;
-      } else if (
-        tipoUsuario === "VOLUNTARIO" &&
-        funcao === "ASSISTENCIA_SOCIAL"
-      ) {
-        endpoint = `${base}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`;
-      } else if (tipoUsuario === "ADMINISTRADOR") {
-        endpoint = `${base}/perfil/administrador/dados-pessoais?usuarioId=${usuarioId}`;
-      } else if (tipoUsuario === "VOLUNTARIO" || tipoUsuario === "voluntario") {
-        endpoint = `${base}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`;
-      } else {
-        // Fallback genérico
-        console.log(
-          "⚠️ [ProfileImageContext] Tipo de usuário desconhecido, tentando endpoint genérico"
-        );
-        endpoint = `${base}/perfil/assistido/dados-pessoais?usuarioId=${usuarioId}`;
-      }
+      const endpoint = buildBackendUrl(
+        `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`
+      );
 
       console.log("🌐 [ProfileImageContext] Endpoint da API:", endpoint);
 
@@ -183,9 +167,7 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         console.log("📋 [ProfileImageContext] Dados recebidos da API:", data);
 
         if (data.fotoUrl) {
-          const fullImageUrl = data.fotoUrl.startsWith("http")
-            ? data.fotoUrl
-            : `${base}${data.fotoUrl}`;
+          const fullImageUrl = buildBackendUrl(data.fotoUrl);
 
           console.log(
             "✅ [ProfileImageContext] Foto encontrada na API para usuário",

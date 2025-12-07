@@ -1,5 +1,6 @@
 import { useCallback, useContext } from 'react';
 import { UserContext } from '@/contexts/UserContextInstance';
+import { buildBackendUrl, resolvePerfilPath } from '@/lib/utils';
 
 const useUser = () => {
   const context = useContext(UserContext);
@@ -81,12 +82,15 @@ const useUser = () => {
       const user = JSON.parse(userData);
       const token = user.token;
       const usuarioId = user.idUsuario;
+      const tipoUsuario = user.tipo;
+      const funcao = user.funcao;
       
       if (!usuarioId) {
         throw new Error('ID do usuário não encontrado');
       }
 
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`, {
+      const dadosPessoaisEndpoint = `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`;
+      const response = await fetch(buildBackendUrl(dadosPessoaisEndpoint), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
@@ -102,7 +106,7 @@ const useUser = () => {
       
       // Se houver uma foto, ajustar a URL se necessário
       if (dados.fotoUrl && !dados.fotoUrl.startsWith('http')) {
-        dados.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${dados.fotoUrl}`;
+        dados.fotoUrl = buildBackendUrl(dados.fotoUrl);
       }
       
       return dados;
@@ -130,6 +134,8 @@ const useUser = () => {
       const user = JSON.parse(userData);
       const token = user.token;
       const usuarioId = user.idUsuario;
+      const tipoUsuario = user.tipo;
+      const funcao = user.funcao;
       
       if (!usuarioId) {
         throw new Error('ID do usuário não encontrado');
@@ -139,7 +145,8 @@ const useUser = () => {
       formData.append('file', file);
       formData.append('usuarioId', usuarioId.toString());
 
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/foto?usuarioId=${usuarioId}`, {
+      const uploadEndpoint = `${resolvePerfilPath(tipoUsuario, funcao, 'foto')}?usuarioId=${usuarioId}`;
+      const response = await fetch(buildBackendUrl(uploadEndpoint), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token || ''}`
@@ -154,8 +161,7 @@ const useUser = () => {
 
       const result = await response.json();
       // Concatena a URL base com o caminho relativo retornado pelo servidor
-      const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
-      return photoUrl;
+      return buildBackendUrl(result.url);
     } catch (error) {
       console.error('Erro ao fazer upload da foto:', error);
       throw error;
