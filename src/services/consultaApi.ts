@@ -1,7 +1,8 @@
 import axios from "axios";
+import { getBackendBaseUrl } from "@/lib/utils";
 
 // API base configuration
-const API_BASE_URL = `${import.meta.env.VITE_URL_BACKEND || '/api'}`;
+const API_BASE_URL = getBackendBaseUrl();
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -155,6 +156,12 @@ export interface ConsultaFeedback {
 export interface AvaliacoesFeedbackResponse {
   feedbacks: ConsultaFeedback[];
   avaliacoes: ConsultaAvaliacao[];
+}
+
+export interface HorarioDisponivel {
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  dateTime: string; // raw backend value
 }
 
 // API service class for consultation endpoints
@@ -451,12 +458,12 @@ export class ConsultaApiService {
    * Get available time slots for a specific volunteer on a specific date
    * @param date - Date in YYYY-MM-DD format
    * @param voluntarioId - ID of the volunteer/specialist
-   * @returns Promise with array of available time slots
+  * @returns Lista normalizada de horários disponíveis
    */
   static async getHorariosDisponiveis(
     date: string,
     voluntarioId: number
-  ): Promise<string[]> {
+  ): Promise<HorarioDisponivel[]> {
     try {
       const response = await apiClient.get(`/consulta/horarios-disponiveis`, {
         params: {
@@ -465,18 +472,78 @@ export class ConsultaApiService {
         },
       });
 
-      // The backend returns LocalDateTime objects, so we need to extract just the time part
-      return response.data.map((dateTime: string) => {
-        const time = new Date(dateTime).toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        return time;
-      });
+      const payload = response.data as unknown;
+      const rawValues = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { horarios?: unknown[] })?.horarios)
+          ? ((payload as { horarios?: unknown[] }).horarios ?? [])
+          : [];
+
+      return rawValues
+        .map((value: unknown) => {
+          if (typeof value !== "string") {
+            return null;
+          }
+
+          const [datePart] = value.split("T");
+          const timePart = value.includes("T")
+            ? value.split("T")[1]?.substring(0, 5)
+            : "";
+
+          if (!datePart || !timePart) {
+            return null;
+          }
+
+          return {
+            date: datePart,
+            time: timePart,
+            dateTime: value,
+          } satisfies HorarioDisponivel;
+        })
+        .filter((item): item is HorarioDisponivel => item !== null);
     } catch (error) {
       console.error("Error fetching horarios disponiveis:", error);
       throw this.handleApiError(error);
     }
+  }
+
+  /**
+   * Lista datas futuras com horários disponíveis para um voluntário.
+   */
+  static async listarDisponibilidadesPorVoluntario(
+    voluntarioId: number,
+    diasEmFrente = 30
+  ): Promise<Record<string, HorarioDisponivel[]>> {
+    const hoje = new Date();
+    const disponibilidades: Record<string, HorarioDisponivel[]> = {};
+    let diasSemHorarioSeguidos = 0;
+
+    for (let offset = 0; offset < diasEmFrente; offset += 1) {
+      const dataAtual = new Date(hoje);
+      dataAtual.setHours(0, 0, 0, 0);
+      dataAtual.setDate(hoje.getDate() + offset);
+
+      const dataIso = dataAtual.toISOString().split("T")[0];
+
+      try {
+        const horarios = await this.getHorariosDisponiveis(dataIso, voluntarioId);
+        if (horarios.length > 0) {
+          disponibilidades[dataIso] = horarios;
+          diasSemHorarioSeguidos = 0;
+        } else {
+          diasSemHorarioSeguidos += 1;
+        }
+      } catch (error) {
+        console.warn("Falha ao carregar horários para", dataIso, error);
+        diasSemHorarioSeguidos += 1;
+      }
+
+      if (diasSemHorarioSeguidos >= 7 && Object.keys(disponibilidades).length > 0) {
+        break;
+      }
+    }
+
+    return disponibilidades;
   }
   /**
    * Create a new consultation appointment

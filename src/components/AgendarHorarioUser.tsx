@@ -26,7 +26,7 @@ import { getUserNavigationPath } from "@/utils/userNavigation";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { VoluntarioApiService } from "@/services/voluntarioApi";
-import { ConsultaApiService } from "@/services/consultaApi";
+import { ConsultaApiService, type HorarioDisponivel } from "@/services/consultaApi";
 
 const tiposConsulta = [
   { valor: "ONLINE", label: "Consulta Online" },
@@ -48,7 +48,9 @@ const AgendarHorarioUser = () => {
   // Dynamic data from API
   const [datasDisponiveis, setDatasDisponiveis] = useState<Date[]>([]);
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
-  const [loadingData, setLoadingData] = useState(false);
+  const [disponibilidades, setDisponibilidades] = useState<Record<string, HorarioDisponivel[]>>({});
+  const [loadingEspecialistas, setLoadingEspecialistas] = useState(false);
+  const [loadingDisponibilidades, setLoadingDisponibilidades] = useState(false);
   
   // Handle logout function
   const handleLogout = () => {
@@ -77,7 +79,7 @@ const AgendarHorarioUser = () => {
 
   // Load specialists when component mounts
     const carregarEspecialistas = async (page = pagina) => {
-      setLoadingData(true);
+      setLoadingEspecialistas(true);
       try {
         const data = await VoluntarioApiService.listarVoluntariosParaAgendamento(page, size);
 
@@ -92,7 +94,7 @@ const AgendarHorarioUser = () => {
           variant: "destructive",
         });
       } finally {
-        setLoadingData(false);
+        setLoadingEspecialistas(false);
       }
     };
 
@@ -112,53 +114,80 @@ const AgendarHorarioUser = () => {
     }
   };
 
-  // Load available dates when specialist is selected
+  // Carrega datas e horários reais do backend quando um especialista é escolhido
   useEffect(() => {
-    if (especialistaSelecionado) {
-      // Generate next 30 days as available dates (simplified approach)
-      // In a real implementation, you would fetch this from the backend
-      const dates = [];
-      const today = new Date();
-      for (let i = 1; i <= 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        // Skip weekends (simple business logic)
-        if (date.getDay() !== 0 && date.getDay() !== 6) {
-          dates.push(date);
-        }
-      }
-      setDatasDisponiveis(dates);
-    } else {
+    const carregarDisponibilidades = async () => {
       setDatasDisponiveis([]);
-    }
-  }, [especialistaSelecionado]);
+      setDisponibilidades({});
+      setDataSelecionada(null);
+      setHorarioSelecionado(null);
+      setHorariosDisponiveis([]);
 
-  // Load available times when date is selected
-  useEffect(() => {
-    const carregarHorarios = async () => {
-      if (dataSelecionada && especialistaSelecionado) {
-        setLoadingData(true);
-        try {
-          const dateStr = dataSelecionada.toISOString().split('T')[0];
-          const horarios = await ConsultaApiService.getHorariosDisponiveis(dateStr, especialistaSelecionado);
-          setHorariosDisponiveis(horarios);
-        } catch (error) {
+      if (!especialistaSelecionado) {
+        return;
+      }
+
+      setLoadingDisponibilidades(true);
+      try {
+        const mapa = await ConsultaApiService.listarDisponibilidadesPorVoluntario(especialistaSelecionado);
+        setDisponibilidades(mapa);
+
+        const datasOrdenadas = Object.keys(mapa).sort();
+        const datas = datasOrdenadas.map((iso) => {
+          const [anoStr = "", mesStr = "", diaStr = ""] = iso.split("-");
+          const ano = Number(anoStr);
+          const mes = Number(mesStr);
+          const dia = Number(diaStr);
+
+          return new Date(
+            Number.isNaN(ano) ? new Date().getFullYear() : ano,
+            Number.isNaN(mes) ? 0 : mes - 1,
+            Number.isNaN(dia) ? 1 : dia
+          );
+        });
+
+        setDatasDisponiveis(datas);
+        setDataSelecionada(datas.length ? datas[0] : null);
+
+        if (datas.length === 0) {
           toast({
-            title: "Erro ao carregar horários",
-            description: "Não foi possível carregar os horários disponíveis para esta data.",
-            variant: "destructive",
+            title: "Sem horários disponíveis",
+            description: "Este especialista não possui horários abertos nos próximos dias.",
           });
-          setHorariosDisponiveis([]);
-        } finally {
-          setLoadingData(false);
         }
-      } else {
-        setHorariosDisponiveis([]);
+      } catch (error) {
+        console.error("Erro ao carregar disponibilidades:", error);
+        toast({
+          title: "Erro ao carregar disponibilidades",
+          description: "Não foi possível carregar as datas disponíveis deste especialista.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingDisponibilidades(false);
       }
     };
-    
-    carregarHorarios();
-  }, [dataSelecionada, especialistaSelecionado]);  // Função para avançar no formulário
+
+    carregarDisponibilidades();
+  }, [especialistaSelecionado]);
+
+  // Atualiza horários com base na data selecionada usando os dados carregados do backend
+  useEffect(() => {
+    if (!dataSelecionada) {
+      setHorariosDisponiveis([]);
+      return;
+    }
+
+    const dataIso = dataSelecionada.toISOString().split('T')[0];
+    const horariosSet = new Set(
+      (disponibilidades[dataIso] ?? []).map((item) => item.time)
+    );
+    const horariosOrdenados = Array.from(horariosSet).sort((a, b) => a.localeCompare(b));
+    setHorariosDisponiveis(horariosOrdenados);
+
+    if (horariosOrdenados.length === 0) {
+      setHorarioSelecionado(null);
+    }
+  }, [dataSelecionada, disponibilidades]);  // Função para avançar no formulário
   const handleNext = async () => {
     if (step === 1 && !especialistaSelecionado) {
       toast({
@@ -375,7 +404,7 @@ const AgendarHorarioUser = () => {
                   {step === 1 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Selecione o especialista para a sua consulta:</p>
-                      {loadingData ? (
+                      {loadingEspecialistas ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
                           <span className="ml-2">Carregando especialistas...</span>
@@ -423,7 +452,12 @@ const AgendarHorarioUser = () => {
                   {step === 2 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Selecione uma data para a consulta com {especialistas.find(e => e.id === especialistaSelecionado)?.nome}:</p>
-                      {datasDisponiveis.length === 0 ? (
+                      {loadingDisponibilidades ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
+                          <span className="ml-2">Carregando datas...</span>
+                        </div>
+                      ) : datasDisponiveis.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           <p>Nenhuma data disponível.</p>
                           <p className="text-sm">Selecione outro especialista.</p>
@@ -457,7 +491,7 @@ const AgendarHorarioUser = () => {
                       <p className="text-gray-600 dark:text-gray-400">
                         Selecione um horário disponível para {dataSelecionada && format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}:
                       </p>
-                      {loadingData ? (
+                      {loadingDisponibilidades ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
                           <span className="ml-2">Carregando horários...</span>
