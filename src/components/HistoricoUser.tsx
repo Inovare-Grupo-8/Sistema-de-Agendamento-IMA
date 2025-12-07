@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -104,6 +104,7 @@ interface HistoricoConsulta {
 
 const HistoricoUser = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
@@ -368,6 +369,18 @@ const HistoricoUser = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Handle logout function
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+    setShowLogoutDialog(false);
   };
 
   const exportHistory = async () => {
@@ -1527,6 +1540,22 @@ const HistoricoUser = () => {
           }
         }
       `}</style>
+
+      {/* Logout dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+              Sair
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
