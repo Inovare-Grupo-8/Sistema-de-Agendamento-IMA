@@ -1,6 +1,7 @@
 import { updateEmailInLocalStorage } from '../utils/localStorage';
 import { useNavigate } from 'react-router-dom';
 import { useProfileImage } from '@/components/useProfileImage';
+import { buildBackendUrl, resolvePerfilPath, resolvePerfilSegment } from '@/lib/utils';
 
 export interface Endereco {
   rua: string;
@@ -70,6 +71,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         sobrenome?: string;
         telefone?: string;
         email?: string;
+        funcao?: string;
         [key: string]: unknown;
     }
 
@@ -78,6 +80,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         token?: string;
         usuarioId: number;
         tipoUsuario?: string;
+        funcao?: string;
     }
 
     const getUserAuthData = (): UserAuthData => {
@@ -94,6 +97,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         let token: string | undefined;
         let usuarioId: number | undefined;
         let tipoUsuario: string | undefined;
+        let funcao: string | undefined;
         
         // Tentar buscar do userData primeiro
         if (userData) {
@@ -101,6 +105,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             token = user.token;
             usuarioId = user.idUsuario;
             tipoUsuario = user.tipo;
+            funcao = user.funcao as string | undefined;
         }
         
         // Se não encontrou idUsuario no userData, buscar no userInfo
@@ -108,6 +113,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const info = JSON.parse(userInfo) as StoredUserData;
             usuarioId = info.id;
             tipoUsuario = info.tipo;
+            funcao = funcao ?? (info.funcao as string | undefined);
         }
 
         console.log('🔍 [useUserProfile] DEBUG: Resultado final - usuarioId:', usuarioId, 'token exists:', !!token);
@@ -121,7 +127,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         // ✅ CORREÇÃO: Manter o tipo original do usuário para evitar conflitos
         console.log('🔍 [useUserProfile] DEBUG: Usando tipo original do localStorage:', tipoUsuario);
         
-        return { user, token, usuarioId, tipoUsuario };
+        return { user, token, usuarioId, tipoUsuario, funcao };
     };
 
     // Função para criar dados de perfil offline (quando backend não estiver disponível)
@@ -147,13 +153,12 @@ export const useUserProfile = (): UseUserProfileReturn => {
     const fetchPerfil = async (): Promise<UserProfileOutput> => {
         try {
             const authData = getUserAuthData();
-            const { token, usuarioId, tipoUsuario } = authData;
+            const { token, usuarioId, tipoUsuario, funcao } = authData;
 
-            // Tentar buscar do backend
-            const endpoint = tipoUsuario === 'assistente-social' 
-                ? `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`
-                : `${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
-            
+            const endpoint = buildBackendUrl(
+                `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`
+            );
+
             const response = await fetch(endpoint, {
 
                 method: 'GET',
@@ -183,16 +188,18 @@ export const useUserProfile = (): UseUserProfileReturn => {
                 console.warn(`Erro ${response.status} no backend, usando dados offline`);
                 return createOfflineProfile(authData);
 
-            }            console.log('✅ [useUserProfile] DEBUG: Resposta OK, fazendo parse JSON...');
+            }
+            console.log('✅ [useUserProfile] DEBUG: Resposta OK, fazendo parse JSON...');
             const data = await response.json();
             
             // Se houver uma foto, adicionar a URL base
-            if (data.fotoUrl) {
-                data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
-                console.log('🖼️ [useUserProfile] DEBUG: URL da foto processada:', data.fotoUrl);
-                
+            const rawPhotoUrl = data.fotoUrl ?? data.urlFoto;
+            if (rawPhotoUrl) {
+                data.fotoUrl = rawPhotoUrl;
+                console.log('🖼️ [useUserProfile] DEBUG: URL da foto recebida:', rawPhotoUrl);
+
                 // Atualizar contexto de imagem
-                setProfileImage(data.fotoUrl);
+                setProfileImage(rawPhotoUrl);
             }
 
             // Salvar no localStorage para usar offline
@@ -229,7 +236,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         genero?: string;
     }> => {
         try {
-            const { token, usuarioId, tipoUsuario } = getUserAuthData();
+            const { token, usuarioId, tipoUsuario, funcao } = getUserAuthData();
 
             // Sempre salvar localmente primeiro
             const currentProfile = localStorage.getItem('savedProfile');
@@ -239,9 +246,9 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
             // Tentar enviar para o backend
             try {
-                const endpoint = tipoUsuario === 'assistente-social' 
-                    ? `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
-                    : `${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoUsuario}/dados-pessoais?usuarioId=${usuarioId}`;
+                const endpoint = buildBackendUrl(
+                    `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`
+                );
 
                 const response = await fetch(endpoint, {
                     method: 'PATCH',
@@ -291,8 +298,10 @@ export const useUserProfile = (): UseUserProfileReturn => {
     };    const buscarEndereco = async (): Promise<Endereco | null> => {
         try {
             console.log('🔄 [useUserProfile] DEBUG: buscarEndereco iniciado');
-            const { token, usuarioId, tipoUsuario } = getUserAuthData();
-            console.log('🔍 [useUserProfile] DEBUG: buscarEndereco - tipoUsuario:', tipoUsuario);            const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistido/endereco?usuarioId=${usuarioId}`;
+            const { token, usuarioId } = getUserAuthData();
+
+            const enderecoPath = resolvePerfilPath('assistido', undefined, 'endereco');
+            const url = buildBackendUrl(`${enderecoPath}?usuarioId=${usuarioId}`);
             console.log('🔍 [useUserProfile] DEBUG: buscarEndereco URL completa:', url);
 
             console.log('🌐 [useUserProfile] DEBUG: Fazendo requisição para buscar endereço...');
@@ -354,13 +363,15 @@ export const useUserProfile = (): UseUserProfileReturn => {
             
             return null;
         }
-    };    const atualizarEndereco = async (endereco: Endereco): Promise<Endereco> => {
+    };
+
+    const atualizarEndereco = async (endereco: Endereco): Promise<Endereco> => {
         try {
             console.log('🔄 [useUserProfile] DEBUG: atualizarEndereco iniciado');
             console.log('🔍 [useUserProfile] DEBUG: Dados recebidos:', endereco);
             
-            const { token, usuarioId, tipoUsuario } = getUserAuthData();
-            console.log('🔍 [useUserProfile] DEBUG: Auth data:', { usuarioId, tipoUsuario, hasToken: !!token });
+            const { token, usuarioId } = getUserAuthData();
+            console.log('🔍 [useUserProfile] DEBUG: Auth data:', { usuarioId, hasToken: !!token });
 
             // ✅ CORREÇÃO: Validar dados obrigatórios
             if (!endereco.cep?.trim() || !endereco.numero?.trim()) {
@@ -377,7 +388,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
             console.log('🔍 [useUserProfile] DEBUG: Dados formatados:', enderecoInput);
 
             // ✅ CORREÇÃO: URL sempre para assistido
-            const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistido/endereco?usuarioId=${usuarioId}`;
+            const enderecoPath = resolvePerfilPath('assistido', undefined, 'endereco');
+            const url = buildBackendUrl(`${enderecoPath}?usuarioId=${usuarioId}`);
             console.log('🌐 [useUserProfile] DEBUG: URL da requisição:', url);
 
             // ✅ CORREÇÃO: Headers completos
@@ -474,20 +486,8 @@ export const useUserProfile = (): UseUserProfileReturn => {
             const formData = new FormData();
             formData.append('file', foto);
             
-            // Mapear tipo de usuário para o formato esperado pelo backend
-            let tipoBackend = 'assistido'; // default
-            if (tipoUsuario === 'USUARIO') {
-                tipoBackend = 'assistido';
-            } else if (tipoUsuario === 'VOLUNTARIO') {
-                tipoBackend = 'assistente-social'; // Para assistente social
-            } else if (tipoUsuario === 'ADMINISTRADOR') {
-                tipoBackend = 'administrador';
-            }
-            
-            console.log('🔍 [uploadFoto] DEBUG: Tipo mapeado:', { original: tipoUsuario, mapeado: tipoBackend });
-            
-            // Usar apenas o endpoint correto para o tipo de usuário
-            const endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoBackend}/foto?usuarioId=${usuarioId}`;
+            const fotoPath = resolvePerfilPath(tipoUsuario, funcao, 'foto');
+            const endpoint = buildBackendUrl(`${fotoPath}?usuarioId=${usuarioId}`);
             console.log(`🌐 [uploadFoto] DEBUG: Endpoint de upload: ${endpoint}`);
             
             const response = await fetch(endpoint, {
@@ -506,36 +506,38 @@ export const useUserProfile = (): UseUserProfileReturn => {
                 const result = await response.json();
                 console.log('✅ [uploadFoto] DEBUG: Upload bem-sucedido:', result);
                 
-                // Construir URL da foto
-                let photoUrl;
-                if (result.url) {
-                    photoUrl = result.url.startsWith('http') ? result.url : `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
-                } else if (result.fotoUrl) {
-                    photoUrl = result.fotoUrl.startsWith('http') ? result.fotoUrl : `${import.meta.env.VITE_URL_BACKEND}${result.fotoUrl}`;
-                } else {
-                    // Fallback: assumir que foi salvo com sucesso
-                    photoUrl = `${import.meta.env.VITE_URL_BACKEND}/uploads/${tipoBackend}_user_${usuarioId}.jpg`;
-                }
-                
-                // Salvar localmente
+                const rawUrl =
+                    result.url ??
+                    result.fotoUrl ??
+                    result.urlFoto ??
+                    result?.data?.url ??
+                    result?.data?.fotoUrl ??
+                    result?.data?.urlFoto;
+
+                const fallbackRaw = `/uploads/${resolvePerfilSegment(tipoUsuario, funcao)}_user_${usuarioId}.jpg`;
+                const rawPhotoPath = rawUrl || fallbackRaw;
+                const photoUrl = buildBackendUrl(rawPhotoPath);
+
+                // Salvar localmente usando caminho cru para revalidação futura
                 const savedProfile = localStorage.getItem('savedProfile');
                 const profile = savedProfile ? JSON.parse(savedProfile) : {};
-                profile.fotoUrl = photoUrl;
+                profile.fotoUrl = rawPhotoPath;
                 localStorage.setItem('savedProfile', JSON.stringify(profile));
 
                 // Também salvar no profileData para sincronização
                 const profileData = localStorage.getItem('profileData');
                 const profileObj = profileData ? JSON.parse(profileData) : {};
-                profileObj.fotoUrl = photoUrl;
+                profileObj.fotoUrl = rawPhotoPath;
+                profileObj.profileImage = rawPhotoPath;
                 localStorage.setItem('profileData', JSON.stringify(profileObj));
 
                 console.log('💾 [uploadFoto] DEBUG: Foto salva localmente:', photoUrl);
                 
                 // 🔄 CORREÇÃO: Atualizar o contexto de imagem para sincronizar com a sidebar
-                setProfileImage(photoUrl);
-                console.log('🔄 [uploadFoto] DEBUG: Contexto de imagem atualizado:', photoUrl);
+                setProfileImage(rawPhotoPath);
+                console.log('🔄 [uploadFoto] DEBUG: Contexto de imagem atualizado:', rawPhotoPath);
                 
-                return photoUrl;
+                return rawPhotoPath;
             } else {
                 const errorText = await response.text();
                 console.warn(`⚠️ [uploadFoto] DEBUG: Falha no endpoint ${endpoint}:`, response.status, errorText);
