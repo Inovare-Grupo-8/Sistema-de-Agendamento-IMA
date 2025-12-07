@@ -871,20 +871,6 @@ const ProfileFormUser = () => {
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
               {userData.nome} {userData.sobrenome}
             </span>
-
-            <Button
-              onClick={toggleTheme}
-              className="mt-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-              aria-label={
-                theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
-              }
-            >
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5 text-yellow-400" />
-              ) : (
-                <Moon className="w-5 h-5 text-gray-800" />
-              )}
-            </Button>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do userNavigationItems */}
