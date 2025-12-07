@@ -71,7 +71,7 @@ const AgendarHorarioUser = () => {
   
   // Estado para paginação
   const [pagina, setPagina] = useState(0);
-  const [size] = useState(5);
+  const [size] = useState(3);
   const [especialistas, setEspecialistas] = useState([]);
   const [hasNextPage, setHasNextPage] = useState(false);
 

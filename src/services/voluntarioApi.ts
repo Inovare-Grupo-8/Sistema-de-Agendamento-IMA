@@ -270,8 +270,7 @@ export class VoluntarioApiService {
   }
 
   /**
-   * Lista todos os voluntários para seleção em agendamentos
-   * Retorna apenas voluntários ativos com informações simplificadas
+   * Lista voluntários para seleção em agendamentos respeitando paginação do backend
    */
   static async listarVoluntariosParaAgendamento(
     page = 0,
@@ -301,7 +300,6 @@ export class VoluntarioApiService {
     }
 
     const items = content
-      .filter(v => this.determinarStatus(v) === "ativo")
       .map(v => ({
         id: v.idUsuario,
         nome: v.nomeCompleto ?? `${v.nome} ${v.sobrenome}`.trim(),
