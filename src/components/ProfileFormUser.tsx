@@ -40,6 +40,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useCep } from "@/hooks/useCep";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -94,6 +102,9 @@ const ProfileFormUser = () => {
     useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
+
+  // Estado para o modal de logout
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
@@ -398,7 +409,21 @@ const ProfileFormUser = () => {
       };
       reader.readAsDataURL(file);
     }
-  }; // Função para validar o formulário antes de salvar
+  }; 
+  
+  // Handle logout function
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+    setShowLogoutDialog(false);
+  };
+
+  // Função para validar o formulário antes de salvar
   const validateForm = () => {
     console.log("🔍 Debug validateForm - formData:", formData);
     const errors: Record<string, string> = {};
@@ -890,17 +915,8 @@ const ProfileFormUser = () => {
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
-                    onClick={() => {
-                      localStorage.removeItem("userData");
-                      localStorage.removeItem("profileData");
-                      navigate("/");
-                      toast({
-                        title: "Sessão encerrada",
-                        description: "Você foi desconectado com sucesso.",
-                      });
-                    }}
+                    onClick={() => setShowLogoutDialog(true)}
                   >
-                    <ArrowLeft className="w-6 h-6" />
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -1493,6 +1509,22 @@ const ProfileFormUser = () => {
           </div>
         </main>
       </div>
+
+      {/* Logout dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+              Sair
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
