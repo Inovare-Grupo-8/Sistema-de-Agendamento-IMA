@@ -105,7 +105,7 @@ const Dashboard = () => {
               size="w-10 h-10"
               className="border-2 border-primary shadow"
             />
-            <span className="font-bold text-foreground">{displayName}</span>
+            <span className="font-extrabold text-foreground">{displayName}</span>
           </div>
         )}
 
@@ -259,7 +259,7 @@ const Dashboard = () => {
                 size="w-10 h-10"
                 className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200"
               />
-              <span className="font-bold text-foreground">{displayName}</span>
+              <span className="font-extrabold text-foreground">{displayName}</span>
             </div>
 
             <div className="flex items-center gap-3">

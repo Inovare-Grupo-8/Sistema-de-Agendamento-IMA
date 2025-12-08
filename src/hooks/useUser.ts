@@ -80,13 +80,26 @@ const useUser = () => {
       
       const user = JSON.parse(userData);
       const token = user.token;
-      const usuarioId = user.idUsuario;
+      const usuarioId = user.idUsuario || user.id;
+      const tipoUsuario = user.tipo;
+      const funcao = user.funcao;
       
       if (!usuarioId) {
         throw new Error('ID do usuário não encontrado');
       }
+      const base = import.meta.env.VITE_URL_BACKEND || '/api';
+      let tipoPath = 'assistido';
+      if (tipoUsuario === 'ADMINISTRADOR') {
+        tipoPath = 'administrador';
+      } else if (tipoUsuario === 'VOLUNTARIO' && funcao === 'ASSISTENCIA_SOCIAL') {
+        tipoPath = 'assistente-social';
+      } else if (tipoUsuario === 'VOLUNTARIO') {
+        tipoPath = 'voluntario';
+      } else {
+        tipoPath = 'assistido';
+      }
 
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/dados-pessoais?usuarioId=${usuarioId}`, {
+      const response = await fetch(`${base}/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
@@ -102,7 +115,7 @@ const useUser = () => {
       
       // Se houver uma foto, ajustar a URL se necessário
       if (dados.fotoUrl && !dados.fotoUrl.startsWith('http')) {
-        dados.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${dados.fotoUrl}`;
+        dados.fotoUrl = `${base}${dados.fotoUrl}`;
       }
       
       return dados;

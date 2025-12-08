@@ -11,6 +11,7 @@ import Agenda from "@/components/Agenda";
 import AgendaUser from "@/components/AgendaUser";
 import Home from "@/components/Home";
 import HomeUser from "@/components/HomeUser";
+import HomeAdmin from "@/components/HomeAdmin";
 import Historico from "@/components/Historico";
 import HistoricoUser from "@/components/HistoricoUser";
 import ProfileForm from "@/components/ProfileForm";
@@ -30,6 +31,7 @@ import { UserProvider } from "@/contexts/UserContext";
 import { ProfessionalProvider } from "@/contexts/ProfessionalContext";
 import { CompletarCadastroVoluntario } from "@/components/CompletarCadastroVoluntario";
 import { ClassificacaoUsuarios } from "@/components/ClassificacaoUsuarios";
+import ClassificacaoUsuariosPage from "@/pages/ClassificacaoUsuariosPage";
 import CadastroAssistenteSocial from "@/components/CadastroAssistenteSocial";
 import AuthGuard from "@/components/AuthGuard";
 
@@ -83,7 +85,15 @@ const App = () => {
                         <Route
                           path="/home-user"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo)
+                              }
+                            >
                               <HomeUser />
                             </ProtectedRoute>
                           }
@@ -91,7 +101,15 @@ const App = () => {
                         <Route
                           path="/agenda-user"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo)
+                              }
+                            >
                               <AgendaUser />
                             </ProtectedRoute>
                           }
@@ -99,7 +117,15 @@ const App = () => {
                         <Route
                           path="/historico-user"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo)
+                              }
+                            >
                               <HistoricoUser />
                             </ProtectedRoute>
                           }
@@ -107,7 +133,15 @@ const App = () => {
                         <Route
                           path="/agendar-horario-user"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo)
+                              }
+                            >
                               <AgendarHorarioUser />
                             </ProtectedRoute>
                           }
@@ -115,7 +149,15 @@ const App = () => {
                         <Route
                           path="/profile-form-user"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo)
+                              }
+                            >
                               <ProfileFormUser />
                             </ProtectedRoute>
                           }
@@ -123,7 +165,15 @@ const App = () => {
                         <Route
                           path="/pagamento-user"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo)
+                              }
+                            >
                               <PagamentoUser />
                             </ProtectedRoute>
                           }
@@ -132,7 +182,12 @@ const App = () => {
                         <Route
                           path="/home"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "VOLUNTARIO" &&
+                                u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
                               <Home />
                             </ProtectedRoute>
                           }
@@ -140,7 +195,12 @@ const App = () => {
                         <Route
                           path="/disponibilizar-horario"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "VOLUNTARIO" &&
+                                u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
                               <DisponibilizarHorario />
                             </ProtectedRoute>
                           }
@@ -148,7 +208,12 @@ const App = () => {
                         <Route
                           path="/agenda"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "VOLUNTARIO" &&
+                                u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
                               <Agenda />
                             </ProtectedRoute>
                           }
@@ -156,7 +221,12 @@ const App = () => {
                         <Route
                           path="/historico"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "VOLUNTARIO" &&
+                                u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
                               <Historico />
                             </ProtectedRoute>
                           }
@@ -164,7 +234,12 @@ const App = () => {
                         <Route
                           path="/profile-form"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "VOLUNTARIO" &&
+                                u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
                               <ProfileForm />
                             </ProtectedRoute>
                           }
@@ -173,7 +248,13 @@ const App = () => {
                         <Route
                           path="/assistente-social"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "ADMINISTRADOR" ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao === "ASSISTENCIA_SOCIAL")
+                              }
+                            >
                               <AssistenteSocial />
                             </ProtectedRoute>
                           }
@@ -181,7 +262,13 @@ const App = () => {
                         <Route
                           path="/profile-form-assistente-social"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "ADMINISTRADOR" ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao === "ASSISTENCIA_SOCIAL")
+                              }
+                            >
                               <ProfileFormAssistenteSocial />
                             </ProtectedRoute>
                           }
@@ -189,7 +276,13 @@ const App = () => {
                         <Route
                           path="/cadastro-assistente"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "ADMINISTRADOR" ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao === "ASSISTENCIA_SOCIAL")
+                              }
+                            >
                               <CadastroAssistenteSocial />
                             </ProtectedRoute>
                           }
@@ -197,7 +290,13 @@ const App = () => {
                         <Route
                           path="/cadastro-voluntario"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "ADMINISTRADOR" ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao === "ASSISTENCIA_SOCIAL")
+                              }
+                            >
                               <CadastroVoluntario />
                             </ProtectedRoute>
                           }
@@ -205,13 +304,30 @@ const App = () => {
                         <Route
                           path="/classificacao-usuarios"
                           element={
-                            <ProtectedRoute>
-                              <ClassificacaoUsuarios />
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "ADMINISTRADOR" ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao === "ASSISTENCIA_SOCIAL")
+                              }
+                            >
+                              <ClassificacaoUsuariosPage />
                             </ProtectedRoute>
                           }
                         />
                         {/* Rota raiz - redireciona para login */}
                         <Route path="/" element={<TelaLogin />} />
+                        {/* Rota do administrador */}
+                        <Route
+                          path="/home-admin"
+                          element={
+                            <ProtectedRoute
+                              allow={(u) => u?.tipo === "ADMINISTRADOR"}
+                            >
+                              <HomeAdmin />
+                            </ProtectedRoute>
+                          }
+                        />
                         {/* Rota padrão para página não encontrada */}
                         <Route path="*" element={<NotFound />} />{" "}
                       </Routes>

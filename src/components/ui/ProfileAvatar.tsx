@@ -39,7 +39,7 @@ export const ProfileAvatar = ({
   const hoverClass = showHoverEffect ? 'transition-transform hover:scale-105 duration-200' : '';
   const initial = getFirstLetter(name);
   return (
-    <div className={`relative inline-block ${size} ${hoverClass} ${className}`}>
+    <div className={`relative inline-block rounded-full ${size} ${hoverClass} ${className}`}>
       <img
         src={profileImage}
         alt={`Foto de ${name}`}
