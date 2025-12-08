@@ -51,6 +51,8 @@ const PagamentoUser = () => {
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData, fetchPerfil } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -396,11 +398,11 @@ const PagamentoUser = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName}</span>
           </div>
         )}
           {/* Sidebar */}
@@ -424,12 +426,12 @@ const PagamentoUser = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {userData?.nome} {userData?.sobrenome}
+              {displayName}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               Usuário
@@ -440,7 +442,7 @@ const PagamentoUser = () => {
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
@@ -474,12 +476,12 @@ const PagamentoUser = () => {
               )}
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={userData?.nome || 'User'}
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               <span className={`font-bold text-indigo-900 dark:text-gray-100 ${isMobile ? 'text-sm' : ''}`}>
-                {isMobile ? userData?.nome : `${userData?.nome} ${userData?.sobrenome}`}
+                {displayName}
               </span>
             </div>
             

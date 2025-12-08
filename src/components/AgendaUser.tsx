@@ -49,6 +49,8 @@ const AgendaUser = () => {
   
   // Use the userData hook to get synchronized user data
   const { userData, fetchPerfil } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
 
   const location = useLocation();  
   const [loading, setLoading] = useState(false);
@@ -174,12 +176,12 @@ const AgendaUser = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             {/* Update to use userData from hook */}
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-bold text-indigo-900 text-sm md:text-lg">{displayName}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -194,19 +196,19 @@ const AgendaUser = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             {/* Update to use userData from hook */}
-            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">{displayName}</span>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                     <Link to="/home-user" className="flex items-center gap-3">
                       <HomeIcon className="w-6 h-6" color="#ED4231" />
                       <span>Home</span>
@@ -221,7 +223,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                     <Link to="/agenda-user" className="flex items-center gap-3">
                       <CalendarIcon className="w-6 h-6" color="#ED4231" />
                       <span>Minhas Consultas</span>
@@ -235,7 +237,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                     <Link to="/historico-user" className="flex items-center gap-3">
                       <History className="w-6 h-6" color="#ED4231" />
                       <span>Histórico</span>
@@ -250,7 +252,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agendar-horario-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agendar-horario-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                     <Link to="/agendar-horario-user" className="flex items-center gap-3">
                       <Clock className="w-6 h-6" color="#ED4231" />
                       <span>Agendar Consulta</span>
@@ -265,7 +267,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                     <Link to="/profile-form-user" className="flex items-center gap-3">
                       <User className="w-6 h-6" color="#ED4231" />
                       <span>Editar Perfil</span>
@@ -300,12 +302,12 @@ const AgendaUser = () => {
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho da agenda">            <div className="flex items-center gap-3">
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={userData?.nome || 'User'}
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               {/* Update to use userData from hook */}
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{userData.nome} {userData.sobrenome}</span>
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName}</span>
             </div>
             <div className="flex items-center gap-3">
               <Tooltip>

@@ -41,6 +41,8 @@ const AgendarHorarioUser = () => {
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
   
   // Add state for logout dialog
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -285,11 +287,11 @@ const AgendarHorarioUser = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -304,11 +306,11 @@ const AgendarHorarioUser = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{displayName}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do userNavigationItems */}
@@ -316,7 +318,7 @@ const AgendarHorarioUser = () => {
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
@@ -354,8 +356,8 @@ const AgendarHorarioUser = () => {
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
             <div className="flex items-center gap-3">
-              <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+              <ProfileAvatar profileImage={profileImage} name={displayName} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName}</span>
             </div>
             <div className="flex items-center gap-3">              <Button
                 onClick={toggleTheme}

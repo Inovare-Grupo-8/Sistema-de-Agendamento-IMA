@@ -108,8 +108,9 @@ const HomeUser = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { userData, setUserData } = useUserData();
-  const { fetchPerfil } = useUserData();
+  const { userData, updateUserData, fetchPerfil } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
 
   // Estado para o modal de logout
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -881,7 +882,57 @@ const HomeUser = () => {
         const userData = localStorage.getItem("userData");
         if (userData) {
           const parsedUserData = JSON.parse(userData);
-          setUserData(parsedUserData);
+          const updates: Partial<typeof userData> = {};
+
+          if (typeof parsedUserData.nome === "string") {
+            updates.nome = parsedUserData.nome.trim();
+          }
+
+          const sobrenomeDireto =
+            typeof parsedUserData.sobrenome === "string"
+              ? parsedUserData.sobrenome.trim()
+              : typeof parsedUserData.sobreNome === "string"
+                ? parsedUserData.sobreNome.trim()
+                : "";
+
+          if (sobrenomeDireto) {
+            updates.sobrenome = sobrenomeDireto;
+          } else if (typeof parsedUserData.nomeCompleto === "string") {
+            const [primeiroNome, ...resto] = parsedUserData.nomeCompleto
+              .trim()
+              .split(/\s+/);
+            if (!updates.nome && primeiroNome) {
+              updates.nome = primeiroNome;
+            }
+            if (resto.length > 0) {
+              updates.sobrenome = resto.join(" ");
+            }
+          }
+
+          if (typeof parsedUserData.email === "string") {
+            updates.email = parsedUserData.email.trim();
+          }
+
+          if (typeof parsedUserData.telefone === "string") {
+            updates.telefone = parsedUserData.telefone.trim();
+          }
+
+          if (typeof parsedUserData.dataNascimento === "string") {
+            updates.dataNascimento = parsedUserData.dataNascimento.trim();
+          } else if (typeof parsedUserData.data_nascimento === "string") {
+            updates.dataNascimento = parsedUserData.data_nascimento.trim();
+          }
+
+          if (typeof parsedUserData.genero === "string") {
+            updates.genero = parsedUserData.genero.trim();
+          } else if (typeof parsedUserData.sexo === "string") {
+            updates.genero = parsedUserData.sexo.trim();
+          }
+
+          if (Object.keys(updates).length > 0) {
+            updateUserData(updates);
+          }
+
           if (parsedUserData.fotoUrl) {
             setProfileImage(parsedUserData.fotoUrl);
           }
@@ -892,7 +943,7 @@ const HomeUser = () => {
     };
 
     fetchUserData();
-  }, [setProfileImage, setUserData]);
+  }, [setProfileImage, updateUserData]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -950,14 +1001,12 @@ const HomeUser = () => {
             </Button>{" "}
             <ProfileAvatar
               profileImage={profileImage}
-              name={
-                `${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"
-              }
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {`${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"}
+              {displayName}
             </span>
           </div>
         )}
@@ -982,14 +1031,12 @@ const HomeUser = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={
-                `${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"
-              }
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {userData?.nome} {userData?.sobrenome}
+              {displayName}
             </span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -1002,7 +1049,7 @@ const HomeUser = () => {
                       asChild
                       className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                         location.pathname === item.path
-                          ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white"
+                          ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                           : ""
                       }`}
                     >
@@ -1083,14 +1130,12 @@ const HomeUser = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar
                 profileImage={profileImage}
-                name={
-                  `${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"
-                }
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {userData?.nome} {userData?.sobrenome}
+                {displayName}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -1117,7 +1162,7 @@ const HomeUser = () => {
                   Dashboard
                 </h1>
                 <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-                  Bem-vindo(a), {userData?.nome}! Aqui está o resumo das suas
+                  Bem-vindo(a), {displayName}! Aqui está o resumo das suas
                   consultas.
                 </p>
 
