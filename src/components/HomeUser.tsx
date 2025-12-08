@@ -1002,7 +1002,7 @@ const HomeUser = () => {
                       asChild
                       className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                         location.pathname === item.path
-                          ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                          ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white"
                           : ""
                       }`}
                     >

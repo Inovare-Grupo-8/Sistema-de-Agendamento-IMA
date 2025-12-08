@@ -206,7 +206,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/home-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
                     <Link to="/home-user" className="flex items-center gap-3">
                       <HomeIcon className="w-6 h-6" color="#ED4231" />
                       <span>Home</span>
@@ -221,7 +221,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agenda-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
                     <Link to="/agenda-user" className="flex items-center gap-3">
                       <CalendarIcon className="w-6 h-6" color="#ED4231" />
                       <span>Minhas Consultas</span>
@@ -235,7 +235,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/historico-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
                     <Link to="/historico-user" className="flex items-center gap-3">
                       <History className="w-6 h-6" color="#ED4231" />
                       <span>Histórico</span>
@@ -250,7 +250,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agendar-horario-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                   <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/agendar-horario-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
                     <Link to="/agendar-horario-user" className="flex items-center gap-3">
                       <Clock className="w-6 h-6" color="#ED4231" />
                       <span>Agendar Consulta</span>
@@ -265,7 +265,7 @@ const AgendaUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form-user' ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                  <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === '/profile-form-user' ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-black dark:text-white' : ''}`}>
                     <Link to="/profile-form-user" className="flex items-center gap-3">
                       <User className="w-6 h-6" color="#ED4231" />
                       <span>Editar Perfil</span>
