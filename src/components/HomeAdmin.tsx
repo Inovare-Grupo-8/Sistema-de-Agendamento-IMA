@@ -19,6 +19,8 @@ const HomeAdmin = () => {
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData, fetchPerfil } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Administrador";
   
   useEffect(() => {
     const loadUserData = async () => {
@@ -54,11 +56,11 @@ const HomeAdmin = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'Admin'}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-primary shadow"
             />
-            <span className="font-bold text-foreground">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-bold text-foreground">{displayName}</span>
           </div>
         )}
         
@@ -75,11 +77,11 @@ const HomeAdmin = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'Admin'}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-background shadow"
             />
-            <span className="font-extrabold text-xl text-foreground tracking-wide">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-extrabold text-xl text-foreground tracking-wide">{displayName}</span>
           </div>
           
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -199,11 +201,11 @@ const HomeAdmin = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar 
                 profileImage={profileImage}
-                name={userData?.nome || 'Admin'}
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200"
               />
-              <span className="font-bold text-foreground">{userData.nome} {userData.sobrenome}</span>
+              <span className="font-bold text-foreground">{displayName}</span>
             </div>
             
             <div className="flex items-center gap-3">

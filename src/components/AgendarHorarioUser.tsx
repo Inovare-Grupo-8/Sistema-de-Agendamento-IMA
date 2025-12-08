@@ -26,7 +26,7 @@ import { getUserNavigationPath } from "@/utils/userNavigation";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { VoluntarioApiService } from "@/services/voluntarioApi";
-import { ConsultaApiService } from "@/services/consultaApi";
+import { ConsultaApiService, type HorarioDisponivel } from "@/services/consultaApi";
 
 const tiposConsulta = [
   { valor: "ONLINE", label: "Consulta Online" },
@@ -41,6 +41,8 @@ const AgendarHorarioUser = () => {
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
   
   // Add state for logout dialog
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -48,7 +50,9 @@ const AgendarHorarioUser = () => {
   // Dynamic data from API
   const [datasDisponiveis, setDatasDisponiveis] = useState<Date[]>([]);
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
-  const [loadingData, setLoadingData] = useState(false);
+  const [disponibilidades, setDisponibilidades] = useState<Record<string, HorarioDisponivel[]>>({});
+  const [loadingEspecialistas, setLoadingEspecialistas] = useState(false);
+  const [loadingDisponibilidades, setLoadingDisponibilidades] = useState(false);
   
   // Handle logout function
   const handleLogout = () => {
@@ -71,13 +75,13 @@ const AgendarHorarioUser = () => {
   
   // Estado para paginação
   const [pagina, setPagina] = useState(0);
-  const [size] = useState(5);
+  const [size] = useState(3);
   const [especialistas, setEspecialistas] = useState([]);
   const [hasNextPage, setHasNextPage] = useState(false);
 
   // Load specialists when component mounts
     const carregarEspecialistas = async (page = pagina) => {
-      setLoadingData(true);
+      setLoadingEspecialistas(true);
       try {
         const data = await VoluntarioApiService.listarVoluntariosParaAgendamento(page, size);
 
@@ -92,7 +96,7 @@ const AgendarHorarioUser = () => {
           variant: "destructive",
         });
       } finally {
-        setLoadingData(false);
+        setLoadingEspecialistas(false);
       }
     };
 
@@ -112,53 +116,80 @@ const AgendarHorarioUser = () => {
     }
   };
 
-  // Load available dates when specialist is selected
+  // Carrega datas e horários reais do backend quando um especialista é escolhido
   useEffect(() => {
-    if (especialistaSelecionado) {
-      // Generate next 30 days as available dates (simplified approach)
-      // In a real implementation, you would fetch this from the backend
-      const dates = [];
-      const today = new Date();
-      for (let i = 1; i <= 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        // Skip weekends (simple business logic)
-        if (date.getDay() !== 0 && date.getDay() !== 6) {
-          dates.push(date);
-        }
-      }
-      setDatasDisponiveis(dates);
-    } else {
+    const carregarDisponibilidades = async () => {
       setDatasDisponiveis([]);
-    }
-  }, [especialistaSelecionado]);
+      setDisponibilidades({});
+      setDataSelecionada(null);
+      setHorarioSelecionado(null);
+      setHorariosDisponiveis([]);
 
-  // Load available times when date is selected
-  useEffect(() => {
-    const carregarHorarios = async () => {
-      if (dataSelecionada && especialistaSelecionado) {
-        setLoadingData(true);
-        try {
-          const dateStr = dataSelecionada.toISOString().split('T')[0];
-          const horarios = await ConsultaApiService.getHorariosDisponiveis(dateStr, especialistaSelecionado);
-          setHorariosDisponiveis(horarios);
-        } catch (error) {
+      if (!especialistaSelecionado) {
+        return;
+      }
+
+      setLoadingDisponibilidades(true);
+      try {
+        const mapa = await ConsultaApiService.listarDisponibilidadesPorVoluntario(especialistaSelecionado);
+        setDisponibilidades(mapa);
+
+        const datasOrdenadas = Object.keys(mapa).sort();
+        const datas = datasOrdenadas.map((iso) => {
+          const [anoStr = "", mesStr = "", diaStr = ""] = iso.split("-");
+          const ano = Number(anoStr);
+          const mes = Number(mesStr);
+          const dia = Number(diaStr);
+
+          return new Date(
+            Number.isNaN(ano) ? new Date().getFullYear() : ano,
+            Number.isNaN(mes) ? 0 : mes - 1,
+            Number.isNaN(dia) ? 1 : dia
+          );
+        });
+
+        setDatasDisponiveis(datas);
+        setDataSelecionada(datas.length ? datas[0] : null);
+
+        if (datas.length === 0) {
           toast({
-            title: "Erro ao carregar horários",
-            description: "Não foi possível carregar os horários disponíveis para esta data.",
-            variant: "destructive",
+            title: "Sem horários disponíveis",
+            description: "Este especialista não possui horários abertos nos próximos dias.",
           });
-          setHorariosDisponiveis([]);
-        } finally {
-          setLoadingData(false);
         }
-      } else {
-        setHorariosDisponiveis([]);
+      } catch (error) {
+        console.error("Erro ao carregar disponibilidades:", error);
+        toast({
+          title: "Erro ao carregar disponibilidades",
+          description: "Não foi possível carregar as datas disponíveis deste especialista.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingDisponibilidades(false);
       }
     };
-    
-    carregarHorarios();
-  }, [dataSelecionada, especialistaSelecionado]);  // Função para avançar no formulário
+
+    carregarDisponibilidades();
+  }, [especialistaSelecionado]);
+
+  // Atualiza horários com base na data selecionada usando os dados carregados do backend
+  useEffect(() => {
+    if (!dataSelecionada) {
+      setHorariosDisponiveis([]);
+      return;
+    }
+
+    const dataIso = dataSelecionada.toISOString().split('T')[0];
+    const horariosSet = new Set(
+      (disponibilidades[dataIso] ?? []).map((item) => item.time)
+    );
+    const horariosOrdenados = Array.from(horariosSet).sort((a, b) => a.localeCompare(b));
+    setHorariosDisponiveis(horariosOrdenados);
+
+    if (horariosOrdenados.length === 0) {
+      setHorarioSelecionado(null);
+    }
+  }, [dataSelecionada, disponibilidades]);  // Função para avançar no formulário
   const handleNext = async () => {
     if (step === 1 && !especialistaSelecionado) {
       toast({
@@ -256,11 +287,11 @@ const AgendarHorarioUser = () => {
             </Button>
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out
@@ -275,11 +306,11 @@ const AgendarHorarioUser = () => {
           </div>          <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar 
               profileImage={profileImage}
-              name={userData?.nome || 'User'}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{userData?.nome} {userData?.sobrenome}</span>
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{displayName}</span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do userNavigationItems */}
@@ -287,7 +318,7 @@ const AgendarHorarioUser = () => {
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
+                    <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white' : ''}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
                         <span>{item.label}</span>
@@ -325,8 +356,8 @@ const AgendarHorarioUser = () => {
 
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]" role="banner" aria-label="Cabeçalho">
             <div className="flex items-center gap-3">
-              <ProfileAvatar profileImage={profileImage} name={userData?.nome || 'User'} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{userData?.nome} {userData?.sobrenome}</span>
+              <ProfileAvatar profileImage={profileImage} name={displayName} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+              <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName}</span>
             </div>
             <div className="flex items-center gap-3">              <Button
                 onClick={toggleTheme}
@@ -375,7 +406,7 @@ const AgendarHorarioUser = () => {
                   {step === 1 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Selecione o especialista para a sua consulta:</p>
-                      {loadingData ? (
+                      {loadingEspecialistas ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
                           <span className="ml-2">Carregando especialistas...</span>
@@ -423,7 +454,12 @@ const AgendarHorarioUser = () => {
                   {step === 2 && (
                     <div className="space-y-4">
                       <p className="text-gray-600 dark:text-gray-400">Selecione uma data para a consulta com {especialistas.find(e => e.id === especialistaSelecionado)?.nome}:</p>
-                      {datasDisponiveis.length === 0 ? (
+                      {loadingDisponibilidades ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
+                          <span className="ml-2">Carregando datas...</span>
+                        </div>
+                      ) : datasDisponiveis.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           <p>Nenhuma data disponível.</p>
                           <p className="text-sm">Selecione outro especialista.</p>
@@ -457,7 +493,7 @@ const AgendarHorarioUser = () => {
                       <p className="text-gray-600 dark:text-gray-400">
                         Selecione um horário disponível para {dataSelecionada && format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}:
                       </p>
-                      {loadingData ? (
+                      {loadingDisponibilidades ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231]"></div>
                           <span className="ml-2">Carregando horários...</span>

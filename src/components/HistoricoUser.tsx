@@ -128,6 +128,8 @@ const HistoricoUser = () => {
 
   // Use the userData hook to get synchronized user data
   const { userData, fetchPerfil } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
 
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -575,13 +577,13 @@ const HistoricoUser = () => {
             </Button>
             <ProfileAvatar
               profileImage={profileImage}
-              name={userData?.nome || "User"}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             {/* Update to use userData from hook */}
             <span className="font-bold text-indigo-900 text-sm md:text-lg">
-              {userData.nome} {userData.sobrenome}
+              {displayName}
             </span>
           </div>
         )}
@@ -606,13 +608,13 @@ const HistoricoUser = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={userData?.nome || "User"}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             {/* Update to use userData from hook */}
             <span className="font-extrabold text-xl text-indigo-900 tracking-wide">
-              {userData.nome} {userData.sobrenome}
+              {displayName}
             </span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -624,7 +626,7 @@ const HistoricoUser = () => {
                     asChild
                     className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                       location.pathname === userNavigationItems.home.path
-                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                         : ""
                     }`}
                   >
@@ -649,7 +651,7 @@ const HistoricoUser = () => {
                     asChild
                     className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                       location.pathname === userNavigationItems.agenda.path
-                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                         : ""
                     }`}
                   >
@@ -674,7 +676,7 @@ const HistoricoUser = () => {
                     asChild
                     className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                       location.pathname === userNavigationItems.historico.path
-                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                         : ""
                     }`}
                   >
@@ -699,7 +701,7 @@ const HistoricoUser = () => {
                     asChild
                     className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                       location.pathname === userNavigationItems.agendar.path
-                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                         : ""
                     }`}
                   >
@@ -724,7 +726,7 @@ const HistoricoUser = () => {
                     asChild
                     className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                       location.pathname === userNavigationItems.perfil.path
-                        ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                         : ""
                     }`}
                   >
@@ -810,13 +812,13 @@ const HistoricoUser = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar
                 profileImage={profileImage}
-                name={userData?.nome || "User"}
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               {/* Update to use userData from hook */}
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {t("name")} {userData.nome} {userData.sobrenome}
+                {displayName}
               </span>
             </div>{" "}
             <div className="flex items-center gap-3">

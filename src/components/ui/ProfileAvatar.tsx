@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { LetterAvatar } from './LetterAvatar';
-import { useLetterAvatar } from '@/hooks/useLetterAvatar';
+import { cn } from '@/lib/utils';
 
 interface ProfileAvatarProps {
   profileImage?: string | null;
@@ -18,7 +18,6 @@ export const ProfileAvatar = ({
   showHoverEffect = true
 }: ProfileAvatarProps) => {
   const [imageError, setImageError] = useState(false);
-  const { getFirstLetter } = useLetterAvatar();
 
   const handleImageError = () => {
     setImageError(true);
@@ -37,18 +36,22 @@ export const ProfileAvatar = ({
 
   // Usar imagem de perfil com sobreposição da inicial
   const hoverClass = showHoverEffect ? 'transition-transform hover:scale-105 duration-200' : '';
-  const initial = getFirstLetter(name);
   return (
-    <div className={`relative inline-block rounded-full ${size} ${hoverClass} ${className}`}>
+    <div
+      className={cn(
+        'relative inline-block overflow-hidden rounded-full',
+        size,
+        hoverClass,
+        className
+      )}
+    >
+
       <img
         src={profileImage}
         alt={`Foto de ${name}`}
-        className={`w-full h-full rounded-full object-cover shadow`}
+        className="h-full w-full object-cover"
         onError={handleImageError}
       />
-      <div className="absolute bottom-0 right-0 translate-x-1 translate-y-1 bg-white/90 dark:bg-gray-800/90 text-[#ED4231] dark:text-white rounded-full px-2 py-0.5 text-xs font-bold shadow">
-        {initial}
-      </div>
     </div>
   );
 };

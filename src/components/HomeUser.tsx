@@ -65,6 +65,7 @@ import { userNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import type { UserData } from "@/types/user";
 
 interface ConsultaSummary {
   total: number;
@@ -108,8 +109,9 @@ const HomeUser = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { userData, setUserData } = useUserData();
-  const { fetchPerfil } = useUserData();
+  const { userData, updateUserData, fetchPerfil } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
 
   // Estado para o modal de logout
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -202,7 +204,11 @@ const HomeUser = () => {
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
   
   // Carregar dados das consultas via API - usando useCallback para evitar loops
-  const loadConsultaData = useCallback(async (consultas: Consulta[]) => {
+  const loadConsultaData = useCallback(
+    async (
+      consultas: Consulta[],
+      statsOverride?: { hoje: number; semana: number; mes: number }
+    ) => {
     try {
       // Buscar userId do localStorage
       const userDataStr = localStorage.getItem("userData");
@@ -216,9 +222,9 @@ const HomeUser = () => {
         throw new Error("ID do usuário não encontrado");
       }
 
-      const consultaStats = await ConsultaApiService.getAllConsultaStats(
-        userId
-      );
+      const consultaStats =
+        statsOverride ??
+        (await ConsultaApiService.getAllConsultaStats(userId));
 
       const proximaData =
         consultas.length > 0
@@ -270,7 +276,9 @@ const HomeUser = () => {
         semana: 0,
       });
     }
-  }, []);
+    },
+    []
+  );
   const loadHistoricoRecente = useCallback(async (consultas: Consulta[]) => {
     try {
       // Buscar userId do localStorage
@@ -371,10 +379,77 @@ const HomeUser = () => {
       setError("");
       
       try {
+        const userDataStr = localStorage.getItem("userData");
+        if (!userDataStr) {
+          throw new Error("Usuário não está logado");
+        }
+
+        const user = JSON.parse(userDataStr);
+        const userId = user.idUsuario;
+
+        if (!userId) {
+          throw new Error("ID do usuário não encontrado");
+        }
+
         // 1. Primeiro carregar todas as consultas
         const consultasData = await ConsultaApiService.getTodasConsultas();
         
-        const consultasConvertidas: Consulta[] = consultasData.map(
+        const consultasDoUsuario = consultasData.filter(
+          (consultaDto) => consultaDto.idAssistido === userId
+        );
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        const inicioSemana = new Date(hoje);
+        const diaSemana = hoje.getDay();
+        const diffParaSegunda = diaSemana === 0 ? 6 : diaSemana - 1;
+        inicioSemana.setDate(hoje.getDate() - diffParaSegunda);
+        inicioSemana.setHours(0, 0, 0, 0);
+
+        const fimSemana = new Date(inicioSemana);
+        fimSemana.setDate(inicioSemana.getDate() + 6);
+        fimSemana.setHours(23, 59, 59, 999);
+
+        const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        inicioMes.setHours(0, 0, 0, 0);
+
+        const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+        fimMes.setHours(23, 59, 59, 999);
+
+        const statsOverrides = consultasDoUsuario.reduce<{ hoje: number; semana: number; mes: number }>(
+          (acc, consultaDto) => {
+            const dataConsulta = new Date(consultaDto.horario);
+            if (Number.isNaN(dataConsulta.getTime())) {
+              return acc;
+            }
+
+            const status = (consultaDto.status || "").toUpperCase();
+            if (status === "CANCELADA") {
+              return acc;
+            }
+
+            const dataNormalizada = new Date(dataConsulta);
+            dataNormalizada.setHours(0, 0, 0, 0);
+
+            if (dataNormalizada.getTime() === hoje.getTime()) {
+              acc.hoje += 1;
+            }
+
+            if (dataConsulta >= inicioSemana && dataConsulta <= fimSemana) {
+              acc.semana += 1;
+            }
+
+            if (dataConsulta >= inicioMes && dataConsulta <= fimMes) {
+              acc.mes += 1;
+            }
+
+            return acc;
+          },
+          { hoje: 0, semana: 0, mes: 0 }
+        );
+
+        const consultasConvertidas: Consulta[] = consultasDoUsuario.map(
           (consultaDto) => ({
             id: consultaDto.idConsulta,
             profissional:
@@ -400,7 +475,7 @@ const HomeUser = () => {
         setProximasConsultas(consultasFuturas);
         
         // 2. Depois carregar estatísticas usando as consultas carregadas
-        await loadConsultaData(consultasFuturas);
+        await loadConsultaData(consultasFuturas, statsOverrides);
         
         // 3. Por último carregar o histórico usando as consultas carregadas
         await loadHistoricoRecente(consultasFuturas);
@@ -805,13 +880,86 @@ const HomeUser = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const userData = localStorage.getItem("userData");
-        if (userData) {
-          const parsedUserData = JSON.parse(userData);
-          setUserData(parsedUserData);
-          if (parsedUserData.fotoUrl) {
-            setProfileImage(parsedUserData.fotoUrl);
+        const storedUserJson = localStorage.getItem("userData");
+        if (!storedUserJson) {
+          return;
+        }
+
+        const parsedUserData = JSON.parse(storedUserJson) as Partial<UserData> & {
+          nomeCompleto?: string;
+          sobreNome?: string;
+          data_nascimento?: string;
+          sexo?: string;
+          fotoUrl?: string;
+        };
+
+        const updates: Partial<UserData> = {};
+
+        const assignIfChanged = <K extends keyof UserData>(key: K, value: unknown) => {
+          if (typeof value !== "string") {
+            return;
           }
+          const trimmedValue = value.trim();
+          if (trimmedValue !== userData[key]) {
+            updates[key] = trimmedValue as UserData[K];
+          }
+        };
+
+        assignIfChanged("nome", parsedUserData.nome);
+
+        const sobrenomeDireto =
+          typeof parsedUserData.sobrenome === "string"
+            ? parsedUserData.sobrenome.trim()
+            : typeof parsedUserData.sobreNome === "string"
+              ? parsedUserData.sobreNome.trim()
+              : "";
+
+        if (sobrenomeDireto && sobrenomeDireto !== userData.sobrenome) {
+          updates.sobrenome = sobrenomeDireto;
+        }
+
+        if (!updates.nome || !updates.sobrenome) {
+          const nomeCompleto = typeof parsedUserData.nomeCompleto === "string"
+            ? parsedUserData.nomeCompleto.trim()
+            : "";
+
+          if (nomeCompleto) {
+            const [primeiroNome, ...resto] = nomeCompleto.split(/\s+/);
+
+            if (!updates.nome && primeiroNome && primeiroNome !== userData.nome) {
+              updates.nome = primeiroNome;
+            }
+
+            const sobrenomeDerivado = resto.join(" ");
+            if (!updates.sobrenome && sobrenomeDerivado && sobrenomeDerivado !== userData.sobrenome) {
+              updates.sobrenome = sobrenomeDerivado;
+            }
+          }
+        }
+
+        assignIfChanged("email", parsedUserData.email);
+        assignIfChanged("telefone", parsedUserData.telefone);
+
+        const dataNascimentoDireta =
+          typeof parsedUserData.dataNascimento === "string"
+            ? parsedUserData.dataNascimento
+            : typeof parsedUserData.data_nascimento === "string"
+              ? parsedUserData.data_nascimento
+              : undefined;
+        assignIfChanged("dataNascimento", dataNascimentoDireta);
+
+        const generoDireto =
+          typeof parsedUserData.genero === "string"
+            ? parsedUserData.genero
+            : parsedUserData.sexo;
+        assignIfChanged("genero", generoDireto);
+
+        if (Object.keys(updates).length > 0) {
+          updateUserData(updates);
+        }
+
+        if (typeof parsedUserData.fotoUrl === "string" && parsedUserData.fotoUrl.trim()) {
+          setProfileImage(parsedUserData.fotoUrl.trim());
         }
       } catch (error) {
         console.error("Erro ao carregar dados do usuário:", error);
@@ -819,7 +967,7 @@ const HomeUser = () => {
     };
 
     fetchUserData();
-  }, [setProfileImage, setUserData]);
+  }, [setProfileImage, updateUserData, userData]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -877,14 +1025,12 @@ const HomeUser = () => {
             </Button>{" "}
             <ProfileAvatar
               profileImage={profileImage}
-              name={
-                `${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"
-              }
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {`${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"}
+              {displayName}
             </span>
           </div>
         )}
@@ -909,14 +1055,12 @@ const HomeUser = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={
-                `${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"
-              }
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {userData?.nome} {userData?.sobrenome}
+              {displayName}
             </span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -929,7 +1073,7 @@ const HomeUser = () => {
                       asChild
                       className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                         location.pathname === item.path
-                          ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                          ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                           : ""
                       }`}
                     >
@@ -1010,14 +1154,12 @@ const HomeUser = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar
                 profileImage={profileImage}
-                name={
-                  `${userData?.nome} ${userData?.sobrenome}`.trim() || "Usuário"
-                }
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {userData?.nome} {userData?.sobrenome}
+                {displayName}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -1044,7 +1186,7 @@ const HomeUser = () => {
                   Dashboard
                 </h1>
                 <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-                  Bem-vindo(a), {userData?.nome}! Aqui está o resumo das suas
+                  Bem-vindo(a), {displayName}! Aqui está o resumo das suas
                   consultas.
                 </p>
 
