@@ -174,9 +174,6 @@ const ProfileForm = () => {
   const validateDadosPessoais = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!dadosPessoais.nome.trim()) errors.nome = "Nome é obrigatório";
-    if (!dadosPessoais.sobrenome.trim())
-      errors.sobrenome = "Sobrenome é obrigatório";
     if (!dadosPessoais.email.trim()) {
       errors.email = "Email é obrigatório";
     } else if (!/\S+@\S+\.\S+/.test(dadosPessoais.email)) {
@@ -187,8 +184,6 @@ const ProfileForm = () => {
     } else if (dadosPessoais.telefone.replace(/\D/g, "").length !== 11) {
       errors.telefone = "Telefone deve ter 11 dígitos";
     }
-    if (!dadosPessoais.dataNascimento)
-      errors.dataNascimento = "Data é obrigatória";
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -389,6 +384,10 @@ const ProfileForm = () => {
         title: "Foto atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso!",
       });
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 150);
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
       toast({
@@ -451,7 +450,7 @@ const ProfileForm = () => {
               size="w-10 h-10"
               className="border-2 border-primary"
             />
-            <span className="font-bold text-foreground">
+            <span className="font-extrabold text-foreground">
               {dadosPessoais.nome} {dadosPessoais.sobrenome}
             </span>
           </div>
@@ -559,7 +558,7 @@ const ProfileForm = () => {
                 size="w-10 h-10"
                 className="border-2 border-primary"
               />
-              <span className="font-bold text-foreground">
+              <span className="font-extrabold text-foreground">
                 {dadosPessoais.nome} {dadosPessoais.sobrenome}
               </span>
             </div>
@@ -633,11 +632,11 @@ const ProfileForm = () => {
                             id="nome"
                             name="nome"
                             value={dadosPessoais.nome}
-                            onChange={handleDadosPessoaisChange}
-                            className={
+                            disabled
+                            className={`${
                               validationErrors.nome ? "border-red-500" : ""
-                            }
-                            placeholder="Digite seu nome"
+                            } opacity-70 cursor-not-allowed`}
+                            placeholder="Nome não pode ser alterado"
                           />
                           {validationErrors.nome && (
                             <p className="text-xs text-red-500">
@@ -652,11 +651,11 @@ const ProfileForm = () => {
                             id="sobrenome"
                             name="sobrenome"
                             value={dadosPessoais.sobrenome}
-                            onChange={handleDadosPessoaisChange}
-                            className={
+                            disabled
+                            className={`${
                               validationErrors.sobrenome ? "border-red-500" : ""
-                            }
-                            placeholder="Digite seu sobrenome"
+                            } opacity-70 cursor-not-allowed`}
+                            placeholder="Sobrenome não pode ser alterado"
                           />
                           {validationErrors.sobrenome && (
                             <p className="text-xs text-red-500">
@@ -674,6 +673,8 @@ const ProfileForm = () => {
                           type="email"
                           value={dadosPessoais.email}
                           onChange={handleDadosPessoaisChange}
+                          onInput={handleDadosPessoaisChange}
+                          autoComplete="off"
                           className={
                             validationErrors.email ? "border-red-500" : ""
                           }
@@ -694,6 +695,8 @@ const ProfileForm = () => {
                           type="tel"
                           value={dadosPessoais.telefone}
                           onChange={handleDadosPessoaisChange}
+                          onInput={handleDadosPessoaisChange}
+                          autoComplete="off"
                           className={
                             validationErrors.telefone ? "border-red-500" : ""
                           }
@@ -715,12 +718,12 @@ const ProfileForm = () => {
                           name="dataNascimento"
                           type="date"
                           value={dadosPessoais.dataNascimento}
-                          onChange={handleDadosPessoaisChange}
-                          className={
+                          disabled
+                          className={`${
                             validationErrors.dataNascimento
                               ? "border-red-500"
                               : ""
-                          }
+                          } opacity-70 cursor-not-allowed`}
                         />
                         {validationErrors.dataNascimento && (
                           <p className="text-xs text-red-500">
@@ -766,6 +769,7 @@ const ProfileForm = () => {
                           name="funcao"
                           value={dadosProfissionais.funcao}
                           onChange={handleDadosProfissionaisChange}
+                          onInput={handleDadosProfissionaisChange}
                           className={`w-full rounded-md border ${
                             validationErrors.funcao
                               ? "border-red-500"
@@ -773,19 +777,19 @@ const ProfileForm = () => {
                           } bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]`}
                         >
                           <option value="">Selecione uma função</option>
-                          <option value="PSICOLOGO">Psicólogo</option>
-                          <option value="ASSISTENTE_SOCIAL">
-                            Assistente Social
+                          <option value="PSICOLOGIA">Psicologia</option>
+                          <option value="ASSISTENCIA_SOCIAL">
+                            Assistência Social
                           </option>
-                          <option value="PEDAGOGO">Pedagogo</option>
-                          <option value="TERAPEUTA_OCUPACIONAL">
-                            Terapeuta Ocupacional
-                          </option>
-                          <option value="FONOAUDIOLOGO">Fonoaudiólogo</option>
-                          <option value="FISIOTERAPEUTA">Fisioterapeuta</option>
-                          <option value="NUTRICIONISTA">Nutricionista</option>
-                          <option value="MEDICO">Médico</option>
-                          <option value="ENFERMEIRO">Enfermeiro</option>
+                          <option value="PSICOPEDAGOGIA">Psicopedagogia</option>
+                          <option value="FONOAUDIOLOGIA">Fonoaudiologia</option>
+                          <option value="FISIOTERAPIA">Fisioterapia</option>
+                          <option value="NUTRICAO">Nutrição</option>
+                          <option value="PEDIATRIA">Pediatria</option>
+                          <option value="QUIROPRAXIA">Quiropraxia</option>
+                          <option value="JURIDICA">Jurídica</option>
+                          <option value="CONTABIL">Contábil</option>
+                          <option value="FINANCEIRA">Financeira</option>
                         </select>
                         {validationErrors.funcao && (
                           <p className="text-xs text-red-500">
@@ -803,6 +807,7 @@ const ProfileForm = () => {
                           name="registroProfissional"
                           value={dadosProfissionais.registroProfissional}
                           onChange={handleDadosProfissionaisChange}
+                          onInput={handleDadosProfissionaisChange}
                           className={
                             validationErrors.registroProfissional
                               ? "border-red-500"
@@ -826,6 +831,7 @@ const ProfileForm = () => {
                           name="biografiaProfissional"
                           value={dadosProfissionais.biografiaProfissional}
                           onChange={handleDadosProfissionaisChange}
+                          onInput={handleDadosProfissionaisChange}
                           rows={4}
                           className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231] resize-vertical min-h-[100px]"
                           placeholder="Descreva sua experiência profissional..."
@@ -867,6 +873,7 @@ const ProfileForm = () => {
                           name="cep"
                           value={endereco.cep}
                           onChange={handleEnderecoChange}
+                          onInput={handleEnderecoChange}
                           onBlur={handleCepBlur}
                           className={
                             validationErrors.cep ? "border-red-500" : ""
@@ -892,6 +899,7 @@ const ProfileForm = () => {
                             name="logradouro"
                             value={endereco.logradouro}
                             onChange={handleEnderecoChange}
+                            onInput={handleEnderecoChange}
                             className={
                               validationErrors.logradouro
                                 ? "border-red-500"
@@ -912,6 +920,7 @@ const ProfileForm = () => {
                             name="numero"
                             value={endereco.numero}
                             onChange={handleEnderecoChange}
+                            onInput={handleEnderecoChange}
                             className={
                               validationErrors.numero ? "border-red-500" : ""
                             }
@@ -932,6 +941,7 @@ const ProfileForm = () => {
                           name="complemento"
                           value={endereco.complemento}
                           onChange={handleEnderecoChange}
+                          onInput={handleEnderecoChange}
                           placeholder="Apto, Bloco... (opcional)"
                         />
                       </div>
@@ -943,6 +953,7 @@ const ProfileForm = () => {
                           name="bairro"
                           value={endereco.bairro}
                           onChange={handleEnderecoChange}
+                          onInput={handleEnderecoChange}
                           className={
                             validationErrors.bairro ? "border-red-500" : ""
                           }
@@ -963,6 +974,7 @@ const ProfileForm = () => {
                             name="cidade"
                             value={endereco.cidade}
                             onChange={handleEnderecoChange}
+                            onInput={handleEnderecoChange}
                             className={
                               validationErrors.cidade ? "border-red-500" : ""
                             }
@@ -981,6 +993,7 @@ const ProfileForm = () => {
                             name="uf"
                             value={endereco.uf}
                             onChange={handleEnderecoChange}
+                            onInput={handleEnderecoChange}
                             className={
                               validationErrors.uf ? "border-red-500" : ""
                             }

@@ -6,7 +6,7 @@ import ModalConfirmacao from "./ui/ModalConfirmacao";
 
 const TelaLogin: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const location = useLocation();
 
   const isCadastro = location.pathname === "/cadastro";
   const [isSignUpMode, setIsSignUpMode] = useState(isCadastro);
@@ -23,8 +23,12 @@ const TelaLogin: React.FC = () => {
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        console.log("🔄 [TelaLogin] Usuário já logado:", { tipo: user.tipo, funcao: user.funcao, classificacao: user.classificacao });
-        
+        console.log("🔄 [TelaLogin] Usuário já logado:", {
+          tipo: user.tipo,
+          funcao: user.funcao,
+          classificacao: user.classificacao,
+        });
+
         // Redirecionar baseado no tipo de usuário
         // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
         if (
@@ -242,6 +246,7 @@ const TelaLogin: React.FC = () => {
 
   // Login
   const handleLogin = async () => {
+    if (isLoading) return;
     if (!loginEmail || !loginSenha) {
       setModalErro("Por favor, preencha todos os campos.");
       return;
@@ -252,10 +257,12 @@ const TelaLogin: React.FC = () => {
       setModalErro(erroEmail);
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const controller = new AbortController();
+      const { signal } = controller;
       console.log("🔐 [Login] Tentando login com:", { email: loginEmail, url: `${base}/usuarios/login` });
       
       const response = await fetch(`${base}/usuarios/login`, {
@@ -264,6 +271,7 @@ const TelaLogin: React.FC = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email: loginEmail, senha: loginSenha }),
+        signal,
       });
 
       if (!response.ok) {
@@ -274,7 +282,14 @@ const TelaLogin: React.FC = () => {
 
       const data = await response.json();
       console.log("✅ [Login] Dados completos do usuário:", data);
-      console.log("🔀 [Login] Redirecionamento - tipo:", data.tipo, "funcao:", data.funcao, "classificacao:", data.classificacao);
+      console.log(
+        "🔀 [Login] Redirecionamento - tipo:",
+        data.tipo,
+        "funcao:",
+        data.funcao,
+        "classificacao:",
+        data.classificacao
+      );
 
       // Atualizar último acesso
       await atualizarUltimoAcesso(data.idUsuario, data.token);
@@ -286,20 +301,48 @@ const TelaLogin: React.FC = () => {
 
       // Salvar no localStorage
       localStorage.setItem("userData", JSON.stringify(data));
+      // Compatibilidade com formato legado
+      try {
+        const legacyUser = {
+          id: String(data.idUsuario ?? data.id ?? ""),
+          nome: data.nome ?? "",
+          email: data.email ?? "",
+          tipo:
+            data.tipo === "GRATUIDADE" ||
+            data.tipo === "VALOR_SOCIAL" ||
+            data.tipo === "USUARIO"
+              ? ("paciente" as const)
+              : ("profissional" as const),
+          token: data.token ?? "",
+        };
+        localStorage.setItem("auth_user", JSON.stringify(legacyUser));
+        localStorage.setItem("auth_token", legacyUser.token);
+      } catch (e) {
+        void e;
+      }
 
       // Redirecionar com base no tipo de usuário
       // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
       if (data.tipo === "VOLUNTARIO" && data.funcao === "ASSISTENCIA_SOCIAL") {
         // Assistente Social (VOLUNTARIO + funcao ASSISTENCIA_SOCIAL)
-        console.log("➡️ Redirecionando para: /assistente-social (Assistente Social)");
+        console.log(
+          "➡️ Redirecionando para: /assistente-social (Assistente Social)"
+        );
         navigate("/assistente-social", { replace: true });
       } else if (data.tipo === "ADMINISTRADOR") {
         // Administrador do sistema
-        console.log("➡️ Redirecionando para: /assistente-social (Administrador)");
-        navigate("/assistente-social", { replace: true });
-      } else if (data.tipo === "GRATUIDADE" || data.tipo === "VALOR_SOCIAL") {
+        console.log("➡️ Redirecionando para: /home-admin (Administrador)");
+        navigate("/home-admin", { replace: true });
+      } else if (
+        data.tipo === "GRATUIDADE" ||
+        data.tipo === "VALOR_SOCIAL" ||
+        data.tipo === "USUARIO"
+      ) {
         // Usuário assistido (GRATUIDADE ou VALOR_SOCIAL)
-        console.log("➡️ Redirecionando para: /home-user (Usuário Assistido -", data.tipo + ")");
+        console.log(
+          "➡️ Redirecionando para: /home-user (Usuário Assistido -",
+          data.tipo + ")"
+        );
         navigate("/home-user", { replace: true });
       } else if (data.tipo === "VOLUNTARIO") {
         // Voluntário profissional (médico, psicólogo, etc.) - sem funcao ASSISTENCIA_SOCIAL
@@ -310,8 +353,11 @@ const TelaLogin: React.FC = () => {
         navigate("/login", { replace: true });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro ao fazer login";
-      setModalErro(message);
+      const isAbort = (error as any)?.name === "AbortError";
+      if (!isAbort) {
+        const message = error instanceof Error ? error.message : "Erro ao fazer login";
+        setModalErro(message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -324,22 +370,19 @@ const TelaLogin: React.FC = () => {
     setIsLoading(true);
     try {
       const base = import.meta.env.VITE_URL_BACKEND || "/api";
-      const response = await fetch(
-        `${base}/usuarios/primeira-fase`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            nome: cadastroNome,
-            sobrenome: cadastroSobrenome,
-            cpf: cadastroCpf.replace(/\D/g, ""), // Remove formatação do CPF
-            email: cadastroEmail,
-            senha: cadastroSenha,
-          }),
-        }
-      );
+      const response = await fetch(`${base}/usuarios/primeira-fase`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nome: cadastroNome,
+          sobrenome: cadastroSobrenome,
+          cpf: cadastroCpf.replace(/\D/g, ""), // Remove formatação do CPF
+          email: cadastroEmail,
+          senha: cadastroSenha,
+        }),
+      });
 
       const data = await response.json();
 
@@ -380,10 +423,13 @@ const TelaLogin: React.FC = () => {
       <div className="forms-container">
         <div className="signin-signup">
           {/* Login Form */}
-          <form className="sign-in-form" onSubmit={(e) => {
-            e.preventDefault();
-            handleLogin();
-          }}>
+          <form
+            className="sign-in-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}
+          >
             <h2 className="title">LOGIN</h2>
             <div className="input-field">
               <i className="fas fa-envelope"></i>
@@ -411,12 +457,7 @@ const TelaLogin: React.FC = () => {
                 style={{ cursor: "pointer" }}
               ></i>
             </div>
-            <input
-              type="button"
-              value="Entrar"
-              className="btn solid"
-              onClick={handleLogin}
-            />
+            <button type="submit" className="btn solid">Entrar</button>
             <button
               className="btn-google"
               onClick={() => (window.location.href = "/home")}
@@ -425,10 +466,13 @@ const TelaLogin: React.FC = () => {
             </button>
           </form>{" "}
           {/* Cadastro Form */}
-          <form className="sign-up-form" onSubmit={(e) => {
-            e.preventDefault();
-            handleCadastro();
-          }}>
+          <form
+            className="sign-up-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCadastro();
+            }}
+          >
             <h2 className="title">CADASTRAR</h2>
             <div className="input-field">
               <i className="fas fa-user"></i>
@@ -505,12 +549,7 @@ const TelaLogin: React.FC = () => {
                 style={{ cursor: "pointer" }}
               ></i>
             </div>
-            <input
-              type="button"
-              className="btn"
-              value="Cadastrar"
-              onClick={handleCadastro}
-            />
+            <button type="submit" className="btn">Cadastrar</button>
             <button
               className="btn-google"
               onClick={() =>

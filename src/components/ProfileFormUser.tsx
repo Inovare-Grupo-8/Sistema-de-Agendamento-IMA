@@ -683,6 +683,10 @@ const ProfileFormUser = () => {
         title: "Foto atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso!",
       });
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 150);
     } catch (error) {
       console.error("❌ [ProfileForm] DEBUG: Erro completo no upload:", error);
 
@@ -1075,11 +1079,11 @@ const ProfileFormUser = () => {
                                 name="nome"
                                 type="text"
                                 value={formData.nome}
-                                onChange={handleInputChange}
-                                className={`w-full ${
+                                disabled
+                                className={`w-full opacity-70 cursor-not-allowed ${
                                   validationErrors.nome ? "border-red-500" : ""
                                 }`}
-                                placeholder="Digite seu nome"
+                                placeholder="Nome não pode ser alterado"
                               />
                               {validationErrors.nome && (
                                 <span className="text-sm text-red-500">
@@ -1100,13 +1104,13 @@ const ProfileFormUser = () => {
                                 name="sobrenome"
                                 type="text"
                                 value={formData.sobrenome}
-                                onChange={handleInputChange}
-                                className={`w-full ${
+                                disabled
+                                className={`w-full opacity-70 cursor-not-allowed ${
                                   validationErrors.sobrenome
                                     ? "border-red-500"
                                     : ""
                                 }`}
-                                placeholder="Digite seu sobrenome"
+                                placeholder="Sobrenome não pode ser alterado"
                               />
                               {validationErrors.sobrenome && (
                                 <span className="text-sm text-red-500">
@@ -1184,8 +1188,8 @@ const ProfileFormUser = () => {
                                 name="dataNascimento"
                                 type="date"
                                 value={formData.dataNascimento}
-                                onChange={handleInputChange}
-                                className="w-full"
+                                disabled
+                                className="w-full opacity-70 cursor-not-allowed"
                               />
                             </div>
 
