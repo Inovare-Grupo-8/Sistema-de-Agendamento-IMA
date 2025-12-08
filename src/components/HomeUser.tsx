@@ -202,7 +202,11 @@ const HomeUser = () => {
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
   
   // Carregar dados das consultas via API - usando useCallback para evitar loops
-  const loadConsultaData = useCallback(async (consultas: Consulta[]) => {
+  const loadConsultaData = useCallback(
+    async (
+      consultas: Consulta[],
+      statsOverride?: { hoje: number; semana: number; mes: number }
+    ) => {
     try {
       // Buscar userId do localStorage
       const userDataStr = localStorage.getItem("userData");
@@ -216,9 +220,9 @@ const HomeUser = () => {
         throw new Error("ID do usuário não encontrado");
       }
 
-      const consultaStats = await ConsultaApiService.getAllConsultaStats(
-        userId
-      );
+      const consultaStats =
+        statsOverride ??
+        (await ConsultaApiService.getAllConsultaStats(userId));
 
       const proximaData =
         consultas.length > 0
@@ -270,7 +274,9 @@ const HomeUser = () => {
         semana: 0,
       });
     }
-  }, []);
+    },
+    []
+  );
   const loadHistoricoRecente = useCallback(async (consultas: Consulta[]) => {
     try {
       // Buscar userId do localStorage
@@ -371,10 +377,77 @@ const HomeUser = () => {
       setError("");
       
       try {
+        const userDataStr = localStorage.getItem("userData");
+        if (!userDataStr) {
+          throw new Error("Usuário não está logado");
+        }
+
+        const user = JSON.parse(userDataStr);
+        const userId = user.idUsuario;
+
+        if (!userId) {
+          throw new Error("ID do usuário não encontrado");
+        }
+
         // 1. Primeiro carregar todas as consultas
         const consultasData = await ConsultaApiService.getTodasConsultas();
         
-        const consultasConvertidas: Consulta[] = consultasData.map(
+        const consultasDoUsuario = consultasData.filter(
+          (consultaDto) => consultaDto.idAssistido === userId
+        );
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        const inicioSemana = new Date(hoje);
+        const diaSemana = hoje.getDay();
+        const diffParaSegunda = diaSemana === 0 ? 6 : diaSemana - 1;
+        inicioSemana.setDate(hoje.getDate() - diffParaSegunda);
+        inicioSemana.setHours(0, 0, 0, 0);
+
+        const fimSemana = new Date(inicioSemana);
+        fimSemana.setDate(inicioSemana.getDate() + 6);
+        fimSemana.setHours(23, 59, 59, 999);
+
+        const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        inicioMes.setHours(0, 0, 0, 0);
+
+        const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+        fimMes.setHours(23, 59, 59, 999);
+
+        const statsOverrides = consultasDoUsuario.reduce<{ hoje: number; semana: number; mes: number }>(
+          (acc, consultaDto) => {
+            const dataConsulta = new Date(consultaDto.horario);
+            if (Number.isNaN(dataConsulta.getTime())) {
+              return acc;
+            }
+
+            const status = (consultaDto.status || "").toUpperCase();
+            if (status === "CANCELADA") {
+              return acc;
+            }
+
+            const dataNormalizada = new Date(dataConsulta);
+            dataNormalizada.setHours(0, 0, 0, 0);
+
+            if (dataNormalizada.getTime() === hoje.getTime()) {
+              acc.hoje += 1;
+            }
+
+            if (dataConsulta >= inicioSemana && dataConsulta <= fimSemana) {
+              acc.semana += 1;
+            }
+
+            if (dataConsulta >= inicioMes && dataConsulta <= fimMes) {
+              acc.mes += 1;
+            }
+
+            return acc;
+          },
+          { hoje: 0, semana: 0, mes: 0 }
+        );
+
+        const consultasConvertidas: Consulta[] = consultasDoUsuario.map(
           (consultaDto) => ({
             id: consultaDto.idConsulta,
             profissional:
@@ -400,7 +473,7 @@ const HomeUser = () => {
         setProximasConsultas(consultasFuturas);
         
         // 2. Depois carregar estatísticas usando as consultas carregadas
-        await loadConsultaData(consultasFuturas);
+        await loadConsultaData(consultasFuturas, statsOverrides);
         
         // 3. Por último carregar o histórico usando as consultas carregadas
         await loadHistoricoRecente(consultasFuturas);
