@@ -122,16 +122,30 @@ const useUser = () => {
       
       const user = JSON.parse(userData);
       const token = user.token;
-      const usuarioId = user.idUsuario;
+
+      const usuarioId = user.idUsuario || user.id;
+
       const tipoUsuario = user.tipo;
       const funcao = user.funcao;
       
       if (!usuarioId) {
         throw new Error('ID do usuário não encontrado');
       }
+      const base = import.meta.env.VITE_URL_BACKEND || '/api';
+      let tipoPath = 'assistido';
+      if (tipoUsuario === 'ADMINISTRADOR') {
+        tipoPath = 'administrador';
+      } else if (tipoUsuario === 'VOLUNTARIO' && funcao === 'ASSISTENCIA_SOCIAL') {
+        tipoPath = 'assistente-social';
+      } else if (tipoUsuario === 'VOLUNTARIO') {
+        tipoPath = 'voluntario';
+      } else {
+        tipoPath = 'assistido';
+      }
 
       const dadosPessoaisEndpoint = `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`;
       const response = await fetch(buildBackendUrl(dadosPessoaisEndpoint), {
+
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
@@ -206,6 +220,7 @@ const useUser = () => {
         if (Object.keys(updatedFields).length > 0) {
           contextUpdateUserData(updatedFields);
         }
+        
       }
       
       return dados;

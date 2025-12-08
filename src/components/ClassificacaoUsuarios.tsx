@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,17 +74,32 @@ export function ClassificacaoUsuarios({
 
   // Carregar usuários não classificados
   useEffect(() => {
+    const mounted = useRef(false);
+    if (mounted.current) return;
+    mounted.current = true;
     carregarUsuariosNaoClassificados();
   }, []);
 
   const carregarUsuariosNaoClassificados = async () => {
     try {
       setIsLoading(true);
+      const userDataRaw = localStorage.getItem("userData");
+      const authToken = localStorage.getItem("auth_token");
+      const token = (() => {
+        if (authToken) return authToken;
+        if (!userDataRaw) return "";
+        try {
+          const u = JSON.parse(userDataRaw);
+          return u.token || "";
+        } catch {
+          return "";
+        }
+      })();
       const response = await fetch(
         `${import.meta.env.VITE_URL_BACKEND}/usuarios/nao-classificados`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -144,6 +159,18 @@ export function ClassificacaoUsuarios({
         }
       }
 
+      const userDataRaw = localStorage.getItem("userData");
+      const authToken = localStorage.getItem("auth_token");
+      const token = (() => {
+        if (authToken) return authToken;
+        if (!userDataRaw) return "";
+        try {
+          const u = JSON.parse(userDataRaw);
+          return u.token || "";
+        } catch {
+          return "";
+        }
+      })();
       const response = await fetch(
         `${
           import.meta.env.VITE_URL_BACKEND
@@ -151,7 +178,7 @@ export function ClassificacaoUsuarios({
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -288,10 +315,7 @@ export function ClassificacaoUsuarios({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Classificação de Usuários
-        </h2>
+      <div className="flex items-center justify-end">
         <Badge variant="secondary" className="text-lg px-3 py-1">
           {usuarios.length} pendente{usuarios.length !== 1 ? "s" : ""}
         </Badge>

@@ -124,26 +124,40 @@ export function useAuth() {
 
       try {
         const base = import.meta.env.VITE_URL_BACKEND || "/api";
-        console.log("🔐 [useAuth] Tentando login com:", { email: credentials.email, url: `${base}/usuarios/login` });
-        
-        const response = await fetch(
-          `${base}/usuarios/login`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: credentials.email, senha: credentials.password }),
-          }
-        );
+        console.log("🔐 [useAuth] Tentando login com:", {
+          email: credentials.email,
+          url: `${base}/usuarios/login`,
+        });
+
+        const response = await fetch(`${base}/usuarios/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: credentials.email,
+            senha: credentials.password,
+          }),
+        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error("❌ [useAuth] Erro no login:", response.status, errorData);
+          console.error(
+            "❌ [useAuth] Erro no login:",
+            response.status,
+            errorData
+          );
           throw new Error(errorData.message || "Email ou senha inválidos");
         }
 
         const data = await response.json();
+        const tipoNormalized = String(data.tipo || "").toUpperCase();
+        const funcaoNormalized = String(data.funcao || "").toUpperCase();
+        const dataNormalized = {
+          ...data,
+          tipo: tipoNormalized,
+          funcao: funcaoNormalized,
+        };
 
         // Atualizar último acesso após login bem-sucedido
         await atualizarUltimoAcesso(data.idUsuario, data.token); // 🔄 LIMPEZA: Limpar dados de perfil antigos para evitar conflitos entre usuários
@@ -154,14 +168,33 @@ export function useAuth() {
           "🧹 [useAuth] Dados de perfil antigos limpos após novo login"
         );
 
-        // Salvar no localStorage
-        localStorage.setItem("userData", JSON.stringify(data));
+        // Salvar no localStorage (novo formato)
+        localStorage.setItem("userData", JSON.stringify(dataNormalized));
+        // Compatibilidade com formato legado
+        try {
+          const legacyUser = {
+            id: String(data.idUsuario ?? data.id ?? ""),
+            nome: data.nome ?? "",
+            email: data.email ?? "",
+            tipo:
+              data.tipo === "GRATUIDADE" ||
+              data.tipo === "VALOR_SOCIAL" ||
+              data.tipo === "USUARIO"
+                ? ("paciente" as const)
+                : ("profissional" as const),
+            token: data.token ?? "",
+          };
+          localStorage.setItem("auth_user", JSON.stringify(legacyUser));
+          localStorage.setItem("auth_token", legacyUser.token);
+        } catch (e) {
+          void e;
+        }
 
         // 🔄 TRIGGER: Forçar atualização do contexto de imagem para novo usuário
         window.dispatchEvent(
           new StorageEvent("storage", {
             key: "userData",
-            newValue: JSON.stringify(data),
+            newValue: JSON.stringify(dataNormalized),
             oldValue: null,
             storageArea: localStorage,
           })
@@ -171,55 +204,62 @@ export function useAuth() {
         );
 
         // Redirecionar com base no tipo de usuário
-        console.log("🔀 [useAuth] Redirecionando usuário:", { 
-          tipo: data.tipo, 
-          funcao: data.funcao,
-          classificacao: data.classificacao 
+        console.log("🔀 [useAuth] Redirecionando usuário:", {
+          tipo: tipoNormalized,
+          funcao: funcaoNormalized,
+          classificacao: data.classificacao,
         });
-        
+
         /**
          * REGRAS DE REDIRECIONAMENTO POR TIPO DE USUÁRIO:
          * Valores do campo 'tipo' no banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
-         * 
+         *
          * 1. Assistente Social → /assistente-social
          *    - tipo: "VOLUNTARIO" + funcao: "ASSISTENCIA_SOCIAL"
          *    - Rotas: /assistente-social, /cadastro-assistente, /classificacao-usuarios,
          *             /profile-form-assistente-social, /cadastro-voluntario
-         * 
+         *
          * 2. Administrador → /assistente-social
          *    - tipo: "ADMINISTRADOR"
          *    - Mesmas rotas da Assistente Social
-         * 
+         *
          * 3. Usuário Assistido → /home-user
          *    - tipo: "GRATUIDADE" ou "VALOR_SOCIAL"
          *    - Rotas: /home-user, /agenda-user, /historico-user,
          *             /agendar-horario-user, /profile-form-user, /pagamento-user
-         * 
+         *
          * 4. Voluntário Profissional → /home
          *    - tipo: "VOLUNTARIO" (sem funcao ASSISTENCIA_SOCIAL)
          *    - Exemplo: médico, psicólogo, nutricionista, etc.
          *    - Rotas: /home, /disponibilizar-horario, /agenda, /historico, /profile-form
          */
-        
+
         // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
         if (
-          data.tipo === "VOLUNTARIO" &&
-          data.funcao === "ASSISTENCIA_SOCIAL"
+          tipoNormalized === "VOLUNTARIO" &&
+          funcaoNormalized === "ASSISTENCIA_SOCIAL"
         ) {
           // Assistente Social
           navigate("/assistente-social");
-        } else if (data.tipo === "ADMINISTRADOR") {
+        } else if (tipoNormalized === "ADMINISTRADOR") {
           // Administrador
           navigate("/assistente-social");
-        } else if (data.tipo === "GRATUIDADE" || data.tipo === "VALOR_SOCIAL") {
+        } else if (
+          tipoNormalized === "GRATUIDADE" ||
+          tipoNormalized === "VALOR_SOCIAL" ||
+          tipoNormalized === "USUARIO"
+        ) {
           // Usuário assistido
           navigate("/home-user");
-        } else if (data.tipo === "VOLUNTARIO") {
+        } else if (tipoNormalized === "VOLUNTARIO") {
           // Voluntário profissional (médico, psicólogo, etc.)
           navigate("/home");
         } else {
           // Fallback: se não identificar o tipo, redirecionar para login
-          console.error("⚠️ [useAuth] Tipo de usuário não reconhecido:", data.tipo);
+          console.error(
+            "⚠️ [useAuth] Tipo de usuário não reconhecido:",
+            data.tipo
+          );
           navigate("/login");
         }
 
@@ -259,7 +299,9 @@ export function useAuth() {
         }
       }
       keysToRemove.forEach((k) => localStorage.removeItem(k));
-    } catch {}
+    } catch (e) {
+      void e;
+    }
     console.log("🧹 [useAuth] Todos os dados de usuário limpos no logout");
 
     setUser(null);

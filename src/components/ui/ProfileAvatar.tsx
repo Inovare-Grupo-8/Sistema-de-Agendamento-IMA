@@ -45,6 +45,7 @@ export const ProfileAvatar = ({
         className
       )}
     >
+
       <img
         src={profileImage}
         alt={`Foto de ${name}`}

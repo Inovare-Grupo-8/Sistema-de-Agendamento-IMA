@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Sun, CloudMoon, Moon, Calendar as CalendarIcon, Clock, Menu, Filter, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Sun, CloudMoon, Moon, Calendar as CalendarIcon, Clock, Menu, Filter, ChevronLeft, ChevronRight, X, LogOut } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "@/components/ui/use-toast";
 import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
@@ -153,7 +153,7 @@ const DisponibilizarHorario = () => {
             <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"><Menu className="w-7 h-7" /></Button>
           </div>
           <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar profileImage={profileImage} name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'} size="w-16 h-16" className="border-4 border-[#EDF2FB] shadow" />
+            <ProfileAvatar profileImage={profileImage} name={`${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`.trim() || 'Voluntário'} size="w-16 h-16" className="shadow" />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">{dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">{funcaoVoluntario || 'Profissional'}</Badge>
           </div>
@@ -170,6 +170,17 @@ const DisponibilizarHorario = () => {
                 </Tooltip>
               </SidebarMenuItem>
             ))}
+            <SidebarMenuItem>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton onClick={logout} className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-900/20 text-[#ED4231] flex items-center gap-3 cursor-pointer">
+                    <LogOut className="w-5 h-5" />
+                    <span>Sair</span>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent className="z-50">Sair da conta</TooltipContent>
+              </Tooltip>
+            </SidebarMenuItem>
           </SidebarMenu>
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
             <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
@@ -180,8 +191,8 @@ const DisponibilizarHorario = () => {
         <main id="main-content" role="main" aria-label="Conteúdo principal" className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <ProfileAvatar profileImage={profileImage} name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`} size="w-10 h-10" className="border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
+              <ProfileAvatar profileImage={profileImage} name={`Dr. ${dadosPessoais?.nome} ${dadosPessoais?.sobrenome}`} size="w-10 h-10" className="shadow hover:scale-105 transition-transform duration-200" />
+              <span className="font-extrabold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button onClick={toggleTheme} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>
@@ -192,24 +203,24 @@ const DisponibilizarHorario = () => {
           </header>
           <div className="h-20" />
 
-          <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-6">
+          <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-6 pb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">Disponibilizar Horário</h1>
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3 justify-center items-center">
               <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">1. Selecionar dias</Badge>
               <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">2. Selecionar horários</Badge>
               <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">3. Revisar e salvar</Badge>
             </div>
-            <div className="flex flex-col md:flex-row gap-2 mt-4">
+            <div className="flex flex-col md:flex-row gap-2 mt-4 p-3 md:p-4 rounded-xl border border-[#ED4231]/20 bg-[#FFF7F5] dark:bg-[#23272F] mb-6 justify-center items-center">
               <Button onClick={() => setModalidade('ONLINE')} variant={modalidade === 'ONLINE' ? 'default' : 'outline'}>Online</Button>
               <Button onClick={() => setModalidade('PRESENCIAL')} variant={modalidade === 'PRESENCIAL' ? 'default' : 'outline'}>Presencial</Button>
             </div>
 
             <AnimatePresence mode="wait">
               <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className="flex flex-col lg:flex-row gap-8 items-start">
-                  <div className="flex-1 flex flex-col gap-8 min-w-0">
+                <div className="flex flex-col gap-8 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full items-start">
                     <Card className="rounded-2xl shadow-lg p-0">
-                      <CardHeader className="flex flex-row items-center justify-between py-4 bg-[#f8fafc] rounded-t-2xl">
+                      <CardHeader className="flex flex-row items-center justify-center py-4 bg-[#f8fafc] rounded-t-2xl">
                         <div className="flex items-center gap-2">
                           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} aria-label="Mês anterior"><ChevronLeft className="w-4 h-4" /></Button>
                           <CardTitle className="text-lg md:text-xl">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</CardTitle>
@@ -231,7 +242,7 @@ const DisponibilizarHorario = () => {
                                 localStorage.setItem("selectedDates", JSON.stringify(list.map((d) => d.toISOString())));
                               }}
                               showOutsideDays={false}
-                              className="w-full rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]"
+                              className="w-full h-full rounded-xl border border-[#EDF2FB] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]"
                               classNames={{ caption: "hidden", nav: "hidden" }}
                               locale={ptBR}
                               aria-label="Calendário para selecionar datas"
@@ -239,24 +250,7 @@ const DisponibilizarHorario = () => {
                               month={currentMonth}
                               onMonthChange={setCurrentMonth}
                             />
-                            {selectedDates.length > 0 && (
-                              <div className="px-4 pb-4 flex flex-wrap gap-2">
-                                {selectedDates.map((d) => {
-                                  const isActive = activeDate && d.toDateString() === activeDate.toDateString();
-                                  return (
-                                    <div key={d.toISOString()} className={`flex items-center gap-1 px-3 py-1 rounded-full border ${isActive ? 'bg-[#ED4231]/10 border-[#ED4231]' : 'border-gray-200'} text-sm`}>
-                                      <button className="font-semibold" onClick={() => setActiveDate(d)}>{format(d, 'dd/MM', { locale: ptBR })}</button>
-                                      <button aria-label="Remover dia" onClick={() => {
-                                        setSelectedDates((prev) => prev.filter((x) => x.toDateString() !== d.toDateString()));
-                                        const next = selectedDates.filter((x) => x.toDateString() !== d.toDateString());
-                                        localStorage.setItem("selectedDates", JSON.stringify(next.map((x) => x.toISOString())));
-                                        if (activeDate && activeDate.toDateString() === d.toDateString()) setActiveDate(next[0]);
-                                      }}><X className="w-4 h-4 text-gray-500" /></button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            
                           </div>
                         </div>
                       </CardContent>
@@ -274,7 +268,7 @@ const DisponibilizarHorario = () => {
                                 <Button variant="outline" size="sm" onClick={() => clearTimes(timeSlots)}>Limpar</Button>
                               </div>
                             </div>
-                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                               {timeSlots.map((t) => {
                                 const [hh, mm] = t.split(":");
                                 const endH = String((parseInt(hh) + 1)).padStart(2, "0");
@@ -282,7 +276,16 @@ const DisponibilizarHorario = () => {
                                 const disabled = savedForDate.includes(t);
                                 const active = selectedTimes.includes(t);
                                 return (
-                                  <Button key={t} variant={active ? "default" : "outline"} disabled={disabled} onClick={() => handleToggleTime(t)} className={`${active ? "bg-[#ED4231] text-white" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""} text-sm`}>{label}</Button>
+                                  <Button
+                                    key={t}
+                                    variant={active ? "default" : "outline"}
+                                    disabled={disabled}
+                                    onClick={() => handleToggleTime(t)}
+                                    className={`text-sm rounded-xl shadow-sm transition-all ${active ? "bg-[#ED4231] text-white border-2 border-[#ED4231] ring-1 ring-[#ED4231]/20" : "border-2 border-gray-300 bg-white text-gray-800 hover:border-[#ED4231] hover:bg-[#ED4231]/10"} ${disabled ? "opacity-60 cursor-not-allowed line-through" : ""}`}
+                                    aria-pressed={active}
+                                  >
+                                    {label}
+                                  </Button>
                                 );
                               })}
                             </div>
@@ -292,18 +295,8 @@ const DisponibilizarHorario = () => {
                     </div>
                   </div>
 
-                  <div ref={summaryRef} className="w-full lg:w-96 lg:max-w-md flex-shrink-0 mt-6 lg:mt-0 flex flex-col gap-6" role="complementary" aria-label="Resumo do horário selecionado">
-                    <div className="w-full bg-white dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-6 mb-2 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 sticky top-24 z-10">
-                      {selectedDates.length > 0 && selectedTimes.length > 0 ? (
-                        <>
-                          <span className="font-semibold text-indigo-900 dark:text-indigo-200 text-lg">Selecionado:</span>
-                          <div className="mt-1 text-xl">{selectedDates.length} dia(s)</div>
-                          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">{selectedTimes.join(', ')}</div>
-                          <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">{modalidade === 'ONLINE' ? 'Online' : 'Presencial'}</Badge>
-                        </>
-                      ) : (<span className="text-gray-400 text-base">Nenhum horário selecionado</span>)}
-                      <ErrorMessage message={validationMessage} />
-                    </div>
+                  {/* Resumo e ações abaixo */}
+                  <div ref={summaryRef} className="w-full flex flex-col gap-6" role="complementary" aria-label="Resumo do horário selecionado">
                     {modalidade === 'PRESENCIAL' && (
                       <Card className="rounded-lg">
                         <CardHeader><CardTitle>Local do atendimento</CardTitle></CardHeader>
@@ -312,9 +305,37 @@ const DisponibilizarHorario = () => {
                         </CardContent>
                       </Card>
                     )}
-                    <div className="flex gap-2">
-                      <Button onClick={handleConfirm} className="flex-1 bg-[#ED4231] hover:bg-[#c32d22] text-white py-6" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar disponibilidade'}</Button>
-                      <Button variant="outline" onClick={() => { setSelectedDates([]); setActiveDate(undefined); setSelectedTimes([]); setValidationMessage(''); }} className="flex-1 py-6">Limpar</Button>
+                    <div className="w-full bg-[#FFF7F5] dark:bg-[#23272F] dark:border dark:border-[#23272F] rounded-lg shadow p-6 text-center transition-colors duration-300 text-gray-900 dark:text-gray-100 border-l-4 border-[#ED4231]">
+                      {selectedDates.length > 0 && selectedTimes.length > 0 ? (
+                        <>
+                          <span className="font-semibold text-indigo-900 dark:text-indigo-200 text-lg">Selecionado:</span>
+                          <div className="mt-1 text-xl">{selectedDates.length} dia(s)</div>
+                          <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                            Datas: {selectedDates.map((d) => format(d, 'dd/MM', { locale: ptBR })).join(', ')}
+                          </div>
+                          <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                            Horários: {selectedTimes.join(', ')}
+                          </div>
+                          <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">{modalidade === 'ONLINE' ? 'Online' : 'Presencial'}</Badge>
+                        </>
+                      ) : (<span className="text-gray-400 text-base">Nenhum horário selecionado</span>)}
+                      <ErrorMessage message={validationMessage} />
+                    </div>
+                    <div className="w-full flex gap-3 items-center justify-center mt-4 mb-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => { setSelectedDates([]); setActiveDate(undefined); setSelectedTimes([]); setValidationMessage(''); }}
+                        className="basis-[30%] h-14 text-base"
+                      >
+                        Limpar
+                      </Button>
+                      <Button
+                        onClick={handleConfirm}
+                        className="basis-[70%] h-14 bg-[#ED4231] hover:bg-[#c32d22] text-white text-base"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Salvando...' : 'Salvar disponibilidade'}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -338,10 +359,7 @@ const DisponibilizarHorario = () => {
             </DialogContent>
           </Dialog>
 
-          <style>{`
-            .rdp-day_selected, .rdp-day_selected:focus-visible { background: #ED4231 !important; color: #fff !important; }
-            .rdp-day_disabled { opacity: 0.35; }
-          `}</style>
+          
         </main>
       </div>
     </SidebarProvider>

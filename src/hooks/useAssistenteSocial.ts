@@ -47,22 +47,8 @@ export interface AssistenteSocialOutput {
 export const useAssistenteSocial = () => {
     const navigate = useNavigate();
 
-    const atualizarUltimoAcesso = async (usuarioId: number, token: string) => {
-        try {
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/usuarios/${usuarioId}/ultimo-acesso`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                console.error('Erro ao atualizar último acesso:', response.status);
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar último acesso:', error);
-        }
+    const atualizarUltimoAcesso = async (_usuarioId: number, _token: string) => {
+        return;
     };
 
     const fetchPerfil = async (): Promise<AssistenteSocialOutput> => {
@@ -80,7 +66,9 @@ export const useAssistenteSocial = () => {
             
             const user = JSON.parse(userData);
             const token = user.token;
-            const usuarioId = user.idUsuario;
+            const usuarioId = user.idUsuario || user.id;
+            const tipo = String(user.tipo || '').toUpperCase();
+            const funcao = String(user.funcao || '').toUpperCase();
             
             console.log('🔍 Debug - token:', token ? 'Token exists' : 'No token');
             console.log('🔍 Debug - usuarioId:', usuarioId);
@@ -91,12 +79,22 @@ export const useAssistenteSocial = () => {
                 throw new Error('ID do usuário não encontrado');
             }
 
-            // Atualizar último acesso do usuário
-            await atualizarUltimoAcesso(usuarioId, token);
+            // ADMINISTRADOR e perfis não ASSISTENCIA_SOCIAL: usar dados locais
+            if (tipo === 'ADMINISTRADOR' || (tipo === 'VOLUNTARIO' && funcao !== 'ASSISTENCIA_SOCIAL')) {
+                const offline: AssistenteSocialOutput = {
+                    idUsuario: Number(usuarioId),
+                    nome: user.nome || '',
+                    sobrenome: user.sobrenome || '',
+                    crp: '',
+                    especialidade: 'Assistência Social',
+                    telefone: user.telefone || '',
+                    email: user.email || '',
+                    bio: '',
+                };
+                return offline;
+            }
 
             const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`;
-            console.log('🔍 Debug - URL:', url);
-
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -108,7 +106,17 @@ export const useAssistenteSocial = () => {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.log('🔍 Debug - Error response:', errorText);
-                throw new Error('Erro ao buscar perfil');
+                const offline: AssistenteSocialOutput = {
+                    idUsuario: Number(usuarioId),
+                    nome: user.nome || '',
+                    sobrenome: user.sobrenome || '',
+                    crp: '',
+                    especialidade: 'Assistência Social',
+                    telefone: user.telefone || '',
+                    email: user.email || '',
+                    bio: '',
+                };
+                return offline;
             }
 
             const data = await response.json();
@@ -118,7 +126,6 @@ export const useAssistenteSocial = () => {
                 data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
             }
 
-            console.log('🔍 Debug - Profile data:', data);
             return data;
         } catch (error) {
             console.error('Erro ao buscar perfil:', error);
