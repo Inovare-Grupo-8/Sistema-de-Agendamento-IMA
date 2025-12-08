@@ -462,7 +462,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
     };    const uploadFoto = async (foto: File): Promise<string> => {
         try {
             console.log('🔄 [uploadFoto] DEBUG: Iniciando upload de foto...');
-            const { token, usuarioId, tipoUsuario } = getUserAuthData();
+            const { token, usuarioId, tipoUsuario, funcao } = getUserAuthData();
             
             console.log('🔍 [uploadFoto] DEBUG: Dados de auth:', { 
                 usuarioId, 
