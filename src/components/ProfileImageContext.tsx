@@ -1,5 +1,5 @@
 import { createContext, useCallback, useEffect, useRef, useState, ReactNode } from "react";
-import { buildBackendUrl, resolvePerfilPath } from "@/lib/utils";
+import { buildBackendUrl, getBackendBaseUrl, resolvePerfilPath } from "@/lib/utils";
 
 interface ProfileImageContextType {
   profileImage: string;
@@ -119,37 +119,62 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
   const fetchProtectedImage = useCallback(
     async (rawUrl: string): Promise<string> => {
       const token = getAuthToken();
-      const absoluteUrl = buildBackendUrl(rawUrl);
+      const primaryUrl = buildBackendUrl(rawUrl);
 
-      if (!token) {
-        revokeObjectUrl();
-        return absoluteUrl;
-      }
-
-      try {
-        const response = await fetch(absoluteUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+      const normalizedPath = (() => {
+        if (!rawUrl || /^https?:/i.test(rawUrl)) {
+          return null;
         }
+        return rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+      })();
 
-        const blob = await response.blob();
-        revokeObjectUrl();
-        const objectUrl = URL.createObjectURL(blob);
-        currentObjectUrlRef.current = objectUrl;
-        return objectUrl;
-      } catch (error) {
-        console.warn(
-          "⚠️ [ProfileImageContext] Falha ao buscar imagem protegida:",
-          error
-        );
-        revokeObjectUrl();
-        return absoluteUrl;
+      const baseUrl = getBackendBaseUrl();
+      const baseWithoutApi = baseUrl.replace(/\/api\/?$/, "");
+
+      const candidateUrls = new Set<string>([primaryUrl]);
+
+      if (normalizedPath && baseWithoutApi !== baseUrl) {
+        candidateUrls.add(`${baseWithoutApi}${normalizedPath}`);
       }
+
+      const errors: unknown[] = [];
+
+      for (const candidate of candidateUrls) {
+        try {
+          const response = await fetch(candidate, {
+            headers: token
+              ? {
+                  Authorization: `Bearer ${token}`,
+                }
+              : undefined,
+          });
+
+          if (!response.ok) {
+            errors.push(new Error(`HTTP ${response.status} @ ${candidate}`));
+            if (response.status === 401 || response.status === 403) {
+              break;
+            }
+            continue;
+          }
+
+          const blob = await response.blob();
+          revokeObjectUrl();
+          const objectUrl = URL.createObjectURL(blob);
+          currentObjectUrlRef.current = objectUrl;
+          return objectUrl;
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+
+      revokeObjectUrl();
+      const lastError = errors.length > 0 ? errors[errors.length - 1] : undefined;
+      if (lastError) {
+        console.warn("⚠️ [ProfileImageContext] Falha ao buscar imagem protegida:", lastError);
+      }
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Falha ao carregar imagem protegida");
     },
     [revokeObjectUrl]
   );
@@ -176,18 +201,26 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const resolvedSource = await fetchProtectedImage(rawUrl);
+      try {
+        const resolvedSource = await fetchProtectedImage(rawUrl);
 
-      if (lastRawUrlRef.current !== rawUrl) {
-        if (resolvedSource.startsWith("blob:") && resolvedSource !== currentObjectUrlRef.current) {
-          URL.revokeObjectURL(resolvedSource);
+        if (lastRawUrlRef.current !== rawUrl) {
+          if (resolvedSource.startsWith("blob:") && resolvedSource !== currentObjectUrlRef.current) {
+            URL.revokeObjectURL(resolvedSource);
+          }
+          return;
         }
-        return;
-      }
 
-      applyImageSource(resolvedSource);
-      if (persist && !isEphemeralSource(rawUrl)) {
-        syncLocalPhoto(rawUrl);
+        applyImageSource(resolvedSource);
+        if (persist && !isEphemeralSource(rawUrl)) {
+          syncLocalPhoto(rawUrl);
+        }
+      } catch (error) {
+        console.warn("⚠️ [ProfileImageContext] Erro ao atualizar imagem protegida:", error);
+        applyImageSource("");
+        if (persist) {
+          syncLocalPhoto("");
+        }
       }
     },
     [applyImageSource, fetchProtectedImage, revokeObjectUrl]

@@ -65,6 +65,7 @@ import { userNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
+import type { UserData } from "@/types/user";
 
 interface ConsultaSummary {
   total: number;
@@ -879,63 +880,86 @@ const HomeUser = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const userData = localStorage.getItem("userData");
-        if (userData) {
-          const parsedUserData = JSON.parse(userData);
-          const updates: Partial<typeof userData> = {};
+        const storedUserJson = localStorage.getItem("userData");
+        if (!storedUserJson) {
+          return;
+        }
 
-          if (typeof parsedUserData.nome === "string") {
-            updates.nome = parsedUserData.nome.trim();
+        const parsedUserData = JSON.parse(storedUserJson) as Partial<UserData> & {
+          nomeCompleto?: string;
+          sobreNome?: string;
+          data_nascimento?: string;
+          sexo?: string;
+          fotoUrl?: string;
+        };
+
+        const updates: Partial<UserData> = {};
+
+        const assignIfChanged = <K extends keyof UserData>(key: K, value: unknown) => {
+          if (typeof value !== "string") {
+            return;
           }
+          const trimmedValue = value.trim();
+          if (trimmedValue !== userData[key]) {
+            updates[key] = trimmedValue as UserData[K];
+          }
+        };
 
-          const sobrenomeDireto =
-            typeof parsedUserData.sobrenome === "string"
-              ? parsedUserData.sobrenome.trim()
-              : typeof parsedUserData.sobreNome === "string"
-                ? parsedUserData.sobreNome.trim()
-                : "";
+        assignIfChanged("nome", parsedUserData.nome);
 
-          if (sobrenomeDireto) {
-            updates.sobrenome = sobrenomeDireto;
-          } else if (typeof parsedUserData.nomeCompleto === "string") {
-            const [primeiroNome, ...resto] = parsedUserData.nomeCompleto
-              .trim()
-              .split(/\s+/);
-            if (!updates.nome && primeiroNome) {
+        const sobrenomeDireto =
+          typeof parsedUserData.sobrenome === "string"
+            ? parsedUserData.sobrenome.trim()
+            : typeof parsedUserData.sobreNome === "string"
+              ? parsedUserData.sobreNome.trim()
+              : "";
+
+        if (sobrenomeDireto && sobrenomeDireto !== userData.sobrenome) {
+          updates.sobrenome = sobrenomeDireto;
+        }
+
+        if (!updates.nome || !updates.sobrenome) {
+          const nomeCompleto = typeof parsedUserData.nomeCompleto === "string"
+            ? parsedUserData.nomeCompleto.trim()
+            : "";
+
+          if (nomeCompleto) {
+            const [primeiroNome, ...resto] = nomeCompleto.split(/\s+/);
+
+            if (!updates.nome && primeiroNome && primeiroNome !== userData.nome) {
               updates.nome = primeiroNome;
             }
-            if (resto.length > 0) {
-              updates.sobrenome = resto.join(" ");
+
+            const sobrenomeDerivado = resto.join(" ");
+            if (!updates.sobrenome && sobrenomeDerivado && sobrenomeDerivado !== userData.sobrenome) {
+              updates.sobrenome = sobrenomeDerivado;
             }
           }
+        }
 
-          if (typeof parsedUserData.email === "string") {
-            updates.email = parsedUserData.email.trim();
-          }
+        assignIfChanged("email", parsedUserData.email);
+        assignIfChanged("telefone", parsedUserData.telefone);
 
-          if (typeof parsedUserData.telefone === "string") {
-            updates.telefone = parsedUserData.telefone.trim();
-          }
+        const dataNascimentoDireta =
+          typeof parsedUserData.dataNascimento === "string"
+            ? parsedUserData.dataNascimento
+            : typeof parsedUserData.data_nascimento === "string"
+              ? parsedUserData.data_nascimento
+              : undefined;
+        assignIfChanged("dataNascimento", dataNascimentoDireta);
 
-          if (typeof parsedUserData.dataNascimento === "string") {
-            updates.dataNascimento = parsedUserData.dataNascimento.trim();
-          } else if (typeof parsedUserData.data_nascimento === "string") {
-            updates.dataNascimento = parsedUserData.data_nascimento.trim();
-          }
+        const generoDireto =
+          typeof parsedUserData.genero === "string"
+            ? parsedUserData.genero
+            : parsedUserData.sexo;
+        assignIfChanged("genero", generoDireto);
 
-          if (typeof parsedUserData.genero === "string") {
-            updates.genero = parsedUserData.genero.trim();
-          } else if (typeof parsedUserData.sexo === "string") {
-            updates.genero = parsedUserData.sexo.trim();
-          }
+        if (Object.keys(updates).length > 0) {
+          updateUserData(updates);
+        }
 
-          if (Object.keys(updates).length > 0) {
-            updateUserData(updates);
-          }
-
-          if (parsedUserData.fotoUrl) {
-            setProfileImage(parsedUserData.fotoUrl);
-          }
+        if (typeof parsedUserData.fotoUrl === "string" && parsedUserData.fotoUrl.trim()) {
+          setProfileImage(parsedUserData.fotoUrl.trim());
         }
       } catch (error) {
         console.error("Erro ao carregar dados do usuário:", error);
@@ -943,7 +967,7 @@ const HomeUser = () => {
     };
 
     fetchUserData();
-  }, [setProfileImage, updateUserData]);
+  }, [setProfileImage, updateUserData, userData]);
 
   useEffect(() => {
     const loadUserData = async () => {
