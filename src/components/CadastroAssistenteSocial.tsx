@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Menu, Home, UserCheck, UserPlus, User } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useCep } from "@/hooks/useCep";
@@ -150,13 +150,13 @@ export default function CadastroAssistenteSocial() {
     });
 
   // Load assistente social data
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     const carregarPerfil = async () => {
       try {
-        // Load profile data
         const dados = await fetchPerfil();
-
-        // Update state with received data
         setAssistenteSocialData({
           idUsuario: dados.idUsuario || 0,
           nome: dados.nome || "",
@@ -180,9 +180,8 @@ export default function CadastroAssistenteSocial() {
         console.error("Error loading profile:", error);
       }
     };
-
     carregarPerfil();
-  }, [fetchPerfil]);
+  }, []);
 
   const [formData, setFormData] = useState<NovoAssistenteSocialData>({
     nome: "",
@@ -546,7 +545,7 @@ export default function CadastroAssistenteSocial() {
                           className="flex items-center gap-3"
                         >
                           <Home className="w-6 h-6" color="#ED4231" />
-                          <span>Home</span>
+                          <span className="font-normal">Home</span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -572,7 +571,9 @@ export default function CadastroAssistenteSocial() {
                           className="flex items-center gap-3"
                         >
                           <UserCheck className="w-6 h-6" color="#ED4231" />
-                          <span>Classificar Usuários</span>
+                          <span className="font-normal">
+                            Classificar Usuários
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -598,7 +599,9 @@ export default function CadastroAssistenteSocial() {
                           className="flex items-center gap-3"
                         >
                           <UserPlus className="w-6 h-6" color="#ED4231" />
-                          <span>Cadastrar Assistente</span>
+                          <span className="font-normal">
+                            Cadastrar Assistente
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -624,7 +627,9 @@ export default function CadastroAssistenteSocial() {
                           className="flex items-center gap-3"
                         >
                           <UserPlus className="w-6 h-6" color="#ED4231" />
-                          <span>Cadastrar Voluntário</span>
+                          <span className="font-normal">
+                            Cadastrar Voluntário
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -651,7 +656,7 @@ export default function CadastroAssistenteSocial() {
                           className="flex items-center gap-3"
                         >
                           <User className="w-6 h-6" color="#ED4231" />
-                          <span>Meu Perfil</span>
+                          <span className="font-normal">Meu Perfil</span>
                         </Link>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -690,7 +695,7 @@ export default function CadastroAssistenteSocial() {
                             d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9"
                           />
                         </svg>
-                        <span>Sair</span>
+                        <span className="font-normal">Sair</span>
                       </SidebarMenuButton>
                     </TooltipTrigger>
                     <TooltipContent className="z-50">

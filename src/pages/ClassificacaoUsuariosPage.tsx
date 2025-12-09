@@ -35,6 +35,7 @@ const ClassificacaoUsuariosPage = () => {
   const [nome, setNome] = useState<string>("");
   const [sobrenome, setSobrenome] = useState<string>("");
   const [especialidade, setEspecialidade] = useState<string>("");
+  const displayName = [nome?.trim(), sobrenome?.trim()].filter(Boolean).join(" ");
 
   useEffect(() => {
     (async () => {
@@ -79,7 +80,7 @@ const ClassificacaoUsuariosPage = () => {
                     <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]" : ""}`}>
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
-                        <span>{item.label}</span>
+                        <span className="font-medium">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </TooltipTrigger>
@@ -110,8 +111,11 @@ const ClassificacaoUsuariosPage = () => {
         <main className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? "" : "ml-0"}`}>
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <ProfileAvatar profileImage={profileImage} name={`${nome} ${sobrenome}`.trim() || "Assistente Social"} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
-              <span className="font-bold text-indigo-900 dark:text-gray-100">{nome} {sobrenome}</span>
+            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral">
+              <Menu className="w-6 h-6" />
+            </Button>
+            <ProfileAvatar profileImage={profileImage} name={displayName || "Assistente Social"} size="w-10 h-10" className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200" />
+            <span className="font-bold text-indigo-900 dark:text-gray-100">{displayName || "Assistente Social"}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button onClick={toggleTheme} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>
@@ -131,4 +135,3 @@ const ClassificacaoUsuariosPage = () => {
 };
 
 export default ClassificacaoUsuariosPage;
-

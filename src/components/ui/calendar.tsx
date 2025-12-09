@@ -16,7 +16,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "p-4 w-full rounded-xl border border-[#E6ECF5] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]",
+        "p-4 w-fit mx-auto self-center rounded-xl border border-[#E6ECF5] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]",
         className
       )}
       classNames={{
@@ -31,14 +31,14 @@ function Calendar({
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse",
-        head_row: "flex",
+        head_row: "grid grid-cols-7 gap-2",
         head_cell:
-          "text-[#6b7280] rounded-md w-10 font-medium text-[0.75rem] uppercase",
-        row: "flex w-full mt-1",
+          "text-[#6b7280] rounded-md w-12 font-medium text-[0.75rem] uppercase",
+        row: "grid grid-cols-7 w-full mt-2 gap-2",
         cell:
-          "h-10 w-10 text-center text-sm p-0 relative rounded-md focus-within:relative focus-within:z-20",
+          "h-12 w-12 text-center text-sm p-0 relative rounded-md focus-within:relative focus-within:z-20",
         day: cn(
-          "h-10 w-10 p-0 font-medium text-[#111827] dark:text-gray-200 hover:bg-[#ED4231]/10 hover:text-[#111827] transition-colors rounded-md aria-selected:opacity-100"
+          "h-12 w-12 p-0 font-medium text-[#111827] dark:text-gray-200 hover:bg-[#ED4231]/10 hover:text-[#111827] transition-colors rounded-md aria-selected:opacity-100"
         ),
         day_range_end: "day-range-end",
         day_selected:

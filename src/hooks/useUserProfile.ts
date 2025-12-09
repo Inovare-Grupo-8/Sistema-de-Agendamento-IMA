@@ -357,6 +357,15 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
         return resolved;
       }
+      
+      return {
+        nome: profile.nome,
+        sobrenome: profile.sobrenome,
+        telefone: permitidos.telefone,
+        email: permitidos.email,
+        dataNascimento: profile.dataNascimento,
+        genero: permitidos.genero,
+      };
     } catch (error) {
       console.warn(
         "[useUserProfile] Erro ao enviar dados pessoais, mantendo offline",

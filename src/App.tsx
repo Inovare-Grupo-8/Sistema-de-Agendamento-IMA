@@ -34,6 +34,7 @@ import { ClassificacaoUsuarios } from "@/components/ClassificacaoUsuarios";
 import ClassificacaoUsuariosPage from "@/pages/ClassificacaoUsuariosPage";
 import CadastroAssistenteSocial from "@/components/CadastroAssistenteSocial";
 import AuthGuard from "@/components/AuthGuard";
+import MeusHorarios from "@/pages/MeusHorarios";
 
 const queryClient = new QueryClient();
 
@@ -202,6 +203,19 @@ const App = () => {
                               }
                             >
                               <DisponibilizarHorario />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/meus-horarios"
+                          element={
+                            <ProtectedRoute
+                              allow={(u) =>
+                                u?.tipo === "VOLUNTARIO" &&
+                                u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
+                              <MeusHorarios />
                             </ProtectedRoute>
                           }
                         />

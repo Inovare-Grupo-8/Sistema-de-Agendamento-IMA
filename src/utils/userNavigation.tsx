@@ -16,6 +16,7 @@ export const appUrls = {
     agenda: "/agenda",
     historico: "/historico",
     disponibilizarHorario: "/disponibilizar-horario",
+    meusHorarios: "/meus-horarios",
     profileForm: "/profile-form",
   },
   // Componentes voltados para pacientes
@@ -90,6 +91,11 @@ export const professionalNavigationItems: Record<string, UserNavigationItem> = {
     path: appUrls.professional.disponibilizarHorario,
     label: "Disponibilizar Horário",
     icon: <Clock className="w-6 h-6" color="#ED4231" />,
+  },
+  meusHorarios: {
+    path: appUrls.professional.meusHorarios,
+    label: "Meus Horários",
+    icon: <History className="w-6 h-6" color="#ED4231" />,
   },
   perfil: {
     path: appUrls.professional.profileForm,

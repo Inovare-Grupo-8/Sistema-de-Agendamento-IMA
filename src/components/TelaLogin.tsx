@@ -17,10 +17,12 @@ const TelaLogin: React.FC = () => {
   }>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Verificar se o usuário já está logado e redirecionar
+  // Verificar se o usuário já está logado e redirecionar (exceto em rotas públicas)
   useEffect(() => {
+    const isPublic =
+      location.pathname === "/login" || location.pathname === "/cadastro";
     const userData = localStorage.getItem("userData");
-    if (userData) {
+    if (userData && !isPublic) {
       try {
         const user = JSON.parse(userData);
         console.log("🔄 [TelaLogin] Usuário já logado:", {
@@ -29,31 +31,28 @@ const TelaLogin: React.FC = () => {
           classificacao: user.classificacao,
         });
 
-        // Redirecionar baseado no tipo de usuário
-        // Valores do banco: ADMINISTRADOR, GRATUIDADE, VALOR_SOCIAL, VOLUNTARIO
         if (
           user.tipo === "VOLUNTARIO" &&
           user.funcao === "ASSISTENCIA_SOCIAL"
         ) {
-          // Assistente Social
           navigate("/assistente-social", { replace: true });
         } else if (user.tipo === "ADMINISTRADOR") {
-          // Administrador
           navigate("/assistente-social", { replace: true });
-        } else if (user.tipo === "GRATUIDADE" || user.tipo === "VALOR_SOCIAL") {
-          // Usuário assistido
+        } else if (
+          user.tipo === "GRATUIDADE" ||
+          user.tipo === "VALOR_SOCIAL" ||
+          user.tipo === "USUARIO"
+        ) {
           navigate("/home-user", { replace: true });
         } else if (user.tipo === "VOLUNTARIO") {
-          // Voluntário profissional
           navigate("/home", { replace: true });
         }
       } catch (error) {
         console.error("Erro ao verificar usuário logado:", error);
-        // Se houver erro ao parsear, limpar dados corrompidos
         localStorage.removeItem("userData");
       }
     }
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   // Sincroniza o modo com a URL
   useEffect(() => {
@@ -263,8 +262,11 @@ const TelaLogin: React.FC = () => {
       const base = import.meta.env.VITE_URL_BACKEND || "/api";
       const controller = new AbortController();
       const { signal } = controller;
-      console.log("🔐 [Login] Tentando login com:", { email: loginEmail, url: `${base}/usuarios/login` });
-      
+      console.log("🔐 [Login] Tentando login com:", {
+        email: loginEmail,
+        url: `${base}/usuarios/login`,
+      });
+
       const response = await fetch(`${base}/usuarios/login`, {
         method: "POST",
         headers: {
@@ -355,7 +357,8 @@ const TelaLogin: React.FC = () => {
     } catch (error) {
       const isAbort = (error as any)?.name === "AbortError";
       if (!isAbort) {
-        const message = error instanceof Error ? error.message : "Erro ao fazer login";
+        const message =
+          error instanceof Error ? error.message : "Erro ao fazer login";
         setModalErro(message);
       }
     } finally {
@@ -457,7 +460,9 @@ const TelaLogin: React.FC = () => {
                 style={{ cursor: "pointer" }}
               ></i>
             </div>
-            <button type="submit" className="btn solid">Entrar</button>
+            <button type="submit" className="btn solid">
+              Entrar
+            </button>
             <button
               className="btn-google"
               onClick={() => (window.location.href = "/home")}
@@ -549,7 +554,9 @@ const TelaLogin: React.FC = () => {
                 style={{ cursor: "pointer" }}
               ></i>
             </div>
-            <button type="submit" className="btn">Cadastrar</button>
+            <button type="submit" className="btn">
+              Cadastrar
+            </button>
             <button
               className="btn-google"
               onClick={() =>
