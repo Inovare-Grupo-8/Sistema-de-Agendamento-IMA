@@ -124,8 +124,7 @@ const Home = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { userData, setUserData } = useUserData();
-  const { fetchPerfil } = useUserData();
+  const { userData, updateUserData, fetchPerfil } = useUserData();
   const {
     buscarDadosPessoais,
     buscarDadosProfissionais,
@@ -939,7 +938,57 @@ const Home = () => {
         const userData = localStorage.getItem("userData");
         if (userData) {
           const parsedUserData = JSON.parse(userData);
-          setUserData(parsedUserData);
+          const updates: Partial<typeof userData> = {};
+
+          if (typeof parsedUserData.nome === "string") {
+            updates.nome = parsedUserData.nome.trim();
+          }
+
+          const sobrenomeDireto =
+            typeof parsedUserData.sobrenome === "string"
+              ? parsedUserData.sobrenome.trim()
+              : typeof parsedUserData.sobreNome === "string"
+                ? parsedUserData.sobreNome.trim()
+                : "";
+
+          if (sobrenomeDireto) {
+            updates.sobrenome = sobrenomeDireto;
+          } else if (typeof parsedUserData.nomeCompleto === "string") {
+            const [primeiroNome, ...resto] = parsedUserData.nomeCompleto
+              .trim()
+              .split(/\s+/);
+            if (!updates.nome && primeiroNome) {
+              updates.nome = primeiroNome;
+            }
+            if (resto.length > 0) {
+              updates.sobrenome = resto.join(" ");
+            }
+          }
+
+          if (typeof parsedUserData.email === "string") {
+            updates.email = parsedUserData.email.trim();
+          }
+
+          if (typeof parsedUserData.telefone === "string") {
+            updates.telefone = parsedUserData.telefone.trim();
+          }
+
+          if (typeof parsedUserData.dataNascimento === "string") {
+            updates.dataNascimento = parsedUserData.dataNascimento.trim();
+          } else if (typeof parsedUserData.data_nascimento === "string") {
+            updates.dataNascimento = parsedUserData.data_nascimento.trim();
+          }
+
+          if (typeof parsedUserData.genero === "string") {
+            updates.genero = parsedUserData.genero.trim();
+          } else if (typeof parsedUserData.sexo === "string") {
+            updates.genero = parsedUserData.sexo.trim();
+          }
+
+          if (Object.keys(updates).length > 0) {
+            updateUserData(updates);
+          }
+
           if (parsedUserData.fotoUrl) {
             setProfileImage(parsedUserData.fotoUrl);
           }
@@ -950,7 +999,7 @@ const Home = () => {
     };
 
     fetchUserData();
-  }, [setProfileImage, setUserData]);
+  }, [setProfileImage, updateUserData]);
 
   useEffect(() => {
     const loadUserData = async () => {

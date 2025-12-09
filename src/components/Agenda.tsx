@@ -321,7 +321,7 @@ const Agenda = () => {
                 size="w-10 h-10"
                 className="border-2 border-primary shadow"
               />
-              <span className="font-bold text-foreground">
+              <span className="font-extrabold text-foreground">
                 Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}
               </span>
             </div>

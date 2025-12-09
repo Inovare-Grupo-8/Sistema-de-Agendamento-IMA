@@ -27,7 +27,7 @@ const AppointmentsAdmin = () => {
             </Button>
             <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow" />
             {/* Use userData instead of formData */}
-            <span className="font-bold text-foreground">{userData.nome} {userData.sobrenome}</span>
+            <span className="font-extrabold text-foreground">{userData.nome} {userData.sobrenome}</span>
           </div>
         )}
         
@@ -55,7 +55,7 @@ const AppointmentsAdmin = () => {
             <div className="flex items-center gap-3">
               <img src={profileImage} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-primary shadow hover:scale-105 transition-transform duration-200" />
               {/* Use userData instead of formData */}
-              <span className="font-bold text-foreground">{userData.nome} {userData.sobrenome}</span>
+              <span className="font-extrabold text-foreground">{userData.nome} {userData.sobrenome}</span>
             </div>
             
             {/* ...existing header content... */}

@@ -193,7 +193,7 @@ const Historico = () => {
                 </Button>
               )}
               <ProfileAvatar profileImage={profileImage} name={dadosPessoais ? `${dadosPessoais.nome} ${dadosPessoais.sobrenome}` : "Profissional"} size="w-10 h-10" className="border-2 border-primary shadow" />
-              <span className="font-bold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
+              <span className="font-extrabold text-foreground">Dr. {dadosPessoais?.nome} {dadosPessoais?.sobrenome}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button onClick={toggleTheme} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>

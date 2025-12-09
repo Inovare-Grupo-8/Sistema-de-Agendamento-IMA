@@ -1,16 +1,69 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  SidebarProvider,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, User, Clock, Menu, History, ChevronRight, Users, UserCheck, Activity, Sun, Moon, Home as HomeIcon, Phone, Mail, MessageSquare, FileText, Check, X, Eye, ThumbsUp, ThumbsDown, AlertTriangle, UserPlus } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  Calendar as CalendarIcon,
+  User,
+  Clock,
+  Menu,
+  History,
+  ChevronRight,
+  Users,
+  UserCheck,
+  Activity,
+  Sun,
+  Moon,
+  Home as HomeIcon,
+  Phone,
+  Mail,
+  MessageSquare,
+  FileText,
+  Check,
+  X,
+  Eye,
+  ThumbsUp,
+  ThumbsDown,
+  AlertTriangle,
+  UserPlus,
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { motion } from "framer-motion";
@@ -82,44 +135,49 @@ const assistenteSocialNavItems = [
     path: "/assistente-social",
     label: "Home",
     icon: <HomeIcon className="w-6 h-6" color="#ED4231" />,
-    section: "home"
+    section: "home",
   },
   {
     path: "/classificacao-usuarios",
     label: "Classificar Usuários",
     icon: <UserCheck className="w-6 h-6" color="#ED4231" />,
-    section: "classificacao"
+    section: "classificacao",
   },
   {
     path: "/cadastro-assistente",
     label: "Cadastrar Assistente",
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
-    section: "cadastro"
+    section: "cadastro",
   },
   {
     path: "/cadastro-voluntario",
     label: "Cadastrar Voluntário",
     icon: <UserPlus className="w-6 h-6" color="#ED4231" />,
-    section: "cadastro"
+    section: "cadastro",
   },
   {
     path: "/profile-form-assistente-social",
     label: "Editar Perfil",
     icon: <User className="w-6 h-6" color="#ED4231" />,
-    section: "perfil"
-  }
+    section: "perfil",
+  },
 ];
 
 export function AssistenteSocial() {
   const navigate = useNavigate();
   const location = useLocation();
   const { fetchPerfil } = useAssistenteSocial();
-  
+
   // Estados para dados da API
-  const [assistenteSocialData, setAssistenteSocialData] = useState<AssistenteSocialData | null>(null);
-  const [atendimentosData, setAtendimentosData] = useState<AtendimentoSocial[]>([]);
-  const [formulariosPendentes, setFormulariosPendentes] = useState<FormularioInscricao[]>([]);
-  
+  const [assistenteSocialData, setAssistenteSocialData] =
+    useState<AssistenteSocialData | null>(null);
+  const [atendimentosData, setAtendimentosData] = useState<AtendimentoSocial[]>(
+    []
+  );
+  const [formulariosPendentes, setFormulariosPendentes] = useState<
+    FormularioInscricao[]
+  >([]);
+
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [secaoAtiva, setSecaoAtiva] = useState("home"); // Novo estado para controlar seção ativa
@@ -127,110 +185,146 @@ export function AssistenteSocial() {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
 
   // Estados para controle da interface
-  const [atendimentosHoje, setAtendimentosHoje] = useState<AtendimentoSocial[]>([]);
-  const [proximosAtendimentos, setProximosAtendimentos] = useState<AtendimentoSocial[]>([]);
+  const [atendimentosHoje, setAtendimentosHoje] = useState<AtendimentoSocial[]>(
+    []
+  );
+  const [proximosAtendimentos, setProximosAtendimentos] = useState<
+    AtendimentoSocial[]
+  >([]);
   const [totalUsuarios, setTotalUsuarios] = useState<number>(0);
-  const [usuariosNaoClassificados, setUsuariosNaoClassificados] = useState<number>(0);
-  
+  const [usuariosNaoClassificados, setUsuariosNaoClassificados] =
+    useState<number>(0);
+
   // Estados para formulários
-  const [formularios, setFormularios] = useState<FormularioInscricao[]>(formulariosPendentes);
-  const [formularioSelecionado, setFormularioSelecionado] = useState<FormularioInscricao | null>(null);
+  const [formularios, setFormularios] =
+    useState<FormularioInscricao[]>(formulariosPendentes);
+  const [formularioSelecionado, setFormularioSelecionado] =
+    useState<FormularioInscricao | null>(null);
   const [showFormularioModal, setShowFormularioModal] = useState(false);
   const [showAprovacaoModal, setShowAprovacaoModal] = useState(false);
   const [showReprovacaoModal, setShowReprovacaoModal] = useState(false);
   const [observacoes, setObservacoes] = useState("");
-  const [tipoCandidato, setTipoCandidato] = useState<"multidisciplinar" | "valor_social" | "">("");
+  const [tipoCandidato, setTipoCandidato] = useState<
+    "multidisciplinar" | "valor_social" | ""
+  >("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    // Carregar dados reais da API
+    const mounted = useRef(false);
+    if (mounted.current) return;
+    mounted.current = true;
+    const controller = new AbortController();
+    const { signal } = controller;
+    const base = import.meta.env.VITE_URL_BACKEND || "/api";
+    const userDataRaw = localStorage.getItem("userData");
+    const token = (() => {
+      if (!userDataRaw) return null;
+      try {
+        const parsed = JSON.parse(userDataRaw);
+        return parsed.token || null;
+      } catch {
+        return null;
+      }
+    })();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const loadData = async () => {
       setLoading(true);
-      
       try {
-        // Buscar dados do assistente social
         const perfilData = await fetchPerfil();
         setAssistenteSocialData({
-          id: perfilData.idUsuario.toString(),
+          id: perfilData.idUsuario?.toString?.() || "",
           nome: perfilData.nome,
           sobrenome: perfilData.sobrenome,
           crp: perfilData.crp,
           especialidade: perfilData.especialidade,
           telefone: perfilData.telefone,
           email: perfilData.email,
-          disponivel: true, // Valor padrão
+          disponivel: true,
           proximaDisponibilidade: new Date(),
           atendimentosRealizados: 0,
-          avaliacaoMedia: 0
+          avaliacaoMedia: 0,
         });
 
-        // Buscar total de usuários da API
-        const response = await fetch('{BASE_URL}/usuarios');
-        if (response.ok) {
-          const usuarios = await response.json() as UsuarioResumo[];
-          setTotalUsuarios(usuarios.length);
-          
-          // Contar usuários não classificados
-          const naoClassificados = usuarios.filter(usuario => {
-            if (!usuario?.tipo) {
-              return true;
-            }
-
-            return usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO";
-          });
-          setUsuariosNaoClassificados(naoClassificados.length);
+        const [usuariosResp, naoClassResp] = await Promise.all([
+          fetch(`${base}/usuarios`, { headers, signal }),
+          fetch(`${base}/usuarios/nao-classificados`, { headers, signal }),
+        ]);
+        if (usuariosResp.ok) {
+          const usuarios = await usuariosResp.json();
+          setTotalUsuarios(Array.isArray(usuarios) ? usuarios.length : 0);
         } else {
-          console.error('Erro ao buscar usuários:', response.status);
-          // Manter valor padrão em caso de erro
           setTotalUsuarios(0);
+        }
+        if (naoClassResp.ok) {
+          const lista = await naoClassResp.json();
+          setUsuariosNaoClassificados(Array.isArray(lista) ? lista.length : 0);
+        } else {
           setUsuariosNaoClassificados(0);
         }
+
+        const hoje = new Date();
+        const atendimentosDeHoje = atendimentosData.filter(
+          (a) => a.data.toDateString() === hoje.toDateString()
+        );
+        const proximosAtend = atendimentosData
+          .filter((a) => a.data > hoje)
+          .slice(0, 3);
+        setAtendimentosHoje(atendimentosDeHoje);
+        setProximosAtendimentos(proximosAtend);
       } catch (error) {
-        console.error('Erro ao conectar com a API:', error);
-        // Manter valores padrão em caso de erro
         setTotalUsuarios(0);
         setUsuariosNaoClassificados(0);
+      } finally {
+        setLoading(false);
       }
-      
-      // Filtrar atendimentos de hoje (usando dados vazios por enquanto)
-      const hoje = new Date();
-      const atendimentosDeHoje = atendimentosData.filter(
-        atendimento => atendimento.data.toDateString() === hoje.toDateString()
-      );
-      
-      // Filtrar próximos atendimentos
-      const proximosAtend = atendimentosData.filter(
-        atendimento => atendimento.data > hoje
-      ).slice(0, 3);
-      
-      setAtendimentosHoje(atendimentosDeHoje);
-      setProximosAtendimentos(proximosAtend);
-      setLoading(false);
     };
 
     loadData();
-  }, [fetchPerfil, atendimentosData]);
+    return () => controller.abort();
+  }, []);
 
   // Função para atualizar contador após classificação
   const atualizarContadorUsuarios = async () => {
     try {
-      const response = await fetch('{BASE_URL}/usuarios');
+      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const userDataRaw = localStorage.getItem("userData");
+      const token = (() => {
+        if (!userDataRaw) return null;
+        try {
+          const parsed = JSON.parse(userDataRaw);
+          return parsed.token || null;
+        } catch {
+          return null;
+        }
+      })();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(`${base}/usuarios`, { headers });
       if (response.ok) {
-        const usuarios = await response.json() as UsuarioResumo[];
+        const usuarios = (await response.json()) as UsuarioResumo[];
         setTotalUsuarios(usuarios.length);
-        
+
         // Contar usuários não classificados
-        const naoClassificados = usuarios.filter(usuario => {
+        const naoClassificados = usuarios.filter((usuario) => {
           if (!usuario?.tipo) {
             return true;
           }
 
-          return usuario.tipo === "NAO_CLASSIFICADO" || usuario.tipo === "NÃO_CLASSIFICADO";
+          return (
+            usuario.tipo === "NAO_CLASSIFICADO" ||
+            usuario.tipo === "NÃO_CLASSIFICADO"
+          );
         });
         setUsuariosNaoClassificados(naoClassificados.length);
       }
     } catch (error) {
-      console.error('Erro ao atualizar contador:', error);
+      console.error("Erro ao atualizar contador:", error);
     }
   };
 
@@ -291,38 +385,47 @@ export function AssistenteSocial() {
     setFormularioSelecionado(formulario);
     setObservacoes("");
     setShowReprovacaoModal(true);
-  };  const confirmarAprovacao = async () => {
+  };
+  const confirmarAprovacao = async () => {
     if (!formularioSelecionado || !tipoCandidato) return;
-    
+
     setIsProcessing(true);
-    
+
     try {
       // Real API call to approve form
-      const response = await fetch(`{BASE_URL}/formularios/${formularioSelecionado.id}/aprovar`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          observacoesAssistente: observacoes,
-          tipoCandidato: tipoCandidato,
-          isVoluntario: formularioSelecionado.isVoluntario
-        })
-      });
+      const response = await fetch(
+        `{BASE_URL}/formularios/${formularioSelecionado.id}/aprovar`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            observacoesAssistente: observacoes,
+            tipoCandidato: tipoCandidato,
+            isVoluntario: formularioSelecionado.isVoluntario,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Erro ao aprovar formulário');
+        throw new Error("Erro ao aprovar formulário");
       }
-      
+
       // Atualizar lista de formulários
-      setFormularios(prev => 
-        prev.map(form => 
-          form.id === formularioSelecionado.id 
-            ? { ...form, status: "aprovado", observacoesAssistente: observacoes, tipoCandidato: tipoCandidato }
+      setFormularios((prev) =>
+        prev.map((form) =>
+          form.id === formularioSelecionado.id
+            ? {
+                ...form,
+                status: "aprovado",
+                observacoesAssistente: observacoes,
+                tipoCandidato: tipoCandidato,
+              }
             : form
         )
       );
-      
+
       setShowAprovacaoModal(false);
       setFormularioSelecionado(null);
       setObservacoes("");
@@ -334,7 +437,10 @@ export function AssistenteSocial() {
         window.location.href = `http://localhost:3030/completar-cadastro-voluntario?id=${formularioSelecionado.id}`;
       } else {
         // Feedback padrão para não voluntários
-        const tipoTexto = tipoCandidato === "multidisciplinar" ? "Candidato Multidisciplinar" : "Candidato que Paga o Valor Social";
+        const tipoTexto =
+          tipoCandidato === "multidisciplinar"
+            ? "Candidato Multidisciplinar"
+            : "Candidato que Paga o Valor Social";
         toast({
           title: "Formulário aprovado!",
           description: `O formulário de ${formularioSelecionado.nomeCompleto} foi aprovado como ${tipoTexto}.`,
@@ -344,7 +450,8 @@ export function AssistenteSocial() {
     } catch (error) {
       toast({
         title: "Erro ao aprovar",
-        description: "Ocorreu um erro ao processar a aprovação. Tente novamente.",
+        description:
+          "Ocorreu um erro ao processar a aprovação. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -353,38 +460,45 @@ export function AssistenteSocial() {
   };
   const confirmarReprovacao = async () => {
     if (!formularioSelecionado) return;
-    
+
     setIsProcessing(true);
-    
+
     try {
       // Real API call to reject form
-      const response = await fetch(`{BASE_URL}/formularios/${formularioSelecionado.id}/reprovar`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          observacoesAssistente: observacoes
-        })
-      });
+      const response = await fetch(
+        `{BASE_URL}/formularios/${formularioSelecionado.id}/reprovar`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            observacoesAssistente: observacoes,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Erro ao reprovar formulário');
+        throw new Error("Erro ao reprovar formulário");
       }
-      
+
       // Atualizar lista de formulários
-      setFormularios(prev => 
-        prev.map(form => 
-          form.id === formularioSelecionado.id 
-            ? { ...form, status: "reprovado", observacoesAssistente: observacoes }
+      setFormularios((prev) =>
+        prev.map((form) =>
+          form.id === formularioSelecionado.id
+            ? {
+                ...form,
+                status: "reprovado",
+                observacoesAssistente: observacoes,
+              }
             : form
         )
       );
-      
+
       setShowReprovacaoModal(false);
       setFormularioSelecionado(null);
       setObservacoes("");
-      
+
       toast({
         title: "Formulário reprovado",
         description: `O formulário de ${formularioSelecionado.nomeCompleto} foi reprovado.`,
@@ -393,7 +507,8 @@ export function AssistenteSocial() {
     } catch (error) {
       toast({
         title: "Erro ao reprovar",
-        description: "Ocorreu um erro ao processar a reprovação. Tente novamente.",
+        description:
+          "Ocorreu um erro ao processar a reprovação. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -442,7 +557,9 @@ export function AssistenteSocial() {
       <div className="min-h-screen flex items-center justify-center bg-[#EDF2FB] dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#ED4231] mx-auto"></div>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Carregando...</p>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+            Carregando...
+          </p>
         </div>
       </div>
     );
@@ -454,52 +571,82 @@ export function AssistenteSocial() {
         {/* Sidebar comprimida para mobile */}
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
-            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+            >
               <Menu className="w-7 h-7" />
-            </Button>            <ProfileAvatar 
+            </Button>{" "}
+            <ProfileAvatar
               profileImage={profileImage}
-              name={assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Assistente Social'}
+              name={
+                assistenteSocialData
+                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                  : "Assistente Social"
+              }
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Carregando...'}
+              {assistenteSocialData
+                ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                : "Carregando..."}
             </span>
           </div>
         )}
-        
+
         {/* Sidebar */}
-        <div className={`transition-all duration-500 ease-in-out
-          ${sidebarOpen ? 'opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72' : 'opacity-0 -translate-x-full w-0'}
+        <div
+          className={`transition-all duration-500 ease-in-out
+          ${
+            sidebarOpen
+              ? "opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72"
+              : "opacity-0 -translate-x-full w-0"
+          }
           bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`
-        }>
+          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}
+        >
           <div className="w-full flex justify-start mb-6">
-            <Button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md">
+            <Button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+            >
               <Menu className="w-7 h-7" />
             </Button>
-          </div>            <div className="flex flex-col items-center gap-2 mb-8">
-            <ProfileAvatar 
+          </div>{" "}
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <ProfileAvatar
               profileImage={profileImage}
-              name={assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Assistente Social'}
+              name={
+                assistenteSocialData
+                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                  : "Assistente Social"
+              }
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Carregando...'}
+              {assistenteSocialData
+                ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                : "Carregando..."}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              {assistenteSocialData?.especialidade || 'Especialidade'}
+              {assistenteSocialData?.especialidade || "Especialidade"}
             </Badge>
-          </div><SidebarMenu className="gap-4 text-sm md:text-base">            {assistenteSocialNavItems.map((item) => (
+          </div>
+          <SidebarMenu className="gap-4 text-sm md:text-base">
+            {" "}
+            {assistenteSocialNavItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     {item.section === "home" ? (
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         onClick={() => setSecaoAtiva(item.section)}
                         className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 cursor-pointer ${
-                          secaoAtiva === item.section ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''
+                          secaoAtiva === item.section
+                            ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                            : ""
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -508,30 +655,39 @@ export function AssistenteSocial() {
                         </div>
                       </SidebarMenuButton>
                     ) : (
-                      <SidebarMenuButton asChild className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${location.pathname === item.path ? 'bg-[#EDF2FB] border-l-4 border-[#ED4231]' : ''}`}>
-                        <Link to={item.path} className="flex items-center gap-3">
+                      <SidebarMenuButton
+                        asChild
+                        className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                          location.pathname === item.path
+                            ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                            : ""
+                        }`}
+                      >
+                        <Link
+                          to={item.path}
+                          className="flex items-center gap-3"
+                        >
                           {item.icon}
                           <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     )}
                   </TooltipTrigger>
-                  <TooltipContent className="z-50">
-                    {item.label}
-                  </TooltipContent>
+                  <TooltipContent className="z-50">{item.label}</TooltipContent>
                 </Tooltip>
               </SidebarMenuItem>
-            ))}            <SidebarMenuItem>
+            ))}{" "}
+            <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
                     onClick={() => {
                       // Clear user session data
-                      localStorage.removeItem('userData');
-                      localStorage.removeItem('profileData');
+                      localStorage.removeItem("userData");
+                      localStorage.removeItem("profileData");
                       // Redirect to login page
-                      navigate('/');
+                      navigate("/");
                       toast({
                         title: "Sessão encerrada",
                         description: "Você foi desconectado com sucesso.",
@@ -539,7 +695,20 @@ export function AssistenteSocial() {
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#ED4231" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9" /></svg>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="#ED4231"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 15l3-3m0 0l-3-3m3 3H9"
+                        />
+                      </svg>
                       <span>Sair</span>
                     </div>
                   </SidebarMenuButton>
@@ -548,106 +717,142 @@ export function AssistenteSocial() {
               </Tooltip>
             </SidebarMenuItem>
           </SidebarMenu>
-          
           <div className="mt-auto flex flex-col gap-2 text-xs text-gray-400 items-center pt-6 border-t border-[#EDF2FB] dark:border-[#23272F]">
-            <span>&copy; {new Date().getFullYear()} Desenvolvido por Inovare</span>
+            <span>
+              &copy; {new Date().getFullYear()} Desenvolvido por Inovare
+            </span>
             <div className="flex gap-2">
-              <a href="https://inovare.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#ED4231]">Site</a>
-              <a href="mailto:contato@inovare.com" className="underline hover:text-[#ED4231]">Contato</a>
+              <a
+                href="https://inovare.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[#ED4231]"
+              >
+                Site
+              </a>
+              <a
+                href="mailto:contato@inovare.com"
+                className="underline hover:text-[#ED4231]"
+              >
+                Contato
+              </a>
             </div>
           </div>
         </div>
 
         {/* Conteúdo principal */}
-        <main className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${sidebarOpen ? '' : 'ml-0'}`}>
+        <main
+          className={`flex-1 w-full md:w-auto mt-20 md:mt-0 transition-all duration-500 ease-in-out px-2 md:px-0 ${
+            sidebarOpen ? "" : "ml-0"
+          }`}
+        >
           {/* Header */}
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
-            <div className="flex items-center gap-3">              <ProfileAvatar 
+            <div className="flex items-center gap-3">
+              {" "}
+              <ProfileAvatar
                 profileImage={profileImage}
-                name={assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Assistente Social'}
+                name={
+                  assistenteSocialData
+                    ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                    : "Assistente Social"
+                }
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
               />
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {assistenteSocialData ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}` : 'Carregando...'}
+                {assistenteSocialData
+                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
+                  : "Carregando..."}
               </span>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button
                 onClick={toggleTheme}
                 className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                aria-label={
+                  theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
+                }
               >
-                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-800" />}
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-800" />
+                )}
               </Button>
             </div>
-          </header>          <div className="max-w-6xl mx-auto p-2 sm:p-4 md:p-8 pt-24 sm:pt-28 md:pt-24">
+          </header>{" "}
+          <div className="max-w-6xl mx-auto p-2 sm:p-4 md:p-8 pt-24 sm:pt-28 md:pt-24">
             <div className="flex flex-col">
               {secaoAtiva === "home" && (
                 <>
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">Dashboard - Assistente Social</h1>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">Gerencie seus atendimentos e acompanhe seu trabalho social</p>
-                  
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-2">
+                    Dashboard - Assistente Social
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Gerencie seus atendimentos e acompanhe seu trabalho social
+                  </p>
                   {/* Cards de resumo */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">{/* Formulários pendentes */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Pendentes</p>
-                          <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                            {usuariosNaoClassificados}
-                          </p>
-                        </div>
-                        <div className="p-2 sm:p-3 rounded-full bg-orange-100 dark:bg-orange-900/30">
-                          <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>{/* Total de usuários */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Usuários</p>
-                          <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{totalUsuarios}</p>
-                        </div>
-                        <div className="p-2 sm:p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-                          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>              {/* Seção de classificação de usuários */}
-              <div className="grid grid-cols-1 gap-6 mb-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <ClassificacaoUsuarios onUsuarioClassificado={atualizarContadorUsuarios} />
-                </motion.div>
-              </div>                </>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
+                    <div>
+                      <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                                Pendentes
+                              </p>
+                              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                {usuariosNaoClassificados}
+                              </p>
+                            </div>
+                            <div className="p-2 sm:p-3 rounded-full bg-orange-100 dark:bg-orange-900/30">
+                              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <div>
+                      <Card className="bg-white dark:bg-[#23272F] border-[#EDF2FB] dark:border-[#444857] hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                                Total Usuários
+                              </p>
+                              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                {totalUsuarios}
+                              </p>
+                            </div>
+                            <div className="p-2 sm:p-3 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+                              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>{" "}
+                  {/* Seção de classificação de usuários */}
+                  <div className="grid grid-cols-1 gap-6 mb-8">
+                    <div>
+                      <ClassificacaoUsuarios
+                        onUsuarioClassificado={atualizarContadorUsuarios}
+                      />
+                    </div>
+                  </div>{" "}
+                </>
               )}
             </div>
           </div>
         </main>
 
         {/* Modal de Visualização do Formulário */}
-        <Dialog open={showFormularioModal} onOpenChange={() => setShowFormularioModal(false)}>
+        <Dialog
+          open={showFormularioModal}
+          onOpenChange={() => setShowFormularioModal(false)}
+        >
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -658,7 +863,7 @@ export function AssistenteSocial() {
                 Revise todas as informações fornecidas pelo candidato
               </DialogDescription>
             </DialogHeader>
-            
+
             {formularioSelecionado && (
               <div className="space-y-6">
                 {/* Informações Pessoais */}
@@ -667,137 +872,194 @@ export function AssistenteSocial() {
                     <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 border-b pb-2">
                       Informações Pessoais
                     </h3>
-                    
+
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Nome Completo</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.nomeCompleto}</p>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Nome Completo
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {formularioSelecionado.nomeCompleto}
+                        </p>
                       </div>
-                      
+
                       <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Data de Nascimento</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.dataNascimento}</p>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Data de Nascimento
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {formularioSelecionado.dataNascimento}
+                        </p>
                       </div>
-                      
+
                       <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.email}</p>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Email
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {formularioSelecionado.email}
+                        </p>
                       </div>
-                        <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Telefone</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.telefone}</p>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Telefone
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {formularioSelecionado.telefone}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 border-b pb-2">
                       Endereço
                     </h3>
-                    
+
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">CEP</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.cep}</p>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Logradouro</label>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          CEP
+                        </label>
                         <p className="text-gray-900 dark:text-gray-100">
-                          {formularioSelecionado.logradouro}, {formularioSelecionado.numero}
-                          {formularioSelecionado.complemento && ` - ${formularioSelecionado.complemento}`}
+                          {formularioSelecionado.cep}
                         </p>
                       </div>
-                      
+
                       <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Bairro</label>
-                        <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.bairro}</p>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Cidade/Estado</label>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Logradouro
+                        </label>
                         <p className="text-gray-900 dark:text-gray-100">
-                          {formularioSelecionado.cidade}, {formularioSelecionado.estado}
+                          {formularioSelecionado.logradouro},{" "}
+                          {formularioSelecionado.numero}
+                          {formularioSelecionado.complemento &&
+                            ` - ${formularioSelecionado.complemento}`}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Bairro
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {formularioSelecionado.bairro}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Cidade/Estado
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {formularioSelecionado.cidade},{" "}
+                          {formularioSelecionado.estado}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Informações da Solicitação */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 border-b pb-2">
                     Informações da Solicitação
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Área de Orientação</label>
-                      <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.areaOrientacao}</p>
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Área de Orientação
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {formularioSelecionado.areaOrientacao}
+                      </p>
                     </div>
-                    
+
                     <div>
-                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Como soube do serviço</label>
-                      <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.comoSoube}</p>
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Como soube do serviço
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {formularioSelecionado.comoSoube}
+                      </p>
                     </div>
                   </div>
-                  
+
                   {formularioSelecionado.sugestaoOutraArea && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Sugestão de Outra Área</label>
-                      <p className="text-gray-900 dark:text-gray-100">{formularioSelecionado.sugestaoOutraArea}</p>
+                      <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Sugestão de Outra Área
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {formularioSelecionado.sugestaoOutraArea}
+                      </p>
                     </div>
                   )}
-                  
+
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Data de Submissão</label>
-                    <p className="text-gray-900 dark:text-gray-100">{formatarDataHora(formularioSelecionado.dataSubmissao)}</p>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Data de Submissão
+                    </label>
+                    <p className="text-gray-900 dark:text-gray-100">
+                      {formatarDataHora(formularioSelecionado.dataSubmissao)}
+                    </p>
                   </div>
-                  
+
                   <div>
-                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Status Atual</label>
-                    <Badge className={getFormStatusColor(formularioSelecionado.status)}>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Status Atual
+                    </label>
+                    <Badge
+                      className={getFormStatusColor(
+                        formularioSelecionado.status
+                      )}
+                    >
                       {getFormStatusText(formularioSelecionado.status)}
                     </Badge>
                   </div>
                 </div>
               </div>
             )}
-            
+
             <DialogFooter className="flex gap-2">
               <Button variant="outline" onClick={fecharModais}>
                 Fechar
               </Button>
-              {formularioSelecionado && formularioSelecionado.status === "pendente" && (
-                <>
-                  <Button 
-                    onClick={() => {
-                      setShowFormularioModal(false);
-                      iniciarAprovacao(formularioSelecionado);
-                    }}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <ThumbsUp className="w-4 h-4 mr-2" />
-                    Aprovar
-                  </Button>
-                  <Button 
-                    variant="destructive"
-                    onClick={() => {
-                      setShowFormularioModal(false);
-                      iniciarReprovacao(formularioSelecionado);
-                    }}
-                  >
-                    <ThumbsDown className="w-4 h-4 mr-2" />
-                    Reprovar
-                  </Button>
-                </>
-              )}
+              {formularioSelecionado &&
+                formularioSelecionado.status === "pendente" && (
+                  <>
+                    <Button
+                      onClick={() => {
+                        setShowFormularioModal(false);
+                        iniciarAprovacao(formularioSelecionado);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <ThumbsUp className="w-4 h-4 mr-2" />
+                      Aprovar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setShowFormularioModal(false);
+                        iniciarReprovacao(formularioSelecionado);
+                      }}
+                    >
+                      <ThumbsDown className="w-4 h-4 mr-2" />
+                      Reprovar
+                    </Button>
+                  </>
+                )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Modal de Aprovação */}
-        <Dialog open={showAprovacaoModal} onOpenChange={() => setShowAprovacaoModal(false)}>
+        <Dialog
+          open={showAprovacaoModal}
+          onOpenChange={() => setShowAprovacaoModal(false)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -805,29 +1067,43 @@ export function AssistenteSocial() {
                 Aprovar Formulário
               </DialogTitle>
               <DialogDescription>
-                {formularioSelecionado && 
-                  `Você está prestes a aprovar o formulário de ${formularioSelecionado.nomeCompleto}. Esta ação dará ao usuário acesso às demais funcionalidades do sistema.`
-                }
+                {formularioSelecionado &&
+                  `Você está prestes a aprovar o formulário de ${formularioSelecionado.nomeCompleto}. Esta ação dará ao usuário acesso às demais funcionalidades do sistema.`}
               </DialogDescription>
             </DialogHeader>
-              <div className="space-y-4">
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="tipoCandidato" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="tipoCandidato"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Tipo de Candidato *
                 </Label>
-                <Select value={tipoCandidato} onValueChange={(value: "multidisciplinar" | "valor_social") => setTipoCandidato(value)}>
+                <Select
+                  value={tipoCandidato}
+                  onValueChange={(value: "multidisciplinar" | "valor_social") =>
+                    setTipoCandidato(value)
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo de candidato" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="multidisciplinar">Candidato Multidisciplinar</SelectItem>
-                    <SelectItem value="valor_social">Candidato que Paga o Valor Social</SelectItem>
+                    <SelectItem value="multidisciplinar">
+                      Candidato Multidisciplinar
+                    </SelectItem>
+                    <SelectItem value="valor_social">
+                      Candidato que Paga o Valor Social
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
-                <Label htmlFor="observacoes" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="observacoes"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Observações (opcional)
                 </Label>
                 <Textarea
@@ -839,12 +1115,17 @@ export function AssistenteSocial() {
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button variant="outline" onClick={fecharModais} disabled={isProcessing}>
+              <Button
+                variant="outline"
+                onClick={fecharModais}
+                disabled={isProcessing}
+              >
                 Cancelar
-              </Button>              <Button 
-                onClick={confirmarAprovacao} 
+              </Button>{" "}
+              <Button
+                onClick={confirmarAprovacao}
                 disabled={isProcessing || !tipoCandidato}
                 className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -865,7 +1146,10 @@ export function AssistenteSocial() {
         </Dialog>
 
         {/* Modal de Reprovação */}
-        <Dialog open={showReprovacaoModal} onOpenChange={() => setShowReprovacaoModal(false)}>
+        <Dialog
+          open={showReprovacaoModal}
+          onOpenChange={() => setShowReprovacaoModal(false)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -873,15 +1157,17 @@ export function AssistenteSocial() {
                 Reprovar Formulário
               </DialogTitle>
               <DialogDescription>
-                {formularioSelecionado && 
-                  `Você está prestes a reprovar o formulário de ${formularioSelecionado.nomeCompleto}. Esta ação não poderá ser desfeita.`
-                }
+                {formularioSelecionado &&
+                  `Você está prestes a reprovar o formulário de ${formularioSelecionado.nomeCompleto}. Esta ação não poderá ser desfeita.`}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div>
-                <Label htmlFor="observacoes" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="observacoes"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Motivo da Reprovação *
                 </Label>
                 <Textarea
@@ -894,12 +1180,16 @@ export function AssistenteSocial() {
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
-              <Button variant="outline" onClick={fecharModais} disabled={isProcessing}>
+              <Button
+                variant="outline"
+                onClick={fecharModais}
+                disabled={isProcessing}
+              >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={confirmarReprovacao}
                 disabled={isProcessing || !observacoes.trim()}
@@ -922,6 +1212,6 @@ export function AssistenteSocial() {
       </div>
     </SidebarProvider>
   );
-};
+}
 
 export default AssistenteSocial;

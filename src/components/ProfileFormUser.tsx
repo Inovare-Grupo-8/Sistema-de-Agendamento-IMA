@@ -108,6 +108,8 @@ const ProfileFormUser = () => {
 
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
   // Use the new useUserProfile hook
   const {
     fetchPerfil,
@@ -708,6 +710,10 @@ const ProfileFormUser = () => {
         title: "Foto atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso!",
       });
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 150);
     } catch (error) {
       console.error("❌ [ProfileForm] DEBUG: Erro completo no upload:", error);
 
@@ -833,12 +839,12 @@ const ProfileFormUser = () => {
             </Button>
             <ProfileAvatar
               profileImage={profileImage}
-              name={userData.nome || "User"}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231]"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {userData.nome} {userData.sobrenome}
+              {displayName}
             </span>
           </div>
         )}
@@ -864,12 +870,12 @@ const ProfileFormUser = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={userData.nome || "User"}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB]"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {userData.nome} {userData.sobrenome}
+              {displayName}
             </span>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -882,7 +888,7 @@ const ProfileFormUser = () => {
                       asChild
                       className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                         location.pathname === item.path
-                          ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                          ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                           : ""
                       }`}
                     >
@@ -963,12 +969,12 @@ const ProfileFormUser = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar
                 profileImage={profileImage}
-                name={userData.nome || "User"}
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231]"
               />
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {userData.nome} {userData.sobrenome}
+                {displayName}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -1077,11 +1083,11 @@ const ProfileFormUser = () => {
                                 name="nome"
                                 type="text"
                                 value={formData.nome}
-                                onChange={handleInputChange}
-                                className={`w-full ${
+                                disabled
+                                className={`w-full opacity-70 cursor-not-allowed ${
                                   validationErrors.nome ? "border-red-500" : ""
                                 }`}
-                                placeholder="Digite seu nome"
+                                placeholder="Nome não pode ser alterado"
                               />
                               {validationErrors.nome && (
                                 <span className="text-sm text-red-500">
@@ -1102,13 +1108,13 @@ const ProfileFormUser = () => {
                                 name="sobrenome"
                                 type="text"
                                 value={formData.sobrenome}
-                                onChange={handleInputChange}
-                                className={`w-full ${
+                                disabled
+                                className={`w-full opacity-70 cursor-not-allowed ${
                                   validationErrors.sobrenome
                                     ? "border-red-500"
                                     : ""
                                 }`}
-                                placeholder="Digite seu sobrenome"
+                                placeholder="Sobrenome não pode ser alterado"
                               />
                               {validationErrors.sobrenome && (
                                 <span className="text-sm text-red-500">
@@ -1186,8 +1192,8 @@ const ProfileFormUser = () => {
                                 name="dataNascimento"
                                 type="date"
                                 value={formData.dataNascimento}
-                                onChange={handleInputChange}
-                                className="w-full"
+                                disabled
+                                className="w-full opacity-70 cursor-not-allowed"
                               />
                             </div>
 

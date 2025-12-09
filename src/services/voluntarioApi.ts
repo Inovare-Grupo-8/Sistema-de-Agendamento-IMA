@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { getBackendBaseUrl } from '@/lib/utils';
 
 // API base configuration
-const API_BASE_URL = `${import.meta.env.VITE_URL_BACKEND}`;
+const API_BASE_URL = getBackendBaseUrl();
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -269,8 +270,7 @@ export class VoluntarioApiService {
   }
 
   /**
-   * Lista todos os voluntários para seleção em agendamentos
-   * Retorna apenas voluntários ativos com informações simplificadas
+   * Lista voluntários para seleção em agendamentos respeitando paginação do backend
    */
   static async listarVoluntariosParaAgendamento(
     page = 0,
@@ -286,9 +286,20 @@ export class VoluntarioApiService {
 }> {
   try {
     const slice = await this.listarVoluntariosPaginado(page, size, sortBy, sortDir);
+    const sliceObject = this.isSliceResponse(slice) ? slice : undefined;
+    // Suporta respostas antigas que devolvem lista simples e novas que expõem Slice
+    const content = sliceObject?.content
+      ?? (Array.isArray(slice)
+        ? slice
+        : slice && typeof slice === "object" && Array.isArray((slice as { items?: VoluntarioListagem[] }).items)
+          ? (slice as { items?: VoluntarioListagem[] }).items ?? []
+          : []);
 
-    const items = slice.content
-      .filter(v => this.determinarStatus(v) === "ativo")
+    if (!sliceObject && !Array.isArray(slice) && slice != null) {
+      console.warn("Formato inesperado ao listar voluntários paginados", slice);
+    }
+
+    const items = content
       .map(v => ({
         id: v.idUsuario,
         nome: v.nomeCompleto ?? `${v.nome} ${v.sobrenome}`.trim(),
@@ -297,10 +308,10 @@ export class VoluntarioApiService {
 
     return {
       items,
-      page: slice.number,
-      size: slice.size,
-      last: slice.last,
-      numberOfElements: slice.numberOfElements
+      page: sliceObject?.number ?? page,
+      size: sliceObject?.size ?? size,
+      last: typeof sliceObject?.last === "boolean" ? sliceObject.last : items.length < size,
+      numberOfElements: sliceObject?.numberOfElements ?? items.length
     };
   } catch (error) {
     console.error("Erro ao listar voluntários para agendamento:", error);
@@ -336,12 +347,13 @@ export class VoluntarioApiService {
     const successCount = results.filter((r) => r.status === "fulfilled").length;
     return successCount;
   }
+  // Compatibiliza diferentes versões da API que podem retornar Slice ou lista simples
   static async listarVoluntariosPaginado(
   page = 0,
   size = 10,
   sortBy = "idUsuario",
   sortDir = "asc"
-  ): Promise<Slice<VoluntarioListagem>> {
+  ): Promise<Slice<VoluntarioListagem> | VoluntarioListagem[]> {
     try {
       const response = await apiClient.get(`/usuarios/voluntarios/paginado`, {
         params: { page, size, sortBy, sortDir }
@@ -352,6 +364,14 @@ export class VoluntarioApiService {
       console.error("Erro ao buscar voluntários paginados:", error);
       throw new Error("Falha ao carregar voluntários");
     }
+  }
+
+  private static isSliceResponse(value: unknown): value is Slice<VoluntarioListagem> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+
+    return Array.isArray((value as { content?: unknown }).content);
   }
 }
 

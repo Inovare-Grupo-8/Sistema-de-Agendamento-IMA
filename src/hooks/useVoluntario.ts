@@ -31,6 +31,7 @@ export const useVoluntario = () => {
   type VoluntarioCacheValue =
     | DadosPessoaisVoluntario
     | DadosProfissionaisVoluntario
+    | EnderecoVoluntario
     | null;
 
   // ✅ Cache para evitar chamadas repetidas
@@ -151,6 +152,10 @@ export const useVoluntario = () => {
       }
 
       const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const payload = {
+        email: dados.email,
+        telefone: dados.telefone,
+      };
       const response = await fetch(
         `${base}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`,
         {
@@ -159,7 +164,7 @@ export const useVoluntario = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${user.token || ""}`,
           },
-          body: JSON.stringify(dados),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -171,13 +176,18 @@ export const useVoluntario = () => {
 
       const result = await response.json();
 
-      // Atualizar localStorage se o email foi alterado
-      if (result.email && result.email !== user.email) {
-        const updatedUser = { ...user, email: result.email };
-        localStorage.setItem("userData", JSON.stringify(updatedUser));
-      }
+      // Atualizar localStorage com mudança de email
+      const updatedUser = {
+        ...user,
+        email: result.email ?? user.email,
+      };
+      localStorage.setItem("userData", JSON.stringify(updatedUser));
 
-      return result;
+      return {
+        ...dados,
+        email: result.email ?? dados.email,
+        telefone: result.telefone ?? dados.telefone,
+      };
     } catch (error) {
       console.error("Erro ao atualizar dados pessoais:", error);
       throw error;
@@ -475,10 +485,10 @@ export const useVoluntario = () => {
         throw new Error("ID do usuário não encontrado");
       }
 
-      // Verificar se a foto não é muito grande (máximo 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      // Verificar se a foto não é muito grande (máximo 1MB)
+      const maxSize = 1 * 1024 * 1024;
       if (file.size > maxSize) {
-        throw new Error("A foto é muito grande. Tamanho máximo permitido: 5MB");
+        throw new Error("A foto é muito grande. Tamanho máximo permitido: 1MB");
       }
 
       const formData = new FormData();
@@ -509,9 +519,9 @@ export const useVoluntario = () => {
         ? result.url.startsWith("http")
           ? result.url
           : `${import.meta.env.VITE_URL_BACKEND}${result.url}`
-        : `${
-            import.meta.env.VITE_URL_BACKEND
-          }/uploads/voluntario_user_${usuarioId}.jpg`;
+        : (() => {
+            throw new Error("Resposta do upload não retornou URL da foto");
+          })();
 
       return photoUrl;
     } catch (error) {
