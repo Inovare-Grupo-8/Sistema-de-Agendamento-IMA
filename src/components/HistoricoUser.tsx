@@ -435,6 +435,15 @@ const HistoricoUser = () => {
   };
 
   const openFeedbackModal = (consulta: HistoricoConsulta) => {
+    // Only allow feedback for completed consultations
+    if (consulta.status !== "realizada") {
+      toast({
+        title: "Ação não permitida",
+        description: "Você só pode avaliar consultas que já foram realizadas.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedConsulta(consulta);
     setCurrentRating(consulta.feedback?.rating || 0);
     setCurrentComment(consulta.feedback?.comment || "");

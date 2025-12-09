@@ -616,6 +616,15 @@ const HomeUser = () => {
 
   // Função para abrir modal de feedback/avaliação
   const abrirModalFeedback = (consulta: Consulta) => {
+    // Only allow feedback for completed consultations
+    if (consulta.status !== "realizada") {
+      toast({
+        title: "Ação não permitida",
+        description: "Você só pode avaliar consultas que já foram realizadas.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedConsultaFeedback(consulta);
     setCurrentRating(consulta.avaliacao || 0);
     setCurrentComment("");
@@ -2146,7 +2155,7 @@ const HomeUser = () => {
                                     )}
                                 </div>
                                 {consulta.status === "realizada" && (
-                                  <div className="flex justify-end mt-2">
+                                  <div className="flex justify-end mt-2 gap-1">
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -2156,8 +2165,19 @@ const HomeUser = () => {
                                       }
                                     >
                                       Ver detalhes
-                                    </Button>{" "}
-                                    {!consulta.avaliacao && (
+                                    </Button>
+                                    {consulta.avaliacao ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                        onClick={() =>
+                                          abrirModalFeedback(consulta)
+                                        }
+                                      >
+                                        Editar avaliação
+                                      </Button>
+                                    ) : (
                                       <Button
                                         variant="ghost"
                                         size="sm"
