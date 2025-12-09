@@ -143,6 +143,19 @@ const ProfileFormUser = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  // Base classes centralize input colors across light and dark themes
+  const inputBaseClasses =
+    "bg-[#F8FBFF] border-[#D7E3FF] text-[#1B2559] placeholder:text-[#7C8AA8] focus-visible:ring-[#ED4231]/80 focus-visible:border-[#ED4231] focus-visible:ring-offset-2 dark:bg-[#1F2330] dark:border-[#343B4A] dark:text-gray-100 dark:placeholder:text-gray-400 transition-colors disabled:bg-[#E6ECFF] dark:disabled:bg-[#2A3142] disabled:text-[#7C8AA8] dark:disabled:text-gray-500";
+  const primaryActionButtonClasses =
+    "bg-[#ED4231] hover:bg-[#d63a2a] text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors focus-visible:ring-2 focus-visible:ring-[#ED4231]/80 focus-visible:ring-offset-2 disabled:opacity-70";
+  const secondaryActionButtonClasses =
+    "border border-[#D7E3FF] text-[#1B2559] font-medium py-2 px-4 rounded-lg bg-[#F8FBFF] hover:bg-[#EDF2FB] transition-colors focus-visible:ring-2 focus-visible:ring-[#ED4231]/60 focus-visible:ring-offset-2 dark:border-[#343B4A] dark:text-gray-100 dark:bg-[#1F2330] dark:hover:bg-[#2A3142] disabled:opacity-70";
+  const roundedIconPrimaryClasses =
+    "p-2 rounded-full bg-[#ED4231] text-white shadow-md hover:bg-[#d63a2a] focus-visible:ring-2 focus-visible:ring-[#ED4231]/70 focus-visible:ring-offset-2 transition-colors";
+  const roundedIconSecondaryClasses =
+    "p-2 rounded-full border border-[#D7E3FF] bg-[#F8FBFF] text-[#1B2559] hover:bg-[#ED4231]/10 hover:text-[#ED4231] transition-colors focus-visible:ring-2 focus-visible:ring-[#ED4231]/60 focus-visible:ring-offset-2 dark:border-[#343B4A] dark:bg-[#1F2330] dark:text-gray-100 dark:hover:bg-[#2A3142]";
+  const roundedGhostButtonClasses =
+    "p-2 rounded-full text-[#1B2559] hover:bg-[#ED4231]/10 hover:text-[#ED4231] transition-colors focus-visible:ring-2 focus-visible:ring-[#ED4231]/40 focus-visible:ring-offset-2 dark:text-gray-100 dark:hover:text-white";
 
   const loadProfileData = useCallback(async () => {
     console.log("🟢 [ProfileForm] DEBUG: loadProfileData iniciado");
@@ -830,7 +843,7 @@ const ProfileFormUser = () => {
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             <Button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+              className={roundedIconPrimaryClasses}
               aria-label="Abrir menu lateral"
               tabIndex={0}
               title="Abrir menu lateral"
@@ -862,7 +875,7 @@ const ProfileFormUser = () => {
           <div className="w-full flex justify-start mb-6">
             <Button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+              className={roundedIconPrimaryClasses}
             >
               <Menu className="w-7 h-7" />
             </Button>
@@ -983,7 +996,7 @@ const ProfileFormUser = () => {
                 <TooltipTrigger asChild>
                   <Button
                     onClick={toggleTheme}
-                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
+                    className={roundedIconSecondaryClasses}
                     aria-label={
                       theme === "dark"
                         ? "Ativar modo claro"
@@ -1019,7 +1032,7 @@ const ProfileFormUser = () => {
                     <Button
                       onClick={() => navigate("/home-user")}
                       variant="ghost"
-                      className="p-2 rounded-full"
+                      className={roundedGhostButtonClasses}
                       aria-label="Voltar"
                     >
                       <ArrowLeft className="h-5 w-5" />
@@ -1084,8 +1097,10 @@ const ProfileFormUser = () => {
                                 type="text"
                                 value={formData.nome}
                                 disabled
-                                className={`w-full opacity-70 cursor-not-allowed ${
-                                  validationErrors.nome ? "border-red-500" : ""
+                                className={`${inputBaseClasses} opacity-70 cursor-not-allowed ${
+                                  validationErrors.nome
+                                    ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
+                                    : ""
                                 }`}
                                 placeholder="Nome não pode ser alterado"
                               />
@@ -1109,9 +1124,9 @@ const ProfileFormUser = () => {
                                 type="text"
                                 value={formData.sobrenome}
                                 disabled
-                                className={`w-full opacity-70 cursor-not-allowed ${
+                                className={`${inputBaseClasses} opacity-70 cursor-not-allowed ${
                                   validationErrors.sobrenome
-                                    ? "border-red-500"
+                                    ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
                                     : ""
                                 }`}
                                 placeholder="Sobrenome não pode ser alterado"
@@ -1138,8 +1153,10 @@ const ProfileFormUser = () => {
                               type="email"
                               value={formData.email}
                               onChange={handleInputChange}
-                              className={`w-full ${
-                                validationErrors.email ? "border-red-500" : ""
+                              className={`${inputBaseClasses} ${
+                                validationErrors.email
+                                  ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
+                                  : ""
                               }`}
                               placeholder="Digite seu e-mail"
                             />
@@ -1164,9 +1181,9 @@ const ProfileFormUser = () => {
                               type="tel"
                               value={formData.telefone}
                               onChange={handleInputChange}
-                              className={`w-full ${
+                              className={`${inputBaseClasses} ${
                                 validationErrors.telefone
-                                  ? "border-red-500"
+                                  ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
                                   : ""
                               }`}
                               placeholder="(11) 94555-5555"
@@ -1193,7 +1210,7 @@ const ProfileFormUser = () => {
                                 type="date"
                                 value={formData.dataNascimento}
                                 disabled
-                                className="w-full opacity-70 cursor-not-allowed"
+                                className={`${inputBaseClasses} opacity-70 cursor-not-allowed`}
                               />
                             </div>
 
@@ -1209,7 +1226,7 @@ const ProfileFormUser = () => {
                                 name="genero"
                                 value={formData.genero}
                                 onChange={handleSelectChange}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-[#23272F] text-gray-900 dark:text-gray-100"
+                                className="w-full px-3 py-2 rounded-md border border-[#D7E3FF] bg-[#F8FBFF] text-[#1B2559] focus:outline-none focus:ring-2 focus:ring-[#ED4231]/80 focus:border-[#ED4231] dark:bg-[#1F2330] dark:border-[#343B4A] dark:text-gray-100 transition-colors"
                               >
                                 <option value="OUTRO">
                                   Prefiro não informar
@@ -1225,7 +1242,7 @@ const ProfileFormUser = () => {
                             <Button
                               onClick={handleSave}
                               disabled={loading}
-                              className="flex-1 bg-[#ED4231] hover:bg-[#ED4231]/90 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                              className={`flex-1 ${primaryActionButtonClasses}`}
                             >
                               {loading ? (
                                 <>
@@ -1240,8 +1257,7 @@ const ProfileFormUser = () => {
                             <Button
                               onClick={handleCancel}
                               disabled={loading}
-                              variant="outline"
-                              className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                              className={`flex-1 ${secondaryActionButtonClasses}`}
                             >
                               Cancelar
                             </Button>
@@ -1288,7 +1304,7 @@ const ProfileFormUser = () => {
                                     name="endereco.rua"
                                     value={formData.endereco.rua}
                                     onChange={handleInputChange}
-                                    className="bg-white dark:bg-gray-800"
+                                    className={inputBaseClasses}
                                   />
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
@@ -1303,7 +1319,7 @@ const ProfileFormUser = () => {
                                 name="endereco.numero"
                                 value={formData.endereco.numero}
                                 onChange={handleInputChange}
-                                className="bg-white dark:bg-gray-800"
+                                className={inputBaseClasses}
                               />
                             </div>
                           </div>
@@ -1315,7 +1331,7 @@ const ProfileFormUser = () => {
                               name="endereco.complemento"
                               value={formData.endereco.complemento}
                               onChange={handleInputChange}
-                              className="bg-white dark:bg-gray-800"
+                              className={inputBaseClasses}
                             />
                           </div>
 
@@ -1326,7 +1342,7 @@ const ProfileFormUser = () => {
                               name="endereco.bairro"
                               value={formData.endereco.bairro}
                               onChange={handleInputChange}
-                              className="bg-white dark:bg-gray-800"
+                              className={inputBaseClasses}
                             />
                           </div>
 
@@ -1338,7 +1354,7 @@ const ProfileFormUser = () => {
                                 name="endereco.cidade"
                                 value={formData.endereco.cidade}
                                 onChange={handleInputChange}
-                                className="bg-white dark:bg-gray-800"
+                                className={inputBaseClasses}
                               />
                             </div>
                             <div className="space-y-2">
@@ -1348,7 +1364,7 @@ const ProfileFormUser = () => {
                                 name="endereco.estado"
                                 value={formData.endereco.estado}
                                 onChange={handleInputChange}
-                                className="bg-white dark:bg-gray-800"
+                                className={inputBaseClasses}
                               />
                             </div>
                             <div className="space-y-2">
@@ -1364,7 +1380,7 @@ const ProfileFormUser = () => {
                                       onBlur={handleCepBlur}
                                       placeholder="00000-000"
                                       maxLength={9}
-                                      className="bg-white dark:bg-gray-800"
+                                      className={`${inputBaseClasses} pr-12`}
                                     />
                                   </TooltipTrigger>
                                   <TooltipContent side="top">
@@ -1396,7 +1412,7 @@ const ProfileFormUser = () => {
                             <Button
                               onClick={handleSave}
                               disabled={loading}
-                              className="bg-[#ED4231] hover:bg-[#d53a2a]"
+                              className={primaryActionButtonClasses}
                             >
                               {loading ? "Salvando..." : "Salvar Alterações"}
                             </Button>
@@ -1451,7 +1467,7 @@ const ProfileFormUser = () => {
                             <TooltipTrigger asChild>
                               <Label
                                 htmlFor="photo-upload"
-                                className="cursor-pointer flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                                className={`cursor-pointer flex items-center justify-center ${secondaryActionButtonClasses}`}
                               >
                                 Escolher Foto
                               </Label>
@@ -1484,7 +1500,7 @@ const ProfileFormUser = () => {
                           <Button
                             onClick={handleSavePhoto}
                             disabled={loading || !selectedImage}
-                            className="ml-auto bg-[#ED4231] hover:bg-[#d53a2a]"
+                            className={`ml-auto ${primaryActionButtonClasses}`}
                           >
                             {loading ? "Salvando..." : "Salvar Foto"}
                           </Button>
@@ -1510,8 +1526,16 @@ const ProfileFormUser = () => {
             <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+            <Button
+              onClick={() => setShowLogoutDialog(false)}
+              className={secondaryActionButtonClasses}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleLogout}
+              className={primaryActionButtonClasses}
+            >
               Sair
             </Button>
           </DialogFooter>
