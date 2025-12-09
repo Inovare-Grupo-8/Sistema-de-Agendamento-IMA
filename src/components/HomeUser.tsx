@@ -51,7 +51,13 @@ import {
   Home as HomeIcon,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { ProximaConsulta } from "@/services/consultaApi";
+import {
+  ProximaConsulta,
+  ConsultaOutput,
+  ConsultaApiService,
+  resolveConsultaPresentationMetadata,
+  normalizeConsultaStatus,
+} from "@/services/consultaApi";
 import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
@@ -62,7 +68,6 @@ import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { userNavigationItems } from "@/utils/userNavigation";
-import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import type { UserData } from "@/types/user";
@@ -293,8 +298,67 @@ const HomeUser = () => {
         throw new Error("ID do usuário não encontrado");
       }
 
+      const userEmail = typeof user.email === "string" ? user.email : undefined;
+
+      const belongsToAssistido = (
+        consulta: ConsultaOutput,
+        targetId: number,
+        targetEmail?: string
+      ) => {
+        const normalizedTargetId = Number(targetId);
+
+        const candidateIds = [
+          (consulta.assistido as { idUsuario?: number } | undefined)?.idUsuario,
+          (consulta.assistido as { id?: number } | undefined)?.id,
+          (consulta.assistido as { usuario?: { idUsuario?: number } } | undefined)?.usuario?.idUsuario,
+          (consulta.assistido as { usuario?: { id?: number } } | undefined)?.usuario?.id,
+          (consulta as { idAssistido?: number }).idAssistido,
+          (consulta as { assistidoId?: number }).assistidoId,
+        ]
+          .map((value) => Number(value))
+          .filter((value) => !Number.isNaN(value));
+
+        if (candidateIds.includes(normalizedTargetId)) {
+          return true;
+        }
+
+        if (targetEmail) {
+          const normalizedTargetEmail = targetEmail.trim().toLowerCase();
+          if (normalizedTargetEmail) {
+            const candidateEmails = [
+              (consulta.assistido as { email?: string } | undefined)?.email,
+              (consulta.assistido as { usuario?: { email?: string } } | undefined)?.usuario?.email,
+              (consulta as { assistidoEmail?: string }).assistidoEmail,
+            ]
+              .map((value) =>
+                typeof value === "string" ? value.trim().toLowerCase() : ""
+              )
+              .filter(Boolean);
+
+            if (candidateEmails.includes(normalizedTargetEmail)) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      };
+
       const historicoData = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        "assistido"
+      );
+
+      const historicoArray: ConsultaOutput[] = Array.isArray(historicoData)
+        ? historicoData
+        : Array.isArray(
+              (historicoData as { consultas?: ConsultaOutput[] })?.consultas
+            )
+          ? ((historicoData as { consultas?: ConsultaOutput[] }).consultas ?? [])
+          : [];
+
+      const historicoAssistido = historicoArray.filter((consulta) =>
+        belongsToAssistido(consulta, userId, userEmail)
       );
       const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback(
         userId,
@@ -309,25 +373,26 @@ const HomeUser = () => {
         }
       });
 
-      const historicoFormatted: Consulta[] = historicoData
+      const historicoFormatted: Consulta[] = historicoAssistido
         .map((consulta) => {
           const consultaDate = new Date(consulta.horario);
           const consultaId = consulta.idConsulta;
           const rating = avaliacoesMap.get(consultaId);
+          const { voluntarioNome, especialidadeNome, modalidade, status } =
+            resolveConsultaPresentationMetadata(consulta);
+
+          const modalidadeNormalized = modalidade.trim().toUpperCase();
 
           return {
             id: consultaId,
-            profissional: consulta.voluntario?.ficha?.nome || "Voluntário",
-            especialidade: consulta.especialidade?.nome || "Especialidade",
+            profissional: voluntarioNome,
+            especialidade: especialidadeNome,
             data: consultaDate,
             tipo:
-              consulta.modalidade === "ONLINE"
+              modalidadeNormalized === "ONLINE"
                 ? "Consulta Online"
                 : "Consulta Presencial",
-            status: consulta.status.toLowerCase() as
-              | "realizada"
-              | "cancelada"
-              | "remarcada",
+            status: normalizeConsultaStatus(status || consulta.status),
             avaliacao: rating ?? undefined,
           };
         })
@@ -336,11 +401,11 @@ const HomeUser = () => {
 
       setHistoricoRecente(historicoFormatted);
 
-      const consultasRealizadas = historicoData.filter(
+      const consultasRealizadas = historicoAssistido.filter(
         (consulta) => consulta.status.toLowerCase() === "realizada"
       ).length;
 
-      const consultasHistoricoCanceladas = historicoData.filter(
+      const consultasHistoricoCanceladas = historicoAssistido.filter(
         (consulta) => consulta.status.toLowerCase() === "cancelada"
       ).length;
 

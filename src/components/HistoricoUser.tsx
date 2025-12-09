@@ -43,9 +43,12 @@ import {
   userNavigationItems,
 } from "@/utils/userNavigation";
 import {
-  ConsultaApiService,
-  ConsultaAvaliacao,
-  ConsultaFeedback,
+          ConsultaApiService,
+          ConsultaAvaliacao,
+          ConsultaFeedback,
+          ConsultaOutput,
+          resolveConsultaPresentationMetadata,
+          normalizeConsultaStatus,
 } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -151,14 +154,72 @@ const HistoricoUser = () => {
         }
         const user = JSON.parse(userDataStr);
         const userId = user.idUsuario;
+        const userEmail = typeof user.email === "string" ? user.email : undefined;
 
         if (!userId) {
           throw new Error("ID do usuário não encontrado");
         }
 
+        const belongsToAssistido = (
+          consulta: ConsultaOutput,
+          targetId: number,
+          targetEmail?: string
+        ) => {
+          const normalizedTargetId = Number(targetId);
+
+          const candidateIds = [
+            (consulta.assistido as { idUsuario?: number } | undefined)?.idUsuario,
+            (consulta.assistido as { id?: number } | undefined)?.id,
+            (consulta.assistido as { usuario?: { idUsuario?: number } } | undefined)?.usuario?.idUsuario,
+            (consulta.assistido as { usuario?: { id?: number } } | undefined)?.usuario?.id,
+            (consulta as { idAssistido?: number }).idAssistido,
+            (consulta as { assistidoId?: number }).assistidoId,
+          ]
+            .map((value) => Number(value))
+            .filter((value) => !Number.isNaN(value));
+
+          if (candidateIds.includes(normalizedTargetId)) {
+            return true;
+          }
+
+          if (targetEmail) {
+            const normalizedTargetEmail = targetEmail.trim().toLowerCase();
+            if (normalizedTargetEmail) {
+              const candidateEmails = [
+                (consulta.assistido as { email?: string } | undefined)?.email,
+                (consulta.assistido as { usuario?: { email?: string } } | undefined)?.usuario?.email,
+                (consulta as { assistidoEmail?: string }).assistidoEmail,
+              ]
+                .map((value) =>
+                  typeof value === "string" ? value.trim().toLowerCase() : ""
+                )
+                .filter(Boolean);
+
+              if (candidateEmails.includes(normalizedTargetEmail)) {
+                return true;
+              }
+            }
+          }
+
+          return false;
+        };
+
         // Load historical consultations
         const historicoData = await ConsultaApiService.getHistoricoConsultas(
-          userId
+          userId,
+          "assistido"
+        );
+
+        const historicoArray: ConsultaOutput[] = Array.isArray(historicoData)
+          ? historicoData
+          : Array.isArray(
+                (historicoData as { consultas?: ConsultaOutput[] })?.consultas
+              )
+            ? ((historicoData as { consultas?: ConsultaOutput[] }).consultas ?? [])
+            : [];
+
+        const historicoAssistido = historicoArray.filter((consulta) =>
+          belongsToAssistido(consulta, userId, userEmail)
         );
 
         // Load evaluations and feedbacks
@@ -186,10 +247,13 @@ const HistoricoUser = () => {
         });
 
         // Convert API data to component format
-        const historicoFormatted: HistoricoConsulta[] = historicoData.map(
+        const historicoFormatted: HistoricoConsulta[] = historicoAssistido.map(
           (consulta) => {
             const consultaDate = new Date(consulta.horario);
             const consultaId = consulta.idConsulta;
+
+            const { voluntarioNome, especialidadeNome, modalidade, status } =
+              resolveConsultaPresentationMetadata(consulta);
 
             // Get evaluation and feedback for this consultation
             const rating = avaliacoesMap.get(consultaId);
@@ -199,13 +263,10 @@ const HistoricoUser = () => {
               id: consultaId.toString(),
               date: consultaDate,
               time: consulta.horario.split("T")[1]?.substring(0, 5) || "00:00",
-              name: consulta.voluntario?.ficha?.nome || "Voluntário",
-              type: consulta.especialidade?.nome || "Especialidade",
-              serviceType: consulta.modalidade,
-              status: consulta.status.toLowerCase() as
-                | "realizada"
-                | "cancelada"
-                | "remarcada",
+              name: voluntarioNome,
+              type: especialidadeNome,
+              serviceType: modalidade,
+              status: normalizeConsultaStatus(status || consulta.status),
               duration: 50, // Default duration, can be enhanced later
               cost: 0, // Default cost, can be enhanced later
               feedback:

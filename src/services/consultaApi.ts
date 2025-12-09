@@ -1,5 +1,9 @@
 import axios from "axios";
-import { getBackendBaseUrl } from "@/lib/utils";
+import {
+  getBackendBaseUrl,
+  resolveConsultaUserRole,
+  type ConsultaUserRole,
+} from "@/lib/utils";
 
 // API base configuration
 const API_BASE_URL = getBackendBaseUrl();
@@ -85,25 +89,144 @@ export interface ConsultaOutput {
   modalidade: string;
   local: string;
   observacoes: string;
-  especialidade: {
+  especialidade?: {
     id: number;
     nome: string;
   };
-  voluntario: {
+  voluntario?: {
     idUsuario: number;
     email: string;
     ficha: {
       nome: string;
     };
   };
-  assistido: {
+  assistido?: {
     idUsuario: number;
     email: string;
     ficha: {
       nome: string;
     };
   };
+  idAssistido?: number;
+  assistidoId?: number;
+  assistidoEmail?: string;
+  assistidoNome?: string;
+  voluntarioId?: number;
+  voluntarioNome?: string;
+  voluntarioEmail?: string;
+  especialidadeId?: number;
+  especialidadeNome?: string;
+  nomeVoluntario?: string;
+  nomeEspecialidade?: string;
+  modalidadeDescricao?: string;
+  statusDescricao?: string;
 }
+
+export interface ConsultaPresentationMetadata {
+  voluntarioNome: string;
+  especialidadeNome: string;
+  modalidade: string;
+  status: string;
+}
+
+const extractFirstString = (values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
+
+export const resolveConsultaPresentationMetadata = (
+  consulta: ConsultaOutput | (ConsultaOutput & Record<string, unknown>)
+): ConsultaPresentationMetadata => {
+  const record = consulta as Record<string, unknown>;
+
+  const voluntarioRecord =
+    typeof record["voluntario"] === "object" && record["voluntario"] !== null
+      ? (record["voluntario"] as Record<string, unknown>)
+      : undefined;
+  const voluntarioFichaRecord =
+    voluntarioRecord &&
+    typeof voluntarioRecord["ficha"] === "object" &&
+    voluntarioRecord["ficha"] !== null
+      ? (voluntarioRecord["ficha"] as Record<string, unknown>)
+      : undefined;
+
+  const voluntarioNome =
+    extractFirstString([
+      record["voluntarioNome"] as string | undefined,
+      record["nomeVoluntario"] as string | undefined,
+      record["profissionalNome"] as string | undefined,
+      record["nomeProfissional"] as string | undefined,
+      voluntarioFichaRecord &&
+      typeof voluntarioFichaRecord["nome"] === "string"
+        ? (voluntarioFichaRecord["nome"] as string)
+        : undefined,
+      voluntarioRecord && typeof voluntarioRecord["nome"] === "string"
+        ? (voluntarioRecord["nome"] as string)
+        : undefined,
+    ]) ?? "Profissional não informado";
+
+  const especialidadeRecord =
+    typeof record["especialidade"] === "object" &&
+    record["especialidade"] !== null
+      ? (record["especialidade"] as Record<string, unknown>)
+      : undefined;
+
+  const especialidadeNome =
+    extractFirstString([
+      record["especialidadeNome"] as string | undefined,
+      record["nomeEspecialidade"] as string | undefined,
+      especialidadeRecord &&
+      typeof especialidadeRecord["nome"] === "string"
+        ? (especialidadeRecord["nome"] as string)
+        : undefined,
+    ]) ?? "Especialidade não informada";
+
+  const modalidadeRaw =
+    extractFirstString([
+      record["modalidade"] as string | undefined,
+      record["modalidadeDescricao"] as string | undefined,
+      record["nomeModalidade"] as string | undefined,
+    ]) ?? "";
+
+  const statusRaw =
+    extractFirstString([
+      record["status"] as string | undefined,
+      record["statusDescricao"] as string | undefined,
+    ]) ?? "";
+
+  return {
+    voluntarioNome,
+    especialidadeNome,
+    modalidade: modalidadeRaw || "Modalidade não informada",
+    status: statusRaw || "",
+  };
+};
+
+export const normalizeConsultaStatus = (
+  status: string | undefined
+): "realizada" | "cancelada" | "remarcada" => {
+  const normalized = (status ?? "")
+    .toString()
+    .trim()
+    .toLowerCase();
+
+  switch (normalized) {
+    case "realizada":
+      return "realizada";
+    case "cancelada":
+      return "cancelada";
+    case "remarcada":
+    case "reagendada":
+    case "agendada":
+      return "remarcada";
+    default:
+      return "remarcada";
+  }
+};
 
 export interface ApiError {
   message: string;
@@ -297,13 +420,33 @@ export class ConsultaApiService {
    * @returns Promise with array of historical consultations
    */
   static async getHistoricoConsultas(
-    userId: number
+    userId: number,
+    userType?: ConsultaUserRole
   ): Promise<ConsultaOutput[]> {
     try {
+      let resolvedUserType = userType;
+
+      if (!resolvedUserType) {
+        const storedUserData = localStorage.getItem("userData");
+        if (storedUserData) {
+          try {
+            const parsed = JSON.parse(storedUserData);
+            resolvedUserType = resolveConsultaUserRole(
+              parsed?.tipo,
+              parsed?.funcao
+            );
+          } catch (error) {
+            console.warn("Erro ao interpretar userData para histórico:", error);
+          }
+        }
+      }
+
+      const userParam: ConsultaUserRole = resolvedUserType ?? "assistido";
+
       const response = await apiClient.get<any>(
         `/consulta/consultas/historico`,
         {
-          params: { userId },
+          params: { userId, user: userParam },
         }
       );
       // Backend retorna um Map com a chave "consultas"
