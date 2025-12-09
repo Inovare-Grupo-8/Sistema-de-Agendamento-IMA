@@ -143,6 +143,9 @@ const ProfileFormUser = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  // Base classes centralize input colors across light and dark themes
+  const inputBaseClasses =
+    "bg-[#F8FBFF] border-[#D7E3FF] text-[#1B2559] placeholder:text-[#7C8AA8] focus-visible:ring-[#ED4231]/80 focus-visible:border-[#ED4231] focus-visible:ring-offset-2 dark:bg-[#1F2330] dark:border-[#343B4A] dark:text-gray-100 dark:placeholder:text-gray-400 transition-colors disabled:bg-[#E6ECFF] dark:disabled:bg-[#2A3142] disabled:text-[#7C8AA8] dark:disabled:text-gray-500";
 
   const loadProfileData = useCallback(async () => {
     console.log("🟢 [ProfileForm] DEBUG: loadProfileData iniciado");
@@ -1084,8 +1087,10 @@ const ProfileFormUser = () => {
                                 type="text"
                                 value={formData.nome}
                                 disabled
-                                className={`w-full opacity-70 cursor-not-allowed ${
-                                  validationErrors.nome ? "border-red-500" : ""
+                                className={`${inputBaseClasses} opacity-70 cursor-not-allowed ${
+                                  validationErrors.nome
+                                    ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
+                                    : ""
                                 }`}
                                 placeholder="Nome não pode ser alterado"
                               />
@@ -1109,9 +1114,9 @@ const ProfileFormUser = () => {
                                 type="text"
                                 value={formData.sobrenome}
                                 disabled
-                                className={`w-full opacity-70 cursor-not-allowed ${
+                                className={`${inputBaseClasses} opacity-70 cursor-not-allowed ${
                                   validationErrors.sobrenome
-                                    ? "border-red-500"
+                                    ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
                                     : ""
                                 }`}
                                 placeholder="Sobrenome não pode ser alterado"
@@ -1138,8 +1143,10 @@ const ProfileFormUser = () => {
                               type="email"
                               value={formData.email}
                               onChange={handleInputChange}
-                              className={`w-full ${
-                                validationErrors.email ? "border-red-500" : ""
+                              className={`${inputBaseClasses} ${
+                                validationErrors.email
+                                  ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
+                                  : ""
                               }`}
                               placeholder="Digite seu e-mail"
                             />
@@ -1164,9 +1171,9 @@ const ProfileFormUser = () => {
                               type="tel"
                               value={formData.telefone}
                               onChange={handleInputChange}
-                              className={`w-full ${
+                              className={`${inputBaseClasses} ${
                                 validationErrors.telefone
-                                  ? "border-red-500"
+                                  ? "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
                                   : ""
                               }`}
                               placeholder="(11) 94555-5555"
@@ -1193,7 +1200,7 @@ const ProfileFormUser = () => {
                                 type="date"
                                 value={formData.dataNascimento}
                                 disabled
-                                className="w-full opacity-70 cursor-not-allowed"
+                                className={`${inputBaseClasses} opacity-70 cursor-not-allowed`}
                               />
                             </div>
 
@@ -1209,7 +1216,7 @@ const ProfileFormUser = () => {
                                 name="genero"
                                 value={formData.genero}
                                 onChange={handleSelectChange}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-[#ED4231] bg-white dark:bg-[#23272F] text-gray-900 dark:text-gray-100"
+                                className="w-full px-3 py-2 rounded-md border border-[#D7E3FF] bg-[#F8FBFF] text-[#1B2559] focus:outline-none focus:ring-2 focus:ring-[#ED4231]/80 focus:border-[#ED4231] dark:bg-[#1F2330] dark:border-[#343B4A] dark:text-gray-100 transition-colors"
                               >
                                 <option value="OUTRO">
                                   Prefiro não informar
@@ -1288,7 +1295,7 @@ const ProfileFormUser = () => {
                                     name="endereco.rua"
                                     value={formData.endereco.rua}
                                     onChange={handleInputChange}
-                                    className="bg-white dark:bg-gray-800"
+                                    className={inputBaseClasses}
                                   />
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
@@ -1303,7 +1310,7 @@ const ProfileFormUser = () => {
                                 name="endereco.numero"
                                 value={formData.endereco.numero}
                                 onChange={handleInputChange}
-                                className="bg-white dark:bg-gray-800"
+                                className={inputBaseClasses}
                               />
                             </div>
                           </div>
@@ -1315,7 +1322,7 @@ const ProfileFormUser = () => {
                               name="endereco.complemento"
                               value={formData.endereco.complemento}
                               onChange={handleInputChange}
-                              className="bg-white dark:bg-gray-800"
+                              className={inputBaseClasses}
                             />
                           </div>
 
@@ -1326,7 +1333,7 @@ const ProfileFormUser = () => {
                               name="endereco.bairro"
                               value={formData.endereco.bairro}
                               onChange={handleInputChange}
-                              className="bg-white dark:bg-gray-800"
+                              className={inputBaseClasses}
                             />
                           </div>
 
@@ -1338,7 +1345,7 @@ const ProfileFormUser = () => {
                                 name="endereco.cidade"
                                 value={formData.endereco.cidade}
                                 onChange={handleInputChange}
-                                className="bg-white dark:bg-gray-800"
+                                className={inputBaseClasses}
                               />
                             </div>
                             <div className="space-y-2">
@@ -1348,7 +1355,7 @@ const ProfileFormUser = () => {
                                 name="endereco.estado"
                                 value={formData.endereco.estado}
                                 onChange={handleInputChange}
-                                className="bg-white dark:bg-gray-800"
+                                className={inputBaseClasses}
                               />
                             </div>
                             <div className="space-y-2">
@@ -1364,7 +1371,7 @@ const ProfileFormUser = () => {
                                       onBlur={handleCepBlur}
                                       placeholder="00000-000"
                                       maxLength={9}
-                                      className="bg-white dark:bg-gray-800"
+                                      className={`${inputBaseClasses} pr-12`}
                                     />
                                   </TooltipTrigger>
                                   <TooltipContent side="top">
