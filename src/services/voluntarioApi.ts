@@ -303,7 +303,7 @@ export class VoluntarioApiService {
       .map(v => ({
         id: v.idUsuario,
         nome: v.nomeCompleto ?? `${v.nome} ${v.sobrenome}`.trim(),
-        especialidade: v.areaOrientacao ?? v.funcao ?? "Consulta Geral"
+        especialidade: v.funcao ?? v.areaOrientacao ?? "Consulta Geral"
       }));
 
     return {
