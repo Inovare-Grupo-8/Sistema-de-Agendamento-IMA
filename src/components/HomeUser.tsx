@@ -51,7 +51,6 @@ import {
   Home as HomeIcon,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { ProximaConsulta } from "@/services/consultaApi";
 import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
@@ -157,14 +156,6 @@ const HomeUser = () => {
     mes: 0,
     semana: 0,
   });
-
-  // Adicionando estado para o status da próxima consulta
-  const [proximaConsultaData, setProximaConsultaData] = useState<{
-    profissional: string;
-    especialidade: string;
-    tipo: string;
-    status: string;
-  } | null>(null);
   const [atendimentosSummary, setAtendimentosSummary] =
     useState<AtendimentoSummary>({
       realizados: 0,
@@ -172,34 +163,11 @@ const HomeUser = () => {
       ultimaAvaliacao: null,
     });
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
-  const [todasConsultas, setTodasConsultas] = useState<Consulta[]>([]);
-  const [proximaConsulta, setProximaConsulta] =
-    useState<ProximaConsulta | null>(null);
 
-  // Adicionar useEffect para carregar a próxima consulta
-  useEffect(() => {
-    const loadProximaConsulta = async () => {
-      try {
-        const userData = localStorage.getItem("userData");
-        if (!userData) {
-          console.log("User data not found - continuing without data");
-          return;
-        }
+  const proximaConsulta =
+    proximasConsultas.length > 0 ? proximasConsultas[0] : null;
 
-        const user = JSON.parse(userData);
-        const idUsuario = user.idUsuario;
-
-        const consulta = await ConsultaApiService.getProximaConsulta(idUsuario);
-        setProximaConsulta(consulta);
-      } catch (error) {
-        console.error("Erro ao carregar próxima consulta:", error);
-        // Apenas log do erro, sem redirecionamento
-        console.log("Continuando sem dados da próxima consulta");
-      }
-    };
-
-    loadProximaConsulta();
-  }, []);
+  // Informações de histórico/recentes
   // Estado para histórico recente - carregado via API
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
   
@@ -226,10 +194,7 @@ const HomeUser = () => {
         statsOverride ??
         (await ConsultaApiService.getAllConsultaStats(userId));
 
-      const proximaData =
-        consultas.length > 0
-          ? consultas[0].data
-          : new Date(2025, 4, 18, 10, 0);
+      const proximaData = consultas.length > 0 ? consultas[0].data : null;
 
       setConsultasSummary({
         total: consultaStats.hoje,
@@ -237,22 +202,6 @@ const HomeUser = () => {
         mes: consultaStats.mes,
         semana: consultaStats.semana,
       });
-
-      if (consultas.length > 0) {
-        const proximaConsultaEncontrada = consultas.find(
-          (consulta) =>
-            consulta.data.toDateString() === proximaData.toDateString()
-        );
-
-        if (proximaConsultaEncontrada) {
-          setProximaConsultaData({
-            profissional: proximaConsultaEncontrada.profissional,
-            especialidade: proximaConsultaEncontrada.especialidade,
-            tipo: proximaConsultaEncontrada.tipo,
-            status: proximaConsultaEncontrada.status,
-          });
-        }
-      }
 
       // Atualizar dados dos atendimentos com dados zerados até API estar completa
       setAtendimentosSummary({
@@ -268,10 +217,9 @@ const HomeUser = () => {
           : "Erro ao carregar dados das consultas";
       setError(message);
 
-      const fallbackDate = new Date(2025, 4, 18, 10, 0);
       setConsultasSummary({
         total: 0,
-        proxima: fallbackDate,
+        proxima: null,
         mes: 0,
         semana: 0,
       });
@@ -309,7 +257,11 @@ const HomeUser = () => {
         }
       });
 
-      const historicoFormatted: Consulta[] = historicoData
+      const historicoRealizadas = historicoData.filter(
+        (consulta) => consulta.status?.toLowerCase() === "realizada"
+      );
+
+      const historicoFormatted: Consulta[] = historicoRealizadas
         .map((consulta) => {
           const consultaDate = new Date(consulta.horario);
           const consultaId = consulta.idConsulta;
@@ -465,22 +417,24 @@ const HomeUser = () => {
           })
         );
 
-        setTodasConsultas(consultasConvertidas);
-
         const agora = new Date();
         const consultasFuturas = consultasConvertidas
           .filter((consulta) => consulta.data > agora)
           .sort((a, b) => a.data.getTime() - b.data.getTime());
 
-        setProximasConsultas(consultasFuturas);
+        const consultasFuturasAgendadas = consultasFuturas.filter(
+          (consulta) => consulta.status === "agendada"
+        );
+
+        setProximasConsultas(consultasFuturasAgendadas);
         
         // 2. Depois carregar estatísticas usando as consultas carregadas
-        await loadConsultaData(consultasFuturas, statsOverrides);
+        await loadConsultaData(consultasFuturasAgendadas, statsOverrides);
         
         // 3. Por último carregar o histórico usando as consultas carregadas
         await loadHistoricoRecente(consultasFuturas);
         
-        console.log(`${consultasFuturas.length} próximas consultas carregadas`);
+        console.log(`${consultasFuturasAgendadas.length} próximas consultas carregadas`);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         setError("Erro ao carregar dados das consultas");
@@ -1282,7 +1236,7 @@ const HomeUser = () => {
                             </Tooltip>
                           </div>
 
-                          {consultasSummary.proxima ? (
+                          {proximaConsulta ? (
                             <motion.div
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -1293,169 +1247,127 @@ const HomeUser = () => {
                                 <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-300">
                                   Próxima consulta:
                                 </h3>
-                                {proximaConsulta && (
-                                  <div className="flex items-center gap-1">
-                                    {renderStatusIcon(
-                                      proximaConsulta.status.toLocaleLowerCase()
-                                    )}
-                                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                                      Status:{" "}
-                                      {proximaConsulta.status === "AGENDADA"
-                                        ? "Confirmada"
-                                        : proximaConsulta.status === "REALIZADA"
-                                        ? "Realizada"
-                                        : proximaConsulta.status === "CANCELADA"
-                                        ? "Cancelada"
-                                        : "Remarcada"}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>{" "}
-                              {proximaConsulta && proximaConsultaData ? (
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-medium text-gray-800 dark:text-gray-200">
-                                      {proximaConsultaData.profissional}
-                                    </span>
-                                    <Badge
-                                      className={
-                                        statusColors[proximaConsultaData.status]
-                                      }
-                                    >
-                                      {proximaConsultaData.especialidade}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600 dark:text-gray-400">
-                                      {proximaConsulta.modalidade}
-                                    </span>
-                                    <span className="text-gray-600 dark:text-gray-400">
-                                      <Clock className="w-3 h-3 inline mr-1" />
-                                      {new Date(
-                                        proximaConsulta.horario
-                                      ).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
-                                    <Clock className="w-4 h-4 text-[#ED4231]" />
-                                    <span className="text-sm font-medium text-[#ED4231]">
-                                      {formatarData(
-                                        new Date(proximaConsulta.horario)
-                                      )}
-                                    </span>
-                                  </div>
-                                  <div className="flex gap-2 mt-2">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
-                                          onClick={() =>
-                                            proximaConsultaData &&
-                                            abrirModalCancelamento({
-                                              id:
-                                                proximasConsultas.find(
-                                                  (c) =>
-                                                    c.data.toDateString() ===
-                                                    consultasSummary.proxima?.toDateString()
-                                                )?.id || 1,
-                                              profissional:
-                                                proximaConsultaData.profissional,
-                                              data: consultasSummary.proxima,
-                                              tipo: proximaConsultaData.tipo,
-                                            })
-                                          }
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="12"
-                                            height="12"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                          >
-                                            <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
-                                            <path d="m10 11 4 4m0-4-4 4" />
-                                            <path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
-                                          </svg>
-                                          Cancelar
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>
-                                          Cancelar esta consulta (sujeito à
-                                          política de cancelamento)
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
-                                          onClick={() =>
-                                            proximaConsultaData &&
-                                            abrirModalDetalhes({
-                                              id:
-                                                proximasConsultas.find(
-                                                  (c) =>
-                                                    c.data.toDateString() ===
-                                                    consultasSummary.proxima?.toDateString()
-                                                )?.id || 1,
-                                              profissional:
-                                                proximaConsultaData.profissional,
-                                              especialidade:
-                                                proximaConsultaData.especialidade,
-                                              data: consultasSummary.proxima,
-                                              tipo: proximaConsultaData.tipo,
-                                              status:
-                                                proximaConsultaData.status,
-                                            })
-                                          }
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="12"
-                                            height="12"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                          >
-                                            <path d="M10 11h2v5" />
-                                            <circle cx="12" cy="7" r="1" />
-                                            <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                          </svg>
-                                          Detalhes
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>
-                                          Ver informações completas sobre esta
-                                          consulta
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-center py-2">
-                                  <span className="text-sm text-indigo-900 dark:text-indigo-300">
-                                    {formatarData(consultasSummary.proxima)}
+                                <div className="flex items-center gap-1">
+                                  {renderStatusIcon(
+                                    proximaConsulta.status.toLowerCase()
+                                  )}
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    Status: {" "}
+                                    {proximaConsulta.status === "agendada"
+                                      ? "Confirmada"
+                                      : proximaConsulta.status === "realizada"
+                                      ? "Realizada"
+                                      : proximaConsulta.status === "cancelada"
+                                      ? "Cancelada"
+                                      : "Remarcada"}
                                   </span>
                                 </div>
-                              )}
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-gray-800 dark:text-gray-200">
+                                    {proximaConsulta.profissional}
+                                  </span>
+                                  <Badge
+                                    className={
+                                      statusColors[proximaConsulta.status] ??
+                                      "bg-gray-100 text-gray-700"
+                                    }
+                                  >
+                                    {proximaConsulta.especialidade}
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    {proximaConsulta.tipo}
+                                  </span>
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    <Clock className="w-3 h-3 inline mr-1" />
+                                    {proximaConsulta.data.toLocaleTimeString(
+                                      [],
+                                      {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      }
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
+                                  <Clock className="w-4 h-4 text-[#ED4231]" />
+                                  <span className="text-sm font-medium text-[#ED4231]">
+                                    {formatarData(proximaConsulta.data)}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs flex gap-1 items-center flex-1 border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10"
+                                        onClick={() => abrirModalCancelamento(proximaConsulta)}
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="12"
+                                          height="12"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        >
+                                          <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
+                                          <path d="m10 11 4 4m0-4-4 4" />
+                                          <path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                                        </svg>
+                                        Cancelar
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        Cancelar esta consulta (sujeito à
+                                        política de cancelamento)
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs flex gap-1 items-center flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
+                                        onClick={() => abrirModalDetalhes(proximaConsulta)}
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="12"
+                                          height="12"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        >
+                                          <path d="M10 11h2v5" />
+                                          <circle cx="12" cy="7" r="1" />
+                                          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                        </svg>
+                                        Detalhes
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        Ver informações completas sobre esta
+                                        consulta
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </div>
                             </motion.div>
                           ) : (
                             <motion.div
@@ -1481,7 +1393,7 @@ const HomeUser = () => {
                         Ver todas as consultas
                         <ChevronRight className="w-4 h-4" />
                       </Link>
-                      {!loading && consultasSummary.proxima && (
+                      {!loading && proximaConsulta && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -1632,7 +1544,7 @@ const HomeUser = () => {
                           onSelect={(date) => {
                             if (date) {
                               // Verificar se há consultas nesta data (incluindo históricas)
-                              const consultasNaData = todasConsultas.filter(
+                              const consultasNaData = proximasConsultas.filter(
                                 (consulta) =>
                                   consulta.data.toDateString() ===
                                   date.toDateString()
@@ -1655,7 +1567,7 @@ const HomeUser = () => {
                                 });
                               } else {
                                 toast({
-                                  title: "Nenhuma consulta nesta data",
+                                  title: "Nenhuma consulta agendada",
                                   description:
                                     "Você pode agendar uma nova consulta clicando no botão de agendamento.",
                                   variant: "default",
@@ -1667,8 +1579,8 @@ const HomeUser = () => {
                           className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
                           locale={ptBR}
                           disabled={(date) => {
-                            // Desabilitar apenas datas sem consultas (permitir datas passadas para ver histórico)
-                            const hasConsultation = todasConsultas.some(
+                            // Desabilitar datas que não possuem consultas futuras agendadas
+                            const hasConsultation = proximasConsultas.some(
                               (consulta) =>
                                 consulta.data.toDateString() ===
                                 date.toDateString()
@@ -1678,7 +1590,7 @@ const HomeUser = () => {
                           initialFocus
                           modifiers={{
                             booked: (date) =>
-                              todasConsultas.some(
+                              proximasConsultas.some(
                                 (consulta) =>
                                   consulta.data.toDateString() ===
                                   date.toDateString()
