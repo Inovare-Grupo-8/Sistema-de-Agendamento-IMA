@@ -467,45 +467,60 @@ export class ConsultaApiService {
     voluntarioId: number
   ): Promise<HorarioDisponivel[]> {
     try {
-      const response = await apiClient.get(`/consulta/horarios-disponiveis`, {
-        params: {
-          data: date,
-          idVoluntario: voluntarioId,
-        },
+      // Buscar todas as disponibilidades do voluntário
+      const disponibilidadesResponse = await apiClient.get(`/disponibilidade/voluntario/${voluntarioId}`);
+      const todasDisponibilidades = disponibilidadesResponse.data;
+
+      if (!Array.isArray(todasDisponibilidades)) {
+        return [];
+      }
+
+      // Filtrar disponibilidades para a data específica
+      const disponibilidadesDoDia = todasDisponibilidades.filter((disp: any) => {
+        const dispDate = disp.dataHorario?.split('T')[0];
+        return dispDate === date;
       });
 
-      const payload = response.data as unknown;
-      const rawValues = Array.isArray(payload)
-        ? payload
-        : Array.isArray((payload as { horarios?: unknown[] })?.horarios)
-          ? ((payload as { horarios?: unknown[] }).horarios ?? [])
-          : [];
+      // Buscar todas as consultas do sistema
+      const consultasResponse = await apiClient.get(`/consulta/consultas/todas`);
+      const todasConsultas = Array.isArray(consultasResponse.data) ? consultasResponse.data : [];
+      
+      // Filtrar apenas consultas do voluntário
+      const consultas = todasConsultas.filter((consulta: any) => 
+        consulta.idVoluntario === voluntarioId || 
+        consulta.voluntario?.idUsuario === voluntarioId
+      );
 
-      return rawValues
-        .map((value: unknown) => {
-          if (typeof value !== "string") {
-            return null;
-          }
+      // Criar set de horários ocupados para a data específica
+      const horariosOcupados = new Set(
+        consultas
+          .filter((consulta: any) => {
+            const consultaDate = consulta.horario?.split('T')[0];
+            return consultaDate === date && consulta.status?.toLowerCase() !== 'cancelada';
+          })
+          .map((consulta: any) => consulta.horario)
+      );
 
-          const [datePart] = value.split("T");
-          const timePart = value.includes("T")
-            ? value.split("T")[1]?.substring(0, 5)
+      // Retornar apenas horários disponíveis (não ocupados)
+      return disponibilidadesDoDia
+        .filter((disp: any) => !horariosOcupados.has(disp.dataHorario))
+        .map((disp: any) => {
+          const dateTime = disp.dataHorario;
+          const [datePart] = dateTime.split("T");
+          const timePart = dateTime.includes("T")
+            ? dateTime.split("T")[1]?.substring(0, 5)
             : "";
 
-          if (!datePart || !timePart) {
-            return null;
-          }
-
           return {
-            date: datePart,
-            time: timePart,
-            dateTime: value,
+            date: datePart || date,
+            time: timePart || "00:00",
+            dateTime: dateTime,
           } satisfies HorarioDisponivel;
         })
-        .filter((item): item is HorarioDisponivel => item !== null);
+        .filter((item) => item.time !== "00:00");
     } catch (error) {
       console.error("Error fetching horarios disponiveis:", error);
-      throw this.handleApiError(error);
+      return [];
     }
   }
 
