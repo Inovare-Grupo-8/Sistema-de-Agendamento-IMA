@@ -20,25 +20,27 @@ function Calendar({
         className
       )}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        months:
+          "flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-x-4 sm:space-y-0 mx-auto",
         month: "space-y-2",
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-semibold text-[#1f2937] dark:text-gray-200",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
-          "h-8 w-8 bg-white border border-[#E6ECF5] rounded-md p-0 opacity-80 hover:opacity-100 shadow-sm"
+          "h-8 w-8 bg-white border border-[#E6ECF5] rounded-md p-0 opacity-80 hover:opacity-100 shadow-sm",
+          "dark:bg-transparent dark:border-[#3A3F4B] dark:text-[rgb(129_140_248/var(--tw-text-opacity,1))] dark:hover:bg-[#4C51BF]/10 dark:shadow-none"
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse",
-        head_row: "flex",
+        nav_button_previous: "absolute left-3",
+        nav_button_next: "absolute right-3",
+        table: "w-full border-collapse mx-auto",
+        head_row: "flex gap-1",
         head_cell:
-          "text-[#6b7280] rounded-md w-10 font-medium text-[0.75rem] uppercase",
-        row: "flex w-full mt-1",
+          "text-[#6b7280] rounded-md w-9 font-medium text-[0.75rem] uppercase text-center",
+        row: "flex w-full mt-1 gap-1",
         cell:
-          "h-10 w-10 text-center text-sm p-0 relative rounded-md focus-within:relative focus-within:z-20",
+          "h-9 w-9 text-center text-sm p-0 relative rounded-md focus-within:relative focus-within:z-20",
         day: cn(
-          "h-10 w-10 p-0 font-medium text-[#111827] dark:text-gray-200 hover:bg-[#ED4231]/10 hover:text-[#111827] transition-colors rounded-md aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-semibold text-[#0f172a] dark:text-gray-200 hover:bg-[#ED4231]/10 hover:text-[#0f172a] transition-colors rounded-md aria-selected:opacity-100"
         ),
         day_range_end: "day-range-end",
         day_selected:
