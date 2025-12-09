@@ -163,6 +163,10 @@ const HomeUser = () => {
       ultimaAvaliacao: null,
     });
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
+  const [consultasSelecionadasNoDia, setConsultasSelecionadasNoDia] =
+    useState<Consulta[]>([]);
+  const [multiConsultaModalOpen, setMultiConsultaModalOpen] =
+    useState(false);
 
   const proximaConsulta =
     proximasConsultas.length > 0 ? proximasConsultas[0] : null;
@@ -1542,39 +1546,50 @@ const HomeUser = () => {
                           mode="single"
                           selected={undefined} // Removido para tornar apenas leitura
                           onSelect={(date) => {
-                            if (date) {
-                              // Verificar se há consultas nesta data (incluindo históricas)
-                              const consultasNaData = proximasConsultas.filter(
-                                (consulta) =>
-                                  consulta.data.toDateString() ===
-                                  date.toDateString()
-                              );
-
-                              // Só permitir interação se houver consultas na data
-                              if (consultasNaData.length > 0) {
-                                // Mostrar detalhes da primeira consulta na data
-                                const consulta = consultasNaData[0];
-                                abrirModalDetalhes(consulta);
-
-                                toast({
-                                  title: `${consultasNaData.length} consulta${
-                                    consultasNaData.length > 1 ? "s" : ""
-                                  } nesta data`,
-                                  description:
-                                    "Clique para ver detalhes da consulta.",
-                                  variant: "default",
-                                  duration: 3000,
-                                });
-                              } else {
-                                toast({
-                                  title: "Nenhuma consulta agendada",
-                                  description:
-                                    "Você pode agendar uma nova consulta clicando no botão de agendamento.",
-                                  variant: "default",
-                                  duration: 3000,
-                                });
-                              }
+                            if (!date) {
+                              return;
                             }
+
+                            setSelectedDate(date);
+
+                            const consultasNaData = proximasConsultas.filter(
+                              (consulta) =>
+                                consulta.data.toDateString() ===
+                                date.toDateString()
+                            );
+
+                            if (consultasNaData.length === 0) {
+                              setConsultasSelecionadasNoDia([]);
+                              toast({
+                                title: "Nenhuma consulta agendada",
+                                description:
+                                  "Você pode agendar uma nova consulta clicando no botão de agendamento.",
+                                variant: "default",
+                                duration: 3000,
+                              });
+                              return;
+                            }
+
+                            if (consultasNaData.length === 1) {
+                              abrirModalDetalhes(consultasNaData[0]);
+                              toast({
+                                title: "Consulta encontrada",
+                                description:
+                                  "Abrimos os detalhes da consulta selecionada.",
+                                variant: "default",
+                                duration: 3000,
+                              });
+                              return;
+                            }
+
+                            setConsultasSelecionadasNoDia(consultasNaData);
+                            setMultiConsultaModalOpen(true);
+                            toast({
+                              title: `${consultasNaData.length} consultas nesta data`,
+                              description: "Escolha abaixo qual consulta deseja visualizar.",
+                              variant: "default",
+                              duration: 3000,
+                            });
                           }}
                           className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
                           locale={ptBR}
@@ -2235,6 +2250,97 @@ const HomeUser = () => {
             </div>
           </div>
         </main>
+
+        {/* Modal para selecionar consulta quando há mais de uma no mesmo dia */}
+        <Dialog
+          open={multiConsultaModalOpen}
+          onOpenChange={(open) => {
+            setMultiConsultaModalOpen(open);
+            if (!open) {
+              setConsultasSelecionadasNoDia([]);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-lg bg-white dark:bg-[#23272F] border border-[#EDF2FB] dark:border-[#444857] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-indigo-900 dark:text-gray-100">
+                Consultas nesta data
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedDate
+                  ? format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })
+                  : "Selecione uma data no calendário para ver as consultas"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {consultasSelecionadasNoDia.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Não encontramos consultas para esta data.
+                </p>
+              ) : (
+                consultasSelecionadasNoDia.map((consulta) => (
+                  <div
+                    key={consulta.id}
+                    className="p-4 border border-gray-100 dark:border-gray-800 rounded-lg space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                          {consulta.profissional}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {consulta.especialidade}
+                        </p>
+                      </div>
+                      <Badge className={statusColors[consulta.status]}>
+                        {consulta.status === "agendada"
+                          ? "Agendada"
+                          : consulta.status === "realizada"
+                          ? "Realizada"
+                          : consulta.status === "cancelada"
+                          ? "Cancelada"
+                          : "Remarcada"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between text-sm text-gray-600 dark:text-gray-400 gap-2">
+                      <span className="inline-flex items-center gap-1 text-[#ED4231] font-medium">
+                        <Clock className="w-4 h-4" />
+                        {formatarData(consulta.data)}
+                      </span>
+                      <span>{consulta.tipo}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
+                        onClick={() => {
+                          abrirModalDetalhes(consulta);
+                          setMultiConsultaModalOpen(false);
+                        }}
+                      >
+                        Ver detalhes
+                      </Button>
+                      {consulta.status === "agendada" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 border-red-500 text-red-500 hover:bg-red-500/10"
+                          onClick={() => {
+                            setMultiConsultaModalOpen(false);
+                            abrirModalCancelamento(consulta);
+                          }}
+                        >
+                          Cancelar consulta
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Modal de Confirmação de Cancelamento */}
         <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
