@@ -271,6 +271,7 @@ export class VoluntarioApiService {
 
   /**
    * Lista voluntários para seleção em agendamentos respeitando paginação do backend
+   * Retorna apenas voluntários que possuem disponibilidade nos próximos dias
    */
   static async listarVoluntariosParaAgendamento(
     page = 0,
@@ -299,19 +300,23 @@ export class VoluntarioApiService {
       console.warn("Formato inesperado ao listar voluntários paginados", slice);
     }
 
-    const items = content
+    // Map all volunteers first
+    const allItems = content
       .map(v => ({
         id: v.idUsuario,
         nome: v.nomeCompleto ?? `${v.nome} ${v.sobrenome}`.trim(),
         especialidade: v.funcao ?? v.areaOrientacao ?? "Consulta Geral"
       }));
 
+    // Filter only volunteers with available slots
+    const itemsComDisponibilidade = await this.filtrarVoluntariosComDisponibilidade(allItems);
+
     return {
-      items,
+      items: itemsComDisponibilidade,
       page: sliceObject?.number ?? page,
       size: sliceObject?.size ?? size,
-      last: typeof sliceObject?.last === "boolean" ? sliceObject.last : items.length < size,
-      numberOfElements: sliceObject?.numberOfElements ?? items.length
+      last: typeof sliceObject?.last === "boolean" ? sliceObject.last : itemsComDisponibilidade.length < size,
+      numberOfElements: itemsComDisponibilidade.length
     };
   } catch (error) {
     console.error("Erro ao listar voluntários para agendamento:", error);
@@ -319,6 +324,56 @@ export class VoluntarioApiService {
   }
 
   }
+
+  /**
+   * Filtra voluntários que possuem pelo menos um horário disponível
+   */
+  private static async filtrarVoluntariosComDisponibilidade(
+    voluntarios: { id: number; nome: string; especialidade: string }[]
+  ): Promise<{ id: number; nome: string; especialidade: string }[]> {
+    const voluntariosComDisponibilidade: { id: number; nome: string; especialidade: string }[] = [];
+
+    // Check availability for each volunteer (checking next 7 days)
+    const hoje = new Date();
+    const promises = voluntarios.map(async (voluntario) => {
+      try {
+        // Check if volunteer has any availability in the next 7 days
+        for (let i = 0; i < 7; i++) {
+          const dataVerificacao = new Date(hoje);
+          dataVerificacao.setDate(hoje.getDate() + i);
+          const dataIso = dataVerificacao.toISOString().split('T')[0];
+
+          try {
+            const response = await apiClient.get(`/consulta/horarios-disponiveis`, {
+              params: {
+                data: dataIso,
+                idVoluntario: voluntario.id,
+              },
+            });
+
+            // Se encontrou horários disponíveis, retornar o voluntário
+            const horarios = Array.isArray(response.data) ? response.data : 
+                           Array.isArray(response.data?.horarios) ? response.data.horarios : [];
+            
+            if (horarios.length > 0) {
+              return voluntario;
+            }
+          } catch (error) {
+            // Continua verificando outros dias
+            continue;
+          }
+        }
+        return null;
+      } catch (error) {
+        console.warn(`Erro ao verificar disponibilidade do voluntário ${voluntario.id}:`, error);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((v): v is { id: number; nome: string; especialidade: string } => v !== null);
+  }
+
   static async criarDisponibilidade(dataHorario: string, usuarioId: number): Promise<void> {
     await apiClient.post(`/disponibilidade`, { dataHorario, usuarioId });
   }
