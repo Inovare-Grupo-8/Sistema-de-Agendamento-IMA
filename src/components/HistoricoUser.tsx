@@ -31,7 +31,6 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
-import { STATUS_COLORS } from "../constants/ui";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { useTranslation } from "react-i18next";
 import { AgendaCardSkeleton } from "./ui/custom-skeletons";
@@ -46,6 +45,8 @@ import {
   ConsultaApiService,
   ConsultaAvaliacao,
   ConsultaFeedback,
+  ConsultaDto,
+  ConsultaOutput,
 } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -91,7 +92,14 @@ interface HistoricoConsulta {
   name: string;
   type: string;
   serviceType: string;
-  status: "realizada" | "cancelada" | "remarcada";
+  status:
+    | "realizada"
+    | "cancelada"
+    | "remarcada"
+    | "agendada"
+    | "confirmada"
+    | "pendente"
+    | "em_andamento";
   feedback?: {
     rating: number;
     comment?: string;
@@ -101,6 +109,115 @@ interface HistoricoConsulta {
   prescription?: string; // Prescrição médica
   nextAppointment?: Date; // Próxima consulta recomendada
 }
+
+type ConsultaHistoricoSource = ConsultaOutput | ConsultaDto;
+
+const STATUS_LABELS: Record<HistoricoConsulta["status"], string> = {
+  realizada: "Realizada",
+  cancelada: "Cancelada",
+  remarcada: "Remarcada",
+  agendada: "Agendada",
+  confirmada: "Confirmada",
+  pendente: "Pendente",
+  em_andamento: "Em andamento",
+};
+
+const STATUS_BADGE_COLORS: Record<HistoricoConsulta["status"] | "default", string> = {
+  realizada: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  cancelada: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  remarcada: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  agendada: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  confirmada: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+  pendente: "bg-gray-200 text-gray-800 dark:bg-gray-700/40 dark:text-gray-200",
+  em_andamento: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  default: "bg-gray-200 text-gray-700 dark:bg-gray-700/40 dark:text-gray-200",
+};
+
+const KNOWN_STATUSES = new Set<HistoricoConsulta["status"]>([
+  "realizada",
+  "cancelada",
+  "remarcada",
+  "agendada",
+  "confirmada",
+  "pendente",
+  "em_andamento",
+]);
+
+const normalizeStatus = (status?: string | null): HistoricoConsulta["status"] => {
+  const normalized = (status ?? "realizada").toLowerCase() as HistoricoConsulta["status"];
+  return KNOWN_STATUSES.has(normalized) ? normalized : "realizada";
+};
+
+const extractTimeFromISO = (isoString: string): string => {
+  if (!isoString) return "00:00";
+  const [, timePart] = isoString.split("T");
+  return timePart?.substring(0, 5) ?? "00:00";
+};
+
+const formatStatusLabel = (status: HistoricoConsulta["status"]) =>
+  STATUS_LABELS[status] ?? "Status";
+
+const getStatusBadgeClass = (status: HistoricoConsulta["status"]) =>
+  STATUS_BADGE_COLORS[status] ?? STATUS_BADGE_COLORS.default;
+
+const isConsultaDto = (
+  source: ConsultaHistoricoSource
+): source is ConsultaDto => "idAssistido" in source;
+
+const getAssistidoIdFromSource = (
+  source: ConsultaHistoricoSource
+): number | undefined => {
+  if (isConsultaDto(source)) {
+    return source.idAssistido;
+  }
+  return source.assistido?.idUsuario;
+};
+
+const buildHistoricoRecord = (
+  source: ConsultaHistoricoSource,
+  rating?: number | null,
+  comment?: string | null
+): HistoricoConsulta | null => {
+  if (!source || typeof source.idConsulta !== "number" || !source.horario) {
+    return null;
+  }
+
+  const consultaDate = new Date(source.horario);
+  if (Number.isNaN(consultaDate.getTime())) {
+    return null;
+  }
+
+  const name = isConsultaDto(source)
+    ? source.nomeVoluntario || "Profissional não informado"
+    : source.voluntario?.ficha?.nome ||
+      (source as ConsultaOutput & { voluntarioNome?: string }).voluntarioNome ||
+      "Profissional não informado";
+
+  const type = isConsultaDto(source)
+    ? source.nomeEspecialidade || "Especialidade"
+    : source.especialidade?.nome ||
+      (source as ConsultaOutput & { especialidadeNome?: string }).especialidadeNome ||
+      "Especialidade";
+
+  return {
+    id: source.idConsulta.toString(),
+    date: consultaDate,
+    time: extractTimeFromISO(source.horario),
+    name,
+    type,
+    serviceType: source.modalidade || "PRESENCIAL",
+    status: normalizeStatus(source.status),
+    duration: 50,
+    cost: 0,
+    feedback:
+      rating != null
+        ? {
+            rating,
+            comment: comment ?? undefined,
+          }
+        : undefined,
+  };
+};
 
 const HistoricoUser = () => {
   const { t } = useTranslation();
@@ -156,94 +273,107 @@ const HistoricoUser = () => {
           throw new Error("ID do usuário não encontrado");
         }
 
-        // Load historical consultations
-        const historicoData = await ConsultaApiService.getHistoricoConsultas(
-          userId
-        );
+        const [historicoResponse, todasConsultasResponse, avaliacoesFeedback] =
+          await Promise.all([
+            ConsultaApiService.getHistoricoConsultas(userId, "assistido").catch(
+              (historicoError) => {
+                console.warn(
+                  "Histórico do assistido indisponível, usando fallback.",
+                  historicoError
+                );
+                return [];
+              }
+            ),
+            ConsultaApiService.getTodasConsultas().catch((todasError) => {
+              console.warn(
+                "Não foi possível carregar todas as consultas.",
+                todasError
+              );
+              return [];
+            }),
+            ConsultaApiService.getAvaliacoesFeedback(userId, "assistido").catch(
+              (feedbackError) => {
+                console.warn(
+                  "Avaliações/feedbacks indisponíveis para o histórico.",
+                  feedbackError
+                );
+                return { avaliacoes: [], feedbacks: [] } as {
+                  avaliacoes: ConsultaAvaliacao[];
+                  feedbacks: ConsultaFeedback[];
+                };
+              }
+            ),
+          ]);
 
-        // Load evaluations and feedbacks
-        const avaliacoesFeedback =
-          await ConsultaApiService.getAvaliacoesFeedback(userId, "assistido");
-
-        // Create maps for quick lookup
         const avaliacoesMap = new Map<number, number | null>();
         const feedbacksMap = new Map<number, string | null>();
 
-        avaliacoesFeedback.avaliacoes?.forEach(
-          (avaliacao: ConsultaAvaliacao) => {
-            const idConsulta = avaliacao.consulta?.idConsulta;
-            if (typeof idConsulta === "number") {
-              avaliacoesMap.set(idConsulta, avaliacao.nota ?? null);
-            }
+        avaliacoesFeedback.avaliacoes?.forEach((avaliacao) => {
+          const idConsulta = avaliacao.consulta?.idConsulta;
+          if (typeof idConsulta === "number") {
+            avaliacoesMap.set(idConsulta, avaliacao.nota ?? null);
           }
-        );
+        });
 
-        avaliacoesFeedback.feedbacks?.forEach((feedback: ConsultaFeedback) => {
+        avaliacoesFeedback.feedbacks?.forEach((feedback) => {
           const idConsulta = feedback.consulta?.idConsulta;
           if (typeof idConsulta === "number") {
             feedbacksMap.set(idConsulta, feedback.comentario ?? null);
           }
         });
 
-        // Convert API data to component format
-        const historicoFormatted: HistoricoConsulta[] = historicoData.map(
-          (consulta) => {
-            const consultaDate = new Date(consulta.horario);
-            const consultaId = consulta.idConsulta;
+        const historicoLista = Array.isArray(historicoResponse)
+          ? historicoResponse
+          : [];
 
-            // Get evaluation and feedback for this consultation
-            const rating = avaliacoesMap.get(consultaId);
-            const comment = feedbacksMap.get(consultaId);
+        const todasConsultasLista = Array.isArray(todasConsultasResponse)
+          ? todasConsultasResponse.filter(
+              (consulta) => Number(consulta.idAssistido) === Number(userId)
+            )
+          : [];
 
-            return {
-              id: consultaId.toString(),
-              date: consultaDate,
-              time: consulta.horario.split("T")[1]?.substring(0, 5) || "00:00",
-              name: consulta.voluntario?.ficha?.nome || "Voluntário",
-              type: consulta.especialidade?.nome || "Especialidade",
-              serviceType: consulta.modalidade,
-              status: consulta.status.toLowerCase() as
-                | "realizada"
-                | "cancelada"
-                | "remarcada",
-              duration: 50, // Default duration, can be enhanced later
-              cost: 0, // Default cost, can be enhanced later
-              feedback:
-                rating != null
-                  ? { rating, comment: comment ?? undefined }
-                  : undefined,
-            };
+        const mergedConsultas = new Map<string, HistoricoConsulta>();
+
+        const addConsultaToHistorico = (consulta: ConsultaHistoricoSource) => {
+          if (!consulta || typeof consulta.idConsulta !== "number") {
+            return;
           }
-        );
-
-        setHistoricoConsultas(historicoFormatted);
-
-        // Load upcoming consultations count
-        try {
-          // userId já está disponível no escopo
-          const proximasData = await ConsultaApiService.getProximasConsultas(
-            userId,
-            "assistido"
+          const record = buildHistoricoRecord(
+            consulta,
+            avaliacoesMap.get(consulta.idConsulta) ?? null,
+            feedbacksMap.get(consulta.idConsulta) ?? null
           );
-          setProximasConsultas(proximasData.length);
-        } catch (err) {
-          console.error("Erro ao carregar próximas consultas:", err);
-          setProximasConsultas(0);
-        }
+          if (record) {
+            mergedConsultas.set(record.id, record);
+          }
+        };
 
-        // Extract last evaluation from historical data
-        const consultasComAvaliacao = historicoFormatted.filter(
-          (c) => c.feedback?.rating
+        historicoLista
+          .filter((consulta) => {
+            const assistidoId = getAssistidoIdFromSource(consulta);
+            return !assistidoId || Number(assistidoId) === Number(userId);
+          })
+          .forEach(addConsultaToHistorico);
+
+        todasConsultasLista.forEach(addConsultaToHistorico);
+
+        const historicoFinal = Array.from(mergedConsultas.values()).sort(
+          (a, b) => b.date.getTime() - a.date.getTime()
         );
-        if (consultasComAvaliacao.length > 0) {
-          // Get the most recent consultation with evaluation
-          const consultaRecente = consultasComAvaliacao.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0];
-          setUltimaAvaliacao(consultaRecente.feedback?.rating || null);
-        } else {
-          setUltimaAvaliacao(null);
-        }
+
+        setHistoricoConsultas(historicoFinal);
+
+        const proximas = historicoFinal.filter(
+          (consulta) =>
+            consulta.date.getTime() > Date.now() &&
+            consulta.status !== "cancelada"
+        ).length;
+        setProximasConsultas(proximas);
+
+        const ultimaConsultaAvaliada = historicoFinal.find(
+          (consulta) => consulta.feedback?.rating != null
+        );
+        setUltimaAvaliacao(ultimaConsultaAvaliada?.feedback?.rating ?? null);
       } catch (err) {
         console.error("Erro ao carregar histórico:", err);
         const message =
@@ -546,14 +676,6 @@ const HistoricoUser = () => {
     totalSpent: historicoConsultas
       .filter((c) => c.status === "realizada" && c.cost)
       .reduce((acc, c) => acc + (c.cost || 0), 0),
-  };
-
-  const statusColors: Record<string, string> = {
-    realizada:
-      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-    cancelada: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    remarcada:
-      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   };
 
   return (
@@ -1056,15 +1178,11 @@ const HistoricoUser = () => {
                                 </span>
                               </div>
                               <Badge
-                                className={`${
-                                  statusColors[consulta.status]
-                                } px-3 py-1 rounded-full text-xs font-medium`}
+                                className={`${getStatusBadgeClass(
+                                  consulta.status
+                                )} px-3 py-1 rounded-full text-xs font-medium`}
                               >
-                                {consulta.status === "realizada"
-                                  ? "Realizada"
-                                  : consulta.status === "cancelada"
-                                  ? "Cancelada"
-                                  : "Remarcada"}
+                                {formatStatusLabel(consulta.status)}
                               </Badge>
                             </div>
 
@@ -1256,15 +1374,11 @@ const HistoricoUser = () => {
                       <div>
                         <span className="font-medium">Status:</span>
                         <Badge
-                          className={`${
-                            statusColors[selectedConsulta.status]
-                          } ml-2`}
+                          className={`${getStatusBadgeClass(
+                            selectedConsulta.status
+                          )} ml-2`}
                         >
-                          {selectedConsulta.status === "realizada"
-                            ? "Realizada"
-                            : selectedConsulta.status === "cancelada"
-                            ? "Cancelada"
-                            : "Remarcada"}
+                          {formatStatusLabel(selectedConsulta.status)}
                         </Badge>
                       </div>
                       {selectedConsulta.feedback && (
