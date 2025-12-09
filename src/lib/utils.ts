@@ -105,3 +105,22 @@ export function resolvePerfilPath(
   const segment = resolvePerfilSegment(tipoUsuario, funcao);
   return `/perfil/${segment}/${suffix}`;
 }
+
+export type ConsultaUserRole = "assistido" | "voluntario" | "administrador";
+
+export function resolveConsultaUserRole(
+  tipoUsuario?: string | null,
+  funcao?: string | null
+): ConsultaUserRole {
+  const segment = resolvePerfilSegment(tipoUsuario, funcao);
+
+  if (segment === "voluntario" || segment === "assistente-social") {
+    return "voluntario";
+  }
+
+  if (segment === "administrador") {
+    return "administrador";
+  }
+
+  return "assistido";
+}
