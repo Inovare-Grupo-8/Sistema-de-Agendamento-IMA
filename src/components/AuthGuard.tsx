@@ -47,7 +47,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           case "ADMINISTRADOR":
             if (
               currentPath === "/" ||
-              currentPath === "/login" ||
               currentPath.startsWith("/home") ||
               currentPath.startsWith("/disponibilizar-horario") ||
               currentPath.startsWith("/agenda") ||
@@ -60,24 +59,24 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             break;
           case "VOLUNTARIO":
             if (user.funcao === "ASSISTENCIA_SOCIAL") {
-              if (currentPath === "/" || currentPath === "/login") {
+              if (currentPath === "/") {
                 navigate("/assistente-social", { replace: true });
               }
             } else {
               // Outros tipos de voluntários vão para home do profissional
-              if (currentPath === "/" || currentPath === "/login") {
+              if (currentPath === "/") {
                 navigate("/home", { replace: true });
               }
             }
             break;
           case "USUARIO":
-            if (currentPath === "/" || currentPath === "/login") {
+            if (currentPath === "/") {
               navigate("/home-user", { replace: true });
             }
             break;
           default:
             // Tipo desconhecido, redirecionar para login
-            if (currentPath === "/" || currentPath === "/login") {
+            if (currentPath === "/") {
               navigate("/login", { replace: true });
             }
             break;

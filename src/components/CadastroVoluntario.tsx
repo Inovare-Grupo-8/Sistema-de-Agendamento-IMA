@@ -70,7 +70,7 @@ import {
   Shield,
   Lock,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { motion } from "framer-motion";
@@ -182,6 +182,15 @@ const CadastroVoluntario = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+  const mountedRef = useRef(false);
+  const displayName = assistenteSocialData
+    ? [
+        assistenteSocialData.nome?.trim(),
+        assistenteSocialData.sobrenome?.trim(),
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "Assistente Social";
 
   // Função para carregar voluntários da API
   const carregarVoluntarios = async () => {
@@ -218,17 +227,15 @@ const CadastroVoluntario = () => {
   const { fetchPerfil } = useAssistenteSocial();
 
   useEffect(() => {
-    // Carregar dados iniciais
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     const loadData = async () => {
       setLoading(true);
       try {
-        // Carregar dados do assistente social e voluntários em paralelo
         const [perfilData] = await Promise.all([
           fetchPerfil(),
           carregarVoluntarios(),
         ]);
-
-        // Mapear dados do perfil para o formato local
         if (perfilData) {
           setAssistenteSocialData({
             id: perfilData.idUsuario.toString(),
@@ -239,9 +246,9 @@ const CadastroVoluntario = () => {
             telefone: perfilData.telefone || "Não informado",
             email: perfilData.email,
             disponivel: true,
-            proximaDisponibilidade: new Date(Date.now() + 24 * 60 * 60 * 1000), // Próximo dia útil
-            atendimentosRealizados: 0, // Será obtido de outra API posteriormente
-            avaliacaoMedia: 0, // Será obtido de outra API posteriormente
+            proximaDisponibilidade: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            atendimentosRealizados: 0,
+            avaliacaoMedia: 0,
           });
         }
       } catch (error) {
@@ -250,9 +257,8 @@ const CadastroVoluntario = () => {
         setLoading(false);
       }
     };
-
     loadData();
-  }, [fetchPerfil]);
+  }, []);
 
   // Função para validar CPF
   const validarCPF = (cpf: string) => {
@@ -677,18 +683,12 @@ const CadastroVoluntario = () => {
             </Button>{" "}
             <ProfileAvatar
               profileImage={profileImage}
-              name={
-                assistenteSocialData
-                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
-                  : "Assistente Social"
-              }
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {assistenteSocialData
-                ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
-                : "Carregando..."}
+              {displayName}
             </span>
           </div>
         )}
@@ -715,36 +715,16 @@ const CadastroVoluntario = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={
-                assistenteSocialData
-                  ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
-                  : "Assistente Social"
-              }
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {assistenteSocialData
-                ? `${assistenteSocialData.nome} ${assistenteSocialData.sobrenome}`
-                : "Carregando..."}
+              {displayName}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
               {assistenteSocialData?.especialidade || "Assistência Social"}
             </Badge>
-
-            <Button
-              onClick={toggleTheme}
-              className="mt-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-              aria-label={
-                theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
-              }
-            >
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5 text-yellow-400" />
-              ) : (
-                <Moon className="w-5 h-5 text-gray-800" />
-              )}
-            </Button>
           </div>
 
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -762,7 +742,7 @@ const CadastroVoluntario = () => {
                     >
                       <Link to={item.path} className="flex items-center gap-3">
                         {item.icon}
-                        <span>{item.label}</span>
+                        <span className="font-normal">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </TooltipTrigger>
@@ -773,7 +753,10 @@ const CadastroVoluntario = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
+                  <SidebarMenuButton
+                    onClick={handleLogout}
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                  >
                     <div className="flex items-center gap-3">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1605,3 +1588,30 @@ const CadastroVoluntario = () => {
 };
 
 export default CadastroVoluntario;
+const handleLogout = () => {
+  try {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem("userData");
+    localStorage.removeItem("savedProfile");
+    localStorage.removeItem("profileData");
+    localStorage.removeItem("userProfileData");
+    localStorage.removeItem("selectedDates");
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i) || "";
+      if (
+        key.startsWith("availabilityVoluntario:") ||
+        key.startsWith("availabilityIds:")
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+  toast({
+    title: "Sessão encerrada",
+    description: "Você foi desconectado com sucesso.",
+  });
+  window.location.href = "/login";
+};

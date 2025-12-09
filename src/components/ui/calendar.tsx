@@ -16,7 +16,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "p-4 w-full rounded-xl border border-[#E6ECF5] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]",
+        "p-4 w-fit mx-auto self-center rounded-xl border border-[#E6ECF5] bg-white shadow-sm text-base dark:bg-[#23272F] dark:border-[#444857]",
         className
       )}
       classNames={{
@@ -41,6 +41,7 @@ function Calendar({
           "h-9 w-9 text-center text-sm p-0 relative rounded-md focus-within:relative focus-within:z-20",
         day: cn(
           "h-9 w-9 p-0 font-semibold text-[#0f172a] dark:text-gray-200 hover:bg-[#ED4231]/10 hover:text-[#0f172a] transition-colors rounded-md aria-selected:opacity-100"
+
         ),
         day_range_end: "day-range-end",
         day_selected:

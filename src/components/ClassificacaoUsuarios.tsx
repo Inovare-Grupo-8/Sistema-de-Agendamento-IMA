@@ -71,12 +71,12 @@ export function ClassificacaoUsuarios({
   const [isLoading, setIsLoading] = useState(true);
   const [isClassificando, setIsClassificando] = useState(false);
   const [dialogAberto, setDialogAberto] = useState(false);
+  const mountedRef = useRef(false);
 
   // Carregar usuários não classificados
   useEffect(() => {
-    const mounted = useRef(false);
-    if (mounted.current) return;
-    mounted.current = true;
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     carregarUsuariosNaoClassificados();
   }, []);
 
