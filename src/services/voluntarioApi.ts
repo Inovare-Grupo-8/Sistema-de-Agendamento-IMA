@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getBackendBaseUrl } from "@/lib/utils";
 
 // API base configuration
 const API_BASE_URL = getBackendBaseUrl();
