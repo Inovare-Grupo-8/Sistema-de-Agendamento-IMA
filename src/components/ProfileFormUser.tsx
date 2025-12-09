@@ -40,6 +40,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useCep } from "@/hooks/useCep";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -95,8 +103,13 @@ const ProfileFormUser = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, loading: loadingCep, formatCep } = useCep();
 
+  // Estado para o modal de logout
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
+  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const displayName = fullName || "Usuário";
   // Use the new useUserProfile hook
   const {
     fetchPerfil,
@@ -398,7 +411,21 @@ const ProfileFormUser = () => {
       };
       reader.readAsDataURL(file);
     }
-  }; // Função para validar o formulário antes de salvar
+  }; 
+  
+  // Handle logout function
+  const handleLogout = () => {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profileData');
+    navigate('/');
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+    setShowLogoutDialog(false);
+  };
+
+  // Função para validar o formulário antes de salvar
   const validateForm = () => {
     console.log("🔍 Debug validateForm - formData:", formData);
     const errors: Record<string, string> = {};
@@ -812,12 +839,12 @@ const ProfileFormUser = () => {
             </Button>
             <ProfileAvatar
               profileImage={profileImage}
-              name={userData.nome || "User"}
+              name={displayName}
               size="w-10 h-10"
               className="border-2 border-[#ED4231]"
             />
             <span className="font-bold text-indigo-900 dark:text-gray-100">
-              {userData.nome} {userData.sobrenome}
+              {displayName}
             </span>
           </div>
         )}
@@ -843,27 +870,13 @@ const ProfileFormUser = () => {
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
-              name={userData.nome || "User"}
+              name={displayName}
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB]"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
-              {userData.nome} {userData.sobrenome}
+              {displayName}
             </span>
-
-            <Button
-              onClick={toggleTheme}
-              className="mt-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:ring-2 focus:ring-[#ED4231] focus:outline-none"
-              aria-label={
-                theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
-              }
-            >
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5 text-yellow-400" />
-              ) : (
-                <Moon className="w-5 h-5 text-gray-800" />
-              )}
-            </Button>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
             {/* Utilizando os itens de navegação do userNavigationItems */}
@@ -875,7 +888,7 @@ const ProfileFormUser = () => {
                       asChild
                       className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
                         location.pathname === item.path
-                          ? "bg-[#EDF2FB] border-l-4 border-[#ED4231]"
+                          ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
                           : ""
                       }`}
                     >
@@ -894,17 +907,8 @@ const ProfileFormUser = () => {
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
-                    onClick={() => {
-                      localStorage.removeItem("userData");
-                      localStorage.removeItem("profileData");
-                      navigate("/");
-                      toast({
-                        title: "Sessão encerrada",
-                        description: "Você foi desconectado com sucesso.",
-                      });
-                    }}
+                    onClick={() => setShowLogoutDialog(true)}
                   >
-                    <ArrowLeft className="w-6 h-6" />
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -965,12 +969,12 @@ const ProfileFormUser = () => {
             <div className="flex items-center gap-3">
               <ProfileAvatar
                 profileImage={profileImage}
-                name={userData.nome || "User"}
+                name={displayName}
                 size="w-10 h-10"
                 className="border-2 border-[#ED4231]"
               />
               <span className="font-bold text-indigo-900 dark:text-gray-100">
-                {userData.nome} {userData.sobrenome}
+                {displayName}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -1497,6 +1501,22 @@ const ProfileFormUser = () => {
           </div>
         </main>
       </div>
+
+      {/* Logout dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
+            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+              Sair
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };

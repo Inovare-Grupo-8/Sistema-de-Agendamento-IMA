@@ -1,11 +1,53 @@
 import { useCallback, useContext } from 'react';
 import { UserContext } from '@/contexts/UserContextInstance';
+import { buildBackendUrl, resolvePerfilPath } from '@/lib/utils';
+import type { Endereco, UserData } from '@/types/user';
+
+const toTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+const mergeEnderecoData = (
+  current: Endereco,
+  incoming: Record<string, unknown> | null | undefined
+): Endereco => {
+  if (!incoming || typeof incoming !== 'object') {
+    return current;
+  }
+
+  return {
+    rua: toTrimmedString(incoming['rua']) || toTrimmedString(incoming['logradouro']) || current.rua,
+    numero: toTrimmedString(incoming['numero']) || current.numero,
+    complemento: toTrimmedString(incoming['complemento']) || current.complemento,
+    bairro: toTrimmedString(incoming['bairro']) || current.bairro,
+    cidade: toTrimmedString(incoming['cidade']) || current.cidade,
+    estado: toTrimmedString(incoming['estado']) || current.estado,
+    cep: toTrimmedString(incoming['cep']) || current.cep,
+  };
+};
+
+const extractNamesFromFullName = (fullName: unknown): Pick<UserData, 'nome' | 'sobrenome'> => {
+  const trimmed = toTrimmedString(fullName);
+  if (!trimmed) {
+    return { nome: '', sobrenome: '' };
+  }
+
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return { nome: parts[0], sobrenome: '' };
+  }
+
+  return {
+    nome: parts[0],
+    sobrenome: parts.slice(1).join(' '),
+  };
+};
 
 const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
     throw new Error('useUser must be used within a UserProvider');
   }
+
+  const { userData: contextUserData, updateUserData: contextUpdateUserData } = context;
 
   const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
@@ -80,7 +122,9 @@ const useUser = () => {
       
       const user = JSON.parse(userData);
       const token = user.token;
+
       const usuarioId = user.idUsuario || user.id;
+
       const tipoUsuario = user.tipo;
       const funcao = user.funcao;
       
@@ -99,7 +143,9 @@ const useUser = () => {
         tipoPath = 'assistido';
       }
 
-      const response = await fetch(`${base}/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`, {
+      const dadosPessoaisEndpoint = `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`;
+      const response = await fetch(buildBackendUrl(dadosPessoaisEndpoint), {
+
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
@@ -115,7 +161,66 @@ const useUser = () => {
       
       // Se houver uma foto, ajustar a URL se necessário
       if (dados.fotoUrl && !dados.fotoUrl.startsWith('http')) {
-        dados.fotoUrl = `${base}${dados.fotoUrl}`;
+        dados.fotoUrl = buildBackendUrl(dados.fotoUrl);
+      }
+
+      // Atualizar o contexto com os dados retornados
+      if (contextUpdateUserData) {
+        const updatedFields: Partial<UserData> = {};
+
+        const assignIfChanged = <K extends keyof UserData>(key: K, value: UserData[K]) => {
+          if (value !== undefined && value !== null && value !== contextUserData[key]) {
+            updatedFields[key] = value;
+          }
+        };
+
+        const nomeResposta = toTrimmedString(dados.nome);
+        const sobrenomeResposta = toTrimmedString(dados.sobrenome) || toTrimmedString(dados.sobreNome);
+        const nomesFromFull = extractNamesFromFullName(dados.nomeCompleto);
+
+        if (nomeResposta || sobrenomeResposta || nomesFromFull.nome) {
+          const nomeAtualizado = nomeResposta || nomesFromFull.nome || contextUserData.nome;
+          const sobrenomeAtualizado = sobrenomeResposta || nomesFromFull.sobrenome || contextUserData.sobrenome;
+          assignIfChanged('nome', nomeAtualizado);
+          assignIfChanged('sobrenome', sobrenomeAtualizado);
+        }
+
+        if (typeof dados.email === 'string') {
+          assignIfChanged('email', toTrimmedString(dados.email));
+        }
+
+        if (typeof dados.telefone === 'string') {
+          assignIfChanged('telefone', toTrimmedString(dados.telefone));
+        }
+
+        if (typeof dados.dataNascimento === 'string') {
+          assignIfChanged('dataNascimento', toTrimmedString(dados.dataNascimento));
+        } else if (typeof dados.data_nascimento === 'string') {
+          assignIfChanged('dataNascimento', toTrimmedString(dados.data_nascimento));
+        }
+
+        if (typeof dados.genero === 'string') {
+          assignIfChanged('genero', toTrimmedString(dados.genero));
+        } else if (typeof dados.sexo === 'string') {
+          assignIfChanged('genero', toTrimmedString(dados.sexo));
+        }
+
+        if (dados.endereco && typeof dados.endereco === 'object') {
+          const enderecoAtualizado = mergeEnderecoData(contextUserData.endereco, dados.endereco);
+          const enderecoMudou = Object.keys(enderecoAtualizado).some((key) => {
+            const typedKey = key as keyof Endereco;
+            return enderecoAtualizado[typedKey] !== contextUserData.endereco[typedKey];
+          });
+
+          if (enderecoMudou) {
+            updatedFields.endereco = enderecoAtualizado;
+          }
+        }
+
+        if (Object.keys(updatedFields).length > 0) {
+          contextUpdateUserData(updatedFields);
+        }
+        
       }
       
       return dados;
@@ -123,7 +228,7 @@ const useUser = () => {
       console.error('Erro ao buscar dados do perfil:', error);
       throw error;
     }
-  }, []);
+  }, [contextUpdateUserData, contextUserData]);
 
   const uploadFoto = async (file: File): Promise<string> => {
     try {
@@ -143,6 +248,8 @@ const useUser = () => {
       const user = JSON.parse(userData);
       const token = user.token;
       const usuarioId = user.idUsuario;
+      const tipoUsuario = user.tipo;
+      const funcao = user.funcao;
       
       if (!usuarioId) {
         throw new Error('ID do usuário não encontrado');
@@ -152,7 +259,8 @@ const useUser = () => {
       formData.append('file', file);
       formData.append('usuarioId', usuarioId.toString());
 
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/usuario/foto?usuarioId=${usuarioId}`, {
+      const uploadEndpoint = `${resolvePerfilPath(tipoUsuario, funcao, 'foto')}?usuarioId=${usuarioId}`;
+      const response = await fetch(buildBackendUrl(uploadEndpoint), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token || ''}`
@@ -167,8 +275,7 @@ const useUser = () => {
 
       const result = await response.json();
       // Concatena a URL base com o caminho relativo retornado pelo servidor
-      const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
-      return photoUrl;
+      return buildBackendUrl(result.url);
     } catch (error) {
       console.error('Erro ao fazer upload da foto:', error);
       throw error;

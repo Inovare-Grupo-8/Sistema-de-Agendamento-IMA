@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // API base configuration
-const API_BASE_URL = `${import.meta.env.VITE_URL_BACKEND}`;
+const API_BASE_URL = getBackendBaseUrl();
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -277,8 +277,7 @@ export class VoluntarioApiService {
   }
 
   /**
-   * Lista todos os voluntários para seleção em agendamentos
-   * Retorna apenas voluntários ativos com informações simplificadas
+   * Lista voluntários para seleção em agendamentos respeitando paginação do backend
    */
   static async listarVoluntariosParaAgendamento(
     page = 0,
@@ -403,7 +402,6 @@ export class VoluntarioApiService {
     }
     return successCount;
   }
-
   static async listarHorariosDisponiveisPorDia(
     dataISODate: string,
     idVoluntario: number
