@@ -68,6 +68,7 @@ import { ptBR } from "date-fns/locale";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { useUserData } from "@/hooks/useUserData";
+import type { UserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import {
   useVoluntario,
@@ -951,7 +952,7 @@ const Home = () => {
         const userData = localStorage.getItem("userData");
         if (userData) {
           const parsedUserData = JSON.parse(userData);
-          const updates: Partial<typeof userData> = {};
+          const updates: Partial<UserData> = {};
 
           if (typeof parsedUserData.nome === "string") {
             updates.nome = parsedUserData.nome.trim();
@@ -1176,7 +1177,9 @@ const Home = () => {
                           }
                         }
                         keysToRemove.forEach((k) => localStorage.removeItem(k));
-                      } catch {}
+                      } catch (e) {
+                        void e;
+                      }
                       navigate("/login", { replace: true });
                     }}
                     className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
@@ -1720,50 +1723,23 @@ const Home = () => {
                           mode="single"
                           selected={undefined} // Removido para tornar apenas leitura
                           onSelect={(date) => {
-                            if (date) {
-                              // Verificar se há consultas nesta data (incluindo históricas)
-                              const consultasNaData = todasConsultas.filter(
-                                (consulta) =>
-                                  consulta.data.toDateString() ===
-                                  date.toDateString()
-                              );
-
-                              // Só permitir interação se houver consultas na data
-                              if (consultasNaData.length > 0) {
-                                // Mostrar detalhes da primeira consulta na data
-                                const consulta = consultasNaData[0];
-                                abrirModalDetalhes(consulta);
-
-                                toast({
-                                  title: `${consultasNaData.length} consulta${
-                                    consultasNaData.length > 1 ? "s" : ""
-                                  } nesta data`,
-                                  description: `${consulta.profissional} - ${consulta.especialidade}`,
-                                  variant: "default",
-                                  duration: 3000,
-                                });
-                              } else {
-                                toast({
-                                  title: "Nenhuma consulta nesta data",
-                                  description:
-                                    "Você pode agendar uma nova consulta clicando no botão de agendamento.",
-                                  variant: "default",
-                                  duration: 3000,
-                                });
-                              }
-                            }
+                            if (!date) return;
+                            const iso = new Date(date);
+                            iso.setHours(0, 0, 0, 0);
+                            const isoStr = `${iso.getFullYear()}-${String(
+                              iso.getMonth() + 1
+                            ).padStart(2, "0")}-${String(
+                              iso.getDate()
+                            ).padStart(2, "0")}`;
+                            const hoje = new Date();
+                            hoje.setHours(0, 0, 0, 0);
+                            const isPast = iso.getTime() < hoje.getTime();
+                            const target = isPast ? "/historico" : "/agenda";
+                            navigate(`${target}?date=${isoStr}`);
                           }}
                           className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
                           locale={ptBR}
-                          disabled={(date) => {
-                            // Desabilitar apenas datas sem consultas (permitir datas passadas para ver histórico)
-                            const hasConsultation = todasConsultas.some(
-                              (consulta) =>
-                                consulta.data.toDateString() ===
-                                date.toDateString()
-                            );
-                            return !hasConsultation;
-                          }}
+                          disabled={() => false}
                           initialFocus
                           modifiers={{
                             booked: (date) => {

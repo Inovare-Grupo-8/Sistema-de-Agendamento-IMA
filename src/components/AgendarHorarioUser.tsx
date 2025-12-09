@@ -118,7 +118,9 @@ const AgendarHorarioUser = () => {
         }
       }
       keysToRemove.forEach((k) => localStorage.removeItem(k));
-    } catch {}
+    } catch (e) {
+      void e;
+    }
     toast({
       title: "Sessão encerrada",
       description: "Você foi desconectado com sucesso.",

@@ -104,11 +104,8 @@ const App = () => {
                           element={
                             <ProtectedRoute
                               allow={(u) =>
-                                [
-                                  "GRATUIDADE",
-                                  "VALOR_SOCIAL",
-                                  "USUARIO",
-                                ].includes(u?.tipo)
+                                ["GRATUIDADE", "VALOR_SOCIAL", "USUARIO"].includes(u?.tipo) ||
+                                (u?.tipo === "VOLUNTARIO" && u?.funcao !== "ASSISTENCIA_SOCIAL")
                               }
                             >
                               <AgendaUser />
@@ -120,11 +117,8 @@ const App = () => {
                           element={
                             <ProtectedRoute
                               allow={(u) =>
-                                [
-                                  "GRATUIDADE",
-                                  "VALOR_SOCIAL",
-                                  "USUARIO",
-                                ].includes(u?.tipo)
+                                ["GRATUIDADE", "VALOR_SOCIAL", "USUARIO"].includes(u?.tipo) ||
+                                (u?.tipo === "VOLUNTARIO" && u?.funcao !== "ASSISTENCIA_SOCIAL")
                               }
                             >
                               <HistoricoUser />
@@ -228,7 +222,7 @@ const App = () => {
                                 u?.funcao !== "ASSISTENCIA_SOCIAL"
                               }
                             >
-                              <Agenda />
+                              <AgendaUser />
                             </ProtectedRoute>
                           }
                         />
@@ -241,7 +235,7 @@ const App = () => {
                                 u?.funcao !== "ASSISTENCIA_SOCIAL"
                               }
                             >
-                              <Historico />
+                              <HistoricoUser />
                             </ProtectedRoute>
                           }
                         />

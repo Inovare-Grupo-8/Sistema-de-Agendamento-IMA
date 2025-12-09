@@ -51,6 +51,7 @@ import { motion } from "framer-motion";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { ConsultaApiService } from "@/services/consultaApi";
+import { getUserType, isVolunteer } from "@/utils/userTypeDetector";
 
 // Interface para Consulta (compatível com HomeUser)
 interface Consulta {
@@ -92,6 +93,10 @@ const AgendaUser = () => {
   // Let's add the navigate hook for page navigation
   const navigate = useNavigate();
 
+  // Detect user type (volunteer or assisted)
+  const userType = getUserType();
+  const isUserVolunteer = isVolunteer();
+
   useEffect(() => {
     setLoading(true);
     loadTodasConsultas();
@@ -119,11 +124,13 @@ const AgendaUser = () => {
       const consultasData = await ConsultaApiService.getTodasConsultas();
 
       // Convert ConsultaDto to Consulta format for compatibility
+      // For volunteers, show assisted user name; for assisted users, show volunteer name
       const consultasConvertidas: Consulta[] = consultasData.map(
         (consultaDto) => ({
           id: consultaDto.idConsulta,
-          profissional:
-            consultaDto.nomeVoluntario || "Profissional não informado",
+          profissional: isUserVolunteer
+            ? consultaDto.nomeAssistido || "Paciente não informado"
+            : consultaDto.nomeVoluntario || "Profissional não informado",
           especialidade:
             consultaDto.nomeEspecialidade || "Especialidade não informada",
           data: new Date(consultaDto.horario),
@@ -144,8 +151,8 @@ const AgendaUser = () => {
       setProximasConsultas(consultasFuturas);
 
       toast({
-        title: "Consultas carregadas",
-        description: `${consultasFuturas.length} próximas consultas encontradas`,
+        title: isUserVolunteer ? "Atendimentos carregados" : "Consultas carregadas",
+        description: `${consultasFuturas.length} ${isUserVolunteer ? "próximos atendimentos" : "próximas consultas"} encontradas`,
         variant: "default",
       });
     } catch (error) {
@@ -550,7 +557,7 @@ const AgendaUser = () => {
           <div className="h-20" />
           <div className="max-w-5xl mx-auto p-2 md:p-6 bg-[#EDF2FB] dark:bg-[#181A20]">
             <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">
-              Minhas Consultas
+              {isUserVolunteer ? "Meus Atendimentos" : "Minhas Consultas"}
             </h1>
 
             {!userData.nome && (
@@ -577,13 +584,21 @@ const AgendaUser = () => {
                           <Clock className="w-5 h-5 text-[#ED4231] cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Lista das suas próximas consultas agendadas</p>
+                          <p>
+                            {isUserVolunteer
+                              ? "Lista dos seus próximos atendimentos agendados"
+                              : "Lista das suas próximas consultas agendadas"}
+                          </p>
                         </TooltipContent>
                       </Tooltip>
-                      Próximas Consultas
+                      {isUserVolunteer
+                        ? "Próximos Atendimentos"
+                        : "Próximas Consultas"}
                     </CardTitle>
                     <CardDescription>
-                      Consultas agendadas para os próximos dias
+                      {isUserVolunteer
+                        ? "Atendimentos agendados para os próximos dias"
+                        : "Consultas agendadas para os próximos dias"}
                     </CardDescription>
                   </div>
                   <Tooltip>
@@ -646,11 +661,19 @@ const AgendaUser = () => {
                                   <p>
                                     Status:{" "}
                                     {consulta.status === "agendada"
-                                      ? "Consulta confirmada e agendada"
+                                      ? isUserVolunteer
+                                        ? "Atendimento confirmado e agendado"
+                                        : "Consulta confirmada e agendada"
                                       : consulta.status === "realizada"
-                                      ? "Consulta já foi realizada"
+                                      ? isUserVolunteer
+                                        ? "Atendimento já foi realizado"
+                                        : "Consulta já foi realizada"
                                       : consulta.status === "cancelada"
-                                      ? "Consulta foi cancelada"
+                                      ? isUserVolunteer
+                                        ? "Atendimento foi cancelado"
+                                        : "Consulta foi cancelada"
+                                      : isUserVolunteer
+                                      ? "Atendimento foi remarcado"
                                       : "Consulta foi remarcada"}
                                   </p>
                                 </TooltipContent>
@@ -890,10 +913,14 @@ const AgendaUser = () => {
                 <circle cx="12" cy="7" r="1" />
                 <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
-              Detalhes da Consulta
+              {isUserVolunteer
+                ? "Detalhes do Atendimento"
+                : "Detalhes da Consulta"}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
-              Informações completas sobre sua consulta agendada.
+              {isUserVolunteer
+                ? "Informações completas sobre o atendimento agendado."
+                : "Informações completas sobre sua consulta agendada."}
             </DialogDescription>
           </DialogHeader>
 
@@ -918,25 +945,39 @@ const AgendaUser = () => {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                       <circle cx="12" cy="7" r="4" />
                     </svg>
-                    Profissional
+                    {isUserVolunteer ? "Paciente" : "Profissional"}
                   </h4>
                   <div className="space-y-2 text-sm">
                     <p>
                       <strong>Nome:</strong> {consultaDetalhes.profissional}
                     </p>
-                    <p>
-                      <strong>Especialidade:</strong>{" "}
-                      {consultaDetalhes.especialidade}
-                    </p>
-                    <p>
-                      <strong>CRM:</strong> 12345-SP
-                    </p>
-                    <p>
-                      <strong>Telefone:</strong> (11) 98888-8888
-                    </p>
-                    <p>
-                      <strong>Experiência:</strong> 15 anos
-                    </p>
+                    {!isUserVolunteer && (
+                      <>
+                        <p>
+                          <strong>Especialidade:</strong>{" "}
+                          {consultaDetalhes.especialidade}
+                        </p>
+                        <p>
+                          <strong>CRM:</strong> 12345-SP
+                        </p>
+                        <p>
+                          <strong>Telefone:</strong> (11) 98888-8888
+                        </p>
+                        <p>
+                          <strong>Experiência:</strong> 15 anos
+                        </p>
+                      </>
+                    )}
+                    {isUserVolunteer && (
+                      <>
+                        <p>
+                          <strong>Telefone:</strong> (11) 98888-8888
+                        </p>
+                        <p>
+                          <strong>Email:</strong> paciente@email.com
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 

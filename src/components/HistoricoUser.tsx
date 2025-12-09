@@ -83,6 +83,7 @@ import {
   XCircle,
   RotateCcw,
 } from "lucide-react";
+import { getUserType, isVolunteer } from "@/utils/userTypeDetector";
 
 interface HistoricoConsulta {
   id: string; // Adicionar ID único
@@ -138,6 +139,10 @@ const HistoricoUser = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
+  // Detect user type (volunteer or assisted)
+  const userType = getUserType();
+  const isUserVolunteer = isVolunteer();
+
   useEffect(() => {
     const loadHistorico = async () => {
       setLoading(true);
@@ -186,6 +191,7 @@ const HistoricoUser = () => {
         });
 
         // Convert API data to component format
+        // For volunteers, show assisted user name; for assisted users, show volunteer name
         const historicoFormatted: HistoricoConsulta[] = historicoData.map(
           (consulta) => {
             const consultaDate = new Date(consulta.horario);
@@ -199,7 +205,9 @@ const HistoricoUser = () => {
               id: consultaId.toString(),
               date: consultaDate,
               time: consulta.horario.split("T")[1]?.substring(0, 5) || "00:00",
-              name: consulta.voluntario?.ficha?.nome || "Voluntário",
+              name: isUserVolunteer
+                ? consulta.assistido?.ficha?.nome || "Paciente"
+                : consulta.voluntario?.ficha?.nome || "Voluntário",
               type: consulta.especialidade?.nome || "Especialidade",
               serviceType: consulta.modalidade,
               status: consulta.status.toLowerCase() as
@@ -223,7 +231,7 @@ const HistoricoUser = () => {
           // userId já está disponível no escopo
           const proximasData = await ConsultaApiService.getProximasConsultas(
             userId,
-            "assistido"
+            isUserVolunteer ? "voluntario" : "assistido"
           );
           setProximasConsultas(proximasData.length);
         } catch (err) {
@@ -849,7 +857,7 @@ const HistoricoUser = () => {
               {getUserNavigationPath(location.pathname)}
               {/* Rest of the component content */}
               <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-6">
-                Histórico de Consultas
+                {isUserVolunteer ? "Histórico de Atendimentos" : "Histórico de Consultas"}
               </h1>
 
               {/* Summary Statistics Cards */}
@@ -858,7 +866,7 @@ const HistoricoUser = () => {
                 <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Consultas Realizadas
+                      {isUserVolunteer ? "Atendimentos Realizados" : "Consultas Realizadas"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -878,7 +886,7 @@ const HistoricoUser = () => {
                 <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Próximas Consultas
+                      {isUserVolunteer ? "Próximos Atendimentos" : "Próximas Consultas"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
