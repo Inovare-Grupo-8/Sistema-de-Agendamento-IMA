@@ -306,7 +306,7 @@ const DisponibilizarHorario = () => {
                 "Voluntário"
               }
               size="w-16 h-16"
-              className="shadow"
+              className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
               {dadosPessoais?.nome} {dadosPessoais?.sobrenome}

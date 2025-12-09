@@ -52,6 +52,15 @@ import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { ConsultaApiService } from "@/services/consultaApi";
 import { getUserType, isVolunteer } from "@/utils/userTypeDetector";
+import {
+  userNavigationItems,
+  professionalNavigationItems,
+} from "@/utils/userNavigation";
+import {
+  useVoluntario,
+  DadosPessoaisVoluntario,
+  DadosProfissionaisVoluntario,
+} from "@/hooks/useVoluntario";
 
 // Interface para Consulta (compatível com HomeUser)
 interface Consulta {
@@ -84,6 +93,20 @@ const AgendaUser = () => {
     .join(" ");
   const displayName = fullName || "Usuário";
 
+  // Volunteer data hooks
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } =
+    useVoluntario();
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: "",
+    sobrenome: "",
+    email: "",
+    telefone: "",
+    dataNascimento: "",
+  });
+  const [dadosProfissionais, setDadosProfissionais] =
+    useState<DadosProfissionaisVoluntario | null>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>("");
+
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -96,6 +119,43 @@ const AgendaUser = () => {
   // Detect user type (volunteer or assisted)
   const userType = getUserType();
   const isUserVolunteer = isVolunteer();
+
+  // Use appropriate navigation items based on user type
+  const navigationItems = isUserVolunteer
+    ? professionalNavigationItems
+    : userNavigationItems;
+
+  // Load volunteer professional data
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) setDadosPessoais(dados);
+      } catch (error) {
+        console.error("Erro ao carregar dados pessoais:", error);
+      }
+    };
+    if (isUserVolunteer) {
+      loadDadosPessoais();
+    }
+  }, [buscarDadosPessoais, isUserVolunteer]);
+
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados profissionais:", error);
+      }
+    };
+    if (isUserVolunteer) {
+      loadDadosProfissionais();
+    }
+  }, [buscarDadosProfissionais, mapEnumToText, isUserVolunteer]);
 
   useEffect(() => {
     setLoading(true);
@@ -151,8 +211,12 @@ const AgendaUser = () => {
       setProximasConsultas(consultasFuturas);
 
       toast({
-        title: isUserVolunteer ? "Atendimentos carregados" : "Consultas carregadas",
-        description: `${consultasFuturas.length} ${isUserVolunteer ? "próximos atendimentos" : "próximas consultas"} encontradas`,
+        title: isUserVolunteer
+          ? "Atendimentos carregados"
+          : "Consultas carregadas",
+        description: `${consultasFuturas.length} ${
+          isUserVolunteer ? "próximos atendimentos" : "próximas consultas"
+        } encontradas`,
         variant: "default",
       });
     } catch (error) {
@@ -318,131 +382,46 @@ const AgendaUser = () => {
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            {/* Update to use userData from hook */}
-            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">
-              {displayName}
+            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {isUserVolunteer ? (
+                <>
+                  {dadosPessoais?.nome || userData?.nome}{" "}
+                  {dadosPessoais?.sobrenome || userData?.sobrenome}
+                </>
+              ) : (
+                displayName
+              )}
             </span>
+            {isUserVolunteer && (
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                {funcaoVoluntario || "Profissional"}
+              </Badge>
+            )}
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === "/home-user"
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link to="/home-user" className="flex items-center gap-3">
-                      <HomeIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Painel principal com resumo
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === "/agenda-user"
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link to="/agenda-user" className="flex items-center gap-3">
-                      <CalendarIcon className="w-6 h-6" color="#ED4231" />
-                      <span>Minhas Consultas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja sua agenda de consultas
-                </TooltipContent>
-              </Tooltip>{" "}
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === "/historico-user"
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to="/historico-user"
-                      className="flex items-center gap-3"
+            {/* Dynamic sidebar navigation based on user type */}
+            {Object.values(navigationItems).map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      asChild
+                      className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                        location.pathname === item.path
+                          ? "bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]"
+                          : ""
+                      }`}
                     >
-                      <History className="w-6 h-6" color="#ED4231" />
-                      <span>Histórico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja seu histórico de consultas
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === "/agendar-horario-user"
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to="/agendar-horario-user"
-                      className="flex items-center gap-3"
-                    >
-                      <Clock className="w-6 h-6" color="#ED4231" />
-                      <span>Agendar Consulta</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Agende uma nova consulta com um profissional
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === "/profile-form-user"
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to="/profile-form-user"
-                      className="flex items-center gap-3"
-                    >
-                      <User className="w-6 h-6" color="#ED4231" />
-                      <span>Editar Perfil</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Edite seu perfil e foto
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>{" "}
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">{item.label}</TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -506,8 +485,15 @@ const AgendaUser = () => {
             role="banner"
             aria-label="Cabeçalho da agenda"
           >
-            {" "}
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-full bg-[#ED4231] text-white"
+                aria-label="Abrir menu lateral"
+                title="Abrir menu"
+              >
+                <Menu className="w-6 h-6" />
+              </Button>
               <ProfileAvatar
                 profileImage={profileImage}
                 name={displayName}
@@ -556,7 +542,7 @@ const AgendaUser = () => {
           </header>{" "}
           <div className="h-20" />
           <div className="max-w-5xl mx-auto p-2 md:p-6 bg-[#EDF2FB] dark:bg-[#181A20]">
-            <h1 className="text-3xl md:text-4xl font-bold text-center animate-fade-in mb-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-4 md:mb-6">
               {isUserVolunteer ? "Meus Atendimentos" : "Minhas Consultas"}
             </h1>
 

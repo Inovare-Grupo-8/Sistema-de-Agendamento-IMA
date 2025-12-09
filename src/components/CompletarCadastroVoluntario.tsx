@@ -2110,16 +2110,28 @@ export function CompletarCadastroVoluntario() {
                             <SelectValue placeholder="Selecione a função de voluntário" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="QUIROPRAXIA">
-                              Quiropraxia
-                            </SelectItem>
+                            <SelectItem value="JURIDICA">Jurídica</SelectItem>
                             <SelectItem value="PSICOLOGIA">
                               Psicologia
                             </SelectItem>
+                            <SelectItem value="PSICOPEDAGOGIA">
+                              Psicopedagogia
+                            </SelectItem>
+                            <SelectItem value="ASSISTENCIA_SOCIAL">
+                              Assistência Social
+                            </SelectItem>
+                            <SelectItem value="CONTABIL">Contábil</SelectItem>
+                            <SelectItem value="FINANCEIRA">
+                              Financeira
+                            </SelectItem>
+                            <SelectItem value="PEDIATRIA">Pediatria</SelectItem>
                             <SelectItem value="FISIOTERAPIA">
                               Fisioterapia
                             </SelectItem>
-                            <SelectItem value="NUTRIÇÃO">Nutrição</SelectItem>
+                            <SelectItem value="QUIROPRAXIA">
+                              Quiropraxia
+                            </SelectItem>
+                            <SelectItem value="NUTRICAO">Nutrição</SelectItem>
                           </SelectContent>
                         </Select>
                       )}

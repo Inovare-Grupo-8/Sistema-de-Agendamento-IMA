@@ -293,7 +293,7 @@ export default function CadastroAssistenteSocial() {
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    // Campos obrigatórios baseados no AssistenteSocialInput.java
+    // Campos obrigatórios para cadastro de administrador
     if (!formData.nome.trim()) errors.nome = "Nome é obrigatório";
     if (!formData.sobrenome.trim())
       errors.sobrenome = "Sobrenome é obrigatório";
@@ -332,21 +332,10 @@ export default function CadastroAssistenteSocial() {
     // Gênero - obrigatório
     if (!formData.genero) errors.genero = "Gênero é obrigatório";
 
-    // Profissão - obrigatória
-    if (!formData.profissao.trim())
-      errors.profissao = "Profissão é obrigatória";
-
     // DDD - obrigatório
-    if (!formData.telefone.ddd.trim())
+    if (!formData.telefone.ddd.trim()) {
       errors["telefone.ddd"] = "DDD é obrigatório";
-
-    // Número (endereço) - obrigatório
-    if (!formData.endereco.numero.trim())
-      errors["endereco.numero"] = "Número é obrigatório";
-
-    // CEP - obrigatório
-    if (!formData.endereco.cep.trim())
-      errors["endereco.cep"] = "CEP é obrigatório";
+    }
 
     // Telefone - obrigatório
     const telefoneDigits = formData.telefone.numero.replace(/\D/g, "");
@@ -356,12 +345,27 @@ export default function CadastroAssistenteSocial() {
       errors["telefone.numero"] = "Telefone deve ter 8 ou 9 dígitos";
     }
 
-    // Campos opcionais (não validamos se obrigatórios):
-    // - renda (Double)
-    // - complemento (String)
-    // - crp (String)
-    // - especialidade (String)
-    // - bio (String)
+    // CEP - obrigatório
+    const cepDigits = formData.endereco.cep.replace(/\D/g, "");
+    if (!formData.endereco.cep.trim()) {
+      errors["endereco.cep"] = "CEP é obrigatório";
+    } else if (cepDigits.length !== 8) {
+      errors["endereco.cep"] = "CEP deve ter 8 dígitos";
+    }
+
+    // Número (endereço) - obrigatório
+    if (!formData.endereco.numero.trim()) {
+      errors["endereco.numero"] = "Número é obrigatório";
+    }
+
+    // Profissão - OPCIONAL para administrador
+    // Removido da validação obrigatória
+
+    // Log de erros para debug
+    if (Object.keys(errors).length > 0) {
+      console.log("❌ Erros de validação:", errors);
+      console.log("📋 Dados do formulário:", formData);
+    }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -380,50 +384,89 @@ export default function CadastroAssistenteSocial() {
 
     setLoading(true);
     try {
-      const dadosParaEnviar = {
+      // Primeira fase - Dados básicos
+      const primeiraFaseData = {
         nome: formData.nome,
         sobrenome: formData.sobrenome,
         email: formData.email,
+        cpf: formData.cpf.replace(/\D/g, ""), // Remove formatting
         senha: formData.senha,
-        cpf: formData.cpf.replace(/\D/g, ""), // Remove formatting from CPF
-        dataNascimento: formData.dataNascimento,
-        genero: formData.genero,
-        tipo: formData.tipo,
-        funcao: formData.funcao,
-        profissao: formData.profissao,
-        ddd: formData.telefone.ddd,
-        numero: formData.telefone.numero.replace(/\D/g, ""), // Remove formatting from phone
-        cep: formData.endereco.cep.replace(/\D/g, ""), // Remove formatting from CEP
-        complemento: formData.endereco.complemento,
-        crp: formData.voluntario.crp,
-        especialidade: formData.voluntario.especialidade,
-        telefone: `${formData.telefone.ddd}${formData.telefone.numero.replace(
-          /\D/g,
-          ""
-        )}`,
-        bio: formData.voluntario.bio,
-      }; // Get the token from userData if available
-      const storedAuthData = localStorage.getItem("userData");
-      const token = storedAuthData
-        ? (JSON.parse(storedAuthData)?.token as string | undefined)
-        : undefined;
+      };
 
+      // Chamada da primeira fase
       const response = await fetch(
-        `${import.meta.env.VITE_URL_BACKEND}/assistentes-sociais`,
+        `${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/primeira-fase`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
           },
-          body: JSON.stringify(dadosParaEnviar),
+          body: JSON.stringify(primeiraFaseData),
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error("Erro ao cadastrar assistente social");
+        console.error("Erro na primeira fase:", errorText);
+        throw new Error("Erro ao cadastrar assistente social - primeira fase");
+      }
+
+      const { idUsuario } = await response.json();
+      console.log("Usuário criado com ID:", idUsuario);
+
+      // Segunda fase - Dados complementares
+      const telefoneCompleto = formData.telefone.numero.replace(/\D/g, "");
+      const prefixo = telefoneCompleto.substring(
+        0,
+        telefoneCompleto.length === 9 ? 5 : 4
+      );
+      const sufixo = telefoneCompleto.substring(
+        telefoneCompleto.length === 9 ? 5 : 4
+      );
+
+      const segundaFaseData = {
+        dataNascimento: formData.dataNascimento,
+        rendaMinima: 0.1,
+        rendaMaxima: 0.1,
+        genero: formData.genero,
+        tipo: formData.tipo,
+        endereco: {
+          cep: formData.endereco.cep.replace(/\D/g, ""),
+          numero: formData.endereco.numero,
+          complemento: formData.endereco.complemento || "",
+        },
+        telefone: {
+          ddd: formData.telefone.ddd,
+          prefixo: prefixo,
+          sufixo: sufixo,
+          whatsapp: true,
+        },
+        funcao: "ASSISTENCIA_SOCIAL",
+        areaOrientacao: "Assistencia Social",
+        comoSoube: "Sistema IMA",
+        profissao: formData.profissao.trim() || "Assistente Social",
+      };
+
+      console.log("📤 Enviando segunda fase:", segundaFaseData);
+
+      // Chamada da segunda fase
+      const response2 = await fetch(
+        `${
+          import.meta.env.VITE_URL_BACKEND
+        }/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(segundaFaseData),
+        }
+      );
+
+      if (!response2.ok) {
+        const errorText = await response2.text();
+        console.error("Erro na segunda fase:", errorText);
+        throw new Error("Erro ao completar cadastro - segunda fase");
       }
 
       toast({
@@ -433,9 +476,13 @@ export default function CadastroAssistenteSocial() {
 
       navigate("/assistente-social");
     } catch (error) {
+      console.error("Erro no cadastro:", error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao cadastrar o assistente social.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro ao cadastrar o assistente social.",
         variant: "destructive",
       });
     } finally {
@@ -912,7 +959,7 @@ export default function CadastroAssistenteSocial() {
                           htmlFor="profissao"
                           className="flex items-center justify-between"
                         >
-                          Profissão
+                          Profissão (opcional)
                           {validationErrors.profissao && (
                             <span className="text-xs text-red-500">
                               {validationErrors.profissao}
@@ -1135,30 +1182,30 @@ export default function CadastroAssistenteSocial() {
     </SidebarProvider>
   );
 }
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("auth_user");
-      localStorage.removeItem("userData");
-      localStorage.removeItem("savedProfile");
-      localStorage.removeItem("profileData");
-      localStorage.removeItem("userProfileData");
-      localStorage.removeItem("selectedDates");
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i) || "";
-        if (
-          key.startsWith("availabilityVoluntario:") ||
-          key.startsWith("availabilityIds:")
-        ) {
-          keysToRemove.push(key);
-        }
+const handleLogout = () => {
+  try {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem("userData");
+    localStorage.removeItem("savedProfile");
+    localStorage.removeItem("profileData");
+    localStorage.removeItem("userProfileData");
+    localStorage.removeItem("selectedDates");
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i) || "";
+      if (
+        key.startsWith("availabilityVoluntario:") ||
+        key.startsWith("availabilityIds:")
+      ) {
+        keysToRemove.push(key);
       }
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
-    } catch {}
-    toast({
-      title: "Sessão encerrada",
-      description: "Você foi desconectado com sucesso.",
-    });
-    navigate("/login", { replace: true });
-  };
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {}
+  toast({
+    title: "Sessão encerrada",
+    description: "Você foi desconectado com sucesso.",
+  });
+  navigate("/login", { replace: true });
+};

@@ -44,6 +44,7 @@ import {
   DadosProfissionaisVoluntario,
 } from "@/hooks/useVoluntario";
 import { professionalNavigationItems } from "@/utils/userNavigation";
+import ConsultaApiService from "@/services/consultaApi";
 import {
   Dialog,
   DialogContent,
@@ -156,6 +157,86 @@ const Agenda = () => {
     setLoading(true);
     setTimeout(() => setLoading(false), 800);
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const dateStr = params.get("date");
+    if (dateStr) {
+      const [y, m, d] = dateStr.split("-").map((x) => Number(x));
+      const parsed = new Date(y, (m || 1) - 1, d || 1);
+      parsed.setHours(0, 0, 0, 0);
+      setSelectedDate(parsed);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        const stored = localStorage.getItem("userData");
+        if (!stored) return;
+        const parsed = JSON.parse(stored);
+        const userId: number | undefined = parsed.idUsuario ?? parsed.id;
+        if (!userId) return;
+        const all = await ConsultaApiService.getConsultasRecentes(userId);
+        const dayISO = new Date(selectedDate);
+        dayISO.setHours(0, 0, 0, 0);
+        const dayStr = `${dayISO.getFullYear()}-${String(
+          dayISO.getMonth() + 1
+        ).padStart(2, "0")}-${String(dayISO.getDate()).padStart(2, "0")}`;
+        const list = (all || []).filter((c) =>
+          String(c.horario).startsWith(dayStr)
+        );
+        const mapped = list
+          .map((c) => {
+            const d = new Date(c.horario);
+            const time = `${String(d.getHours()).padStart(2, "0")}:${String(
+              d.getMinutes()
+            ).padStart(2, "0")}`;
+            const nome =
+              (c as any).assistido?.ficha?.nome ||
+              (c as any).assistido?.nome ||
+              c.nomeAssistido ||
+              "Paciente";
+            const sobrenome =
+              (c as any).assistido?.ficha?.sobrenome ||
+              (c as any).assistido?.sobrenome ||
+              "";
+            const pacienteCompleto =
+              [nome, sobrenome].filter(Boolean).join(" ") || nome;
+            const tipo =
+              c.nomeEspecialidade ||
+              (c as any).especialidade?.nome ||
+              "Consulta";
+            const serv = String(c.modalidade || "")
+              .toUpperCase()
+              .includes("ONLINE")
+              ? "Consulta Online"
+              : "Consulta Presencial";
+            const stRaw = String(c.status || "AGENDADA").toUpperCase();
+            const status =
+              stRaw === "CANCELADA"
+                ? "cancelled"
+                : stRaw === "AGENDADA"
+                ? "confirmed"
+                : "pending";
+            return {
+              id: String(c.idConsulta),
+              date: d,
+              time,
+              patientName: pacienteCompleto,
+              type: tipo,
+              serviceType: serv,
+              status,
+            } as Appointment;
+          })
+          .sort((a, b) => a.time.localeCompare(b.time));
+        setAppointments(mapped);
+      } catch (e) {
+        setError("Falha ao carregar a agenda do dia");
+      }
+    };
+    fetchAppointments();
+  }, [selectedDate]);
 
   const handleCancelAppointment = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
@@ -322,14 +403,14 @@ const Agenda = () => {
         >
           <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              {!sidebarOpen && (
-                <Button
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-2 rounded-full bg-[#ED4231] text-white md:hidden"
-                >
-                  <Menu className="w-6 h-6" />
-                </Button>
-              )}
+              <Button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-full bg-[#ED4231] text-white"
+                aria-label="Abrir menu lateral"
+                title="Abrir menu"
+              >
+                <Menu className="w-6 h-6" />
+              </Button>
               <ProfileAvatar
                 profileImage={profileImage}
                 name={
@@ -366,7 +447,7 @@ const Agenda = () => {
             <div className="max-w-5xl mx-auto p-4 md:p-8">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                 <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">
-                  Agenda de Hoje
+                  Agenda de Atendimentos
                 </h1>
                 <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                   <div className="relative flex-grow md:flex-grow-0 md:w-64">
@@ -400,6 +481,7 @@ const Agenda = () => {
                           : ""
                       }`}
                     >
+                      <CalendarIcon size={16} />
                       <span>Confirmados</span>
                     </Button>
                     <Button
@@ -411,7 +493,20 @@ const Agenda = () => {
                           : ""
                       }`}
                     >
+                      <Clock size={16} />
                       <span>Pendentes</span>
+                    </Button>
+                    <Button
+                      onClick={() => setFilterStatus("cancelled")}
+                      variant="outline"
+                      className={`flex items-center gap-2 ${
+                        filterStatus === "cancelled"
+                          ? "bg-[#ED4231] text-white"
+                          : ""
+                      }`}
+                    >
+                      <CalendarX size={16} />
+                      <span>Canceladas</span>
                     </Button>
                   </div>
                 </div>
@@ -457,9 +552,14 @@ const Agenda = () => {
                           <div className="p-4">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Clock className="w-5 h-5 text-[#ED4231]" />
+                                <CalendarIcon className="w-5 h-5 text-[#ED4231]" />
                                 <span className="font-semibold text-gray-800 dark:text-gray-200">
-                                  {appointment.time}
+                                  {format(
+                                    appointment.date,
+                                    "dd 'de' MMMM 'de' yyyy",
+                                    { locale: ptBR }
+                                  )}{" "}
+                                  às {appointment.time}
                                 </span>
                                 <Badge
                                   className={`${

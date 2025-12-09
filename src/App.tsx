@@ -104,8 +104,13 @@ const App = () => {
                           element={
                             <ProtectedRoute
                               allow={(u) =>
-                                ["GRATUIDADE", "VALOR_SOCIAL", "USUARIO"].includes(u?.tipo) ||
-                                (u?.tipo === "VOLUNTARIO" && u?.funcao !== "ASSISTENCIA_SOCIAL")
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo) ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao !== "ASSISTENCIA_SOCIAL")
                               }
                             >
                               <AgendaUser />
@@ -117,8 +122,13 @@ const App = () => {
                           element={
                             <ProtectedRoute
                               allow={(u) =>
-                                ["GRATUIDADE", "VALOR_SOCIAL", "USUARIO"].includes(u?.tipo) ||
-                                (u?.tipo === "VOLUNTARIO" && u?.funcao !== "ASSISTENCIA_SOCIAL")
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo) ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao !== "ASSISTENCIA_SOCIAL")
                               }
                             >
                               <HistoricoUser />
@@ -214,12 +224,30 @@ const App = () => {
                           }
                         />
                         <Route
-                          path="/agenda"
+                          path="/agenda-voluntario"
                           element={
                             <ProtectedRoute
                               allow={(u) =>
                                 u?.tipo === "VOLUNTARIO" &&
                                 u?.funcao !== "ASSISTENCIA_SOCIAL"
+                              }
+                            >
+                              <AgendaUser />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/agenda"
+                          element={
+                            <ProtectedRoute
+                              allow={(u) =>
+                                [
+                                  "GRATUIDADE",
+                                  "VALOR_SOCIAL",
+                                  "USUARIO",
+                                ].includes(u?.tipo) ||
+                                (u?.tipo === "VOLUNTARIO" &&
+                                  u?.funcao !== "ASSISTENCIA_SOCIAL")
                               }
                             >
                               <AgendaUser />

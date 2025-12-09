@@ -67,6 +67,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { professionalNavigationItems } from "@/utils/userNavigation";
 import { ConsultaApiService } from "@/services/consultaApi";
+import { getUserType, isVolunteer } from "@/utils/userTypeDetector";
 import { useUserData } from "@/hooks/useUserData";
 import type { UserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
@@ -119,7 +120,12 @@ interface ConsultaCancelamento {
 
 const Home = () => {
   const navigate = useNavigate();
+  const [tipoUsuario, setTipoUsuario] = useState<string | null>(null);
   const { t } = useTranslation();
+
+  // Detect user type for conditional rendering
+  const userType = getUserType();
+  const isUserVolunteer = isVolunteer();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -240,9 +246,8 @@ const Home = () => {
   const [proximasConsultas, setProximasConsultas] = useState<Consulta[]>([]);
   // Estado para todas as consultas (para o calendário)
   const [todasConsultas, setTodasConsultas] = useState<Consulta[]>([]);
-  //Proxima consulta do usuario
-  const [proximaConsulta, setProximaConsulta] =
-    useState<ProximaConsulta | null>(null);
+  //Proxima consulta do usuario - usando tipo Consulta que já tem profissional formatado
+  const [proximaConsulta, setProximaConsulta] = useState<Consulta | null>(null);
 
   // A próxima consulta será obtida através dos dados das 3 próximas consultas
   // Removido useEffect que chamava endpoint inexistente
@@ -258,6 +263,7 @@ const Home = () => {
       }
       const user = JSON.parse(userDataStr);
       const userId = user.idUsuario;
+      const tipoUsuario = user.tipo;
 
       if (!userId) {
         throw new Error("ID do usuário não encontrado");
@@ -284,10 +290,16 @@ const Home = () => {
         return;
       }
 
+      // Determine userType based on user data
+      const userTypeParam =
+        String(tipoUsuario).toUpperCase() === "VOLUNTARIO"
+          ? "voluntario"
+          : "assistido";
+
       // Load evaluations and feedbacks from API
       const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback(
         userId,
-        "assistido"
+        userTypeParam
       );
 
       // Create maps for quick lookup
@@ -321,9 +333,33 @@ const Home = () => {
           // Get evaluation for this consultation
           const rating = avaliacoesMap.get(consultaId);
 
+          // Adapt profissional field based on user type
+          let profissionalNome: string;
+          if (isUserVolunteer) {
+            // Volunteer sees patient name
+            const nome =
+              consulta.assistido?.ficha?.nome || consulta.assistido?.nome;
+            const sobrenome =
+              consulta.assistido?.ficha?.sobrenome ||
+              consulta.assistido?.sobrenome;
+            profissionalNome =
+              [nome, sobrenome].filter(Boolean).join(" ") ||
+              "Assistido não informado";
+          } else {
+            // Assisted user sees volunteer name
+            const nomeVol =
+              consulta.voluntario?.ficha?.nome || consulta.voluntario?.nome;
+            const sobrenomeVol =
+              consulta.voluntario?.ficha?.sobrenome ||
+              consulta.voluntario?.sobrenome;
+            profissionalNome =
+              [nomeVol, sobrenomeVol].filter(Boolean).join(" ") ||
+              "Voluntário não informado";
+          }
+
           return {
             id: consultaId,
-            profissional: consulta.voluntario?.ficha?.nome || "Voluntário",
+            profissional: profissionalNome,
             especialidade: consulta.especialidade?.nome || "Especialidade",
             data: consultaDate,
             tipo:
@@ -414,19 +450,57 @@ const Home = () => {
       const consultaStats = await ConsultaApiService.getAllConsultaStats(
         userId
       );
-      const proximaData =
+      let proximaData =
         proximasConsultas.length > 0 ? proximasConsultas[0].data : null;
+
+      // Validate that proximaData is a valid Date object
+      if (
+        proximaData &&
+        (!(proximaData instanceof Date) || isNaN(proximaData.getTime()))
+      ) {
+        console.warn("Invalid date detected in proximaData, setting to null");
+        proximaData = null;
+      }
+
+      if (
+        !proximaData &&
+        Array.isArray(todasConsultas) &&
+        todasConsultas.length
+      ) {
+        const hoje = new Date();
+        const futuras = todasConsultas
+          .filter((c) => c.data > hoje && c.status !== "cancelada")
+          .sort((a, b) => a.data.getTime() - b.data.getTime());
+        proximaData = futuras.length ? futuras[0].data : null;
+
+        // Validate again after getting from todasConsultas
+        if (
+          proximaData &&
+          (!(proximaData instanceof Date) || isNaN(proximaData.getTime()))
+        ) {
+          console.warn("Invalid date detected in futuras, setting to null");
+          proximaData = null;
+        }
+
+        if (proximaData) {
+          setProximasConsultas(futuras);
+        }
+      }
       setConsultasSummary({
         total: consultaStats.hoje,
         proxima: proximaData,
         mes: consultaStats.mes,
         semana: consultaStats.semana,
       });
-      if (proximasConsultas.length > 0 && proximaData) {
-        const proximaConsulta = proximasConsultas.find(
+      if (proximaData) {
+        const base = proximasConsultas?.length
+          ? proximasConsultas
+          : todasConsultas || [];
+        const proximaConsulta = base.find(
           (c) => c.data.toDateString() === proximaData.toDateString()
         );
         if (proximaConsulta) {
+          setProximaConsulta(proximaConsulta);
           setProximaConsultaData({
             profissional: proximaConsulta.profissional,
             especialidade: proximaConsulta.especialidade,
@@ -452,11 +526,24 @@ const Home = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      // First load all consultations (calendar data)
       await loadTodasConsultas();
+      // Then load the next 3 upcoming consultations (cards display)
       await loadProximasConsultasVoluntario();
+      // Update consultation summary statistics
       await atualizarResumoConsultas();
+      // Finally load recent history
       await loadHistoricoRecente();
     };
+    try {
+      const s = localStorage.getItem("userData");
+      if (s) {
+        const u = JSON.parse(s);
+        setTipoUsuario(String(u?.tipo || ""));
+      }
+    } catch (e) {
+      void e;
+    }
     loadData();
   }, []);
 
@@ -508,23 +595,58 @@ const Home = () => {
           index === self.findIndex((c) => c.idConsulta === consulta.idConsulta)
       );
 
-      const consultasConvertidas: Consulta[] = consultasUnicas.map(
-        (consulta) => ({
-          id: consulta.idConsulta,
-          profissional:
-            consulta.voluntario?.ficha?.nome || "Profissional não informado",
-          especialidade:
-            consulta.especialidade?.nome || "Especialidade não informada",
-          data: new Date(consulta.horario),
-          tipo:
-            consulta.modalidade === "ONLINE"
-              ? "Consulta Online"
-              : "Consulta Presencial",
-          status: consulta.status.toLowerCase(),
-          avaliacao: undefined, // ajuste conforme necessário
-          assistido: consulta.assistido, // agora é o objeto!
+      const consultasConvertidas: Consulta[] = consultasUnicas
+        .map((consulta) => {
+          // Adapt profissional field based on user type
+          let profissionalNome: string;
+          if (isUserVolunteer) {
+            // Volunteer sees patient name
+            const nome =
+              consulta.assistido?.ficha?.nome || consulta.assistido?.nome;
+            const sobrenome =
+              consulta.assistido?.ficha?.sobrenome ||
+              consulta.assistido?.sobrenome;
+            profissionalNome =
+              [nome, sobrenome].filter(Boolean).join(" ") ||
+              "Assistido não informado";
+          } else {
+            // Assisted user sees volunteer name
+            const nomeVol =
+              consulta.voluntario?.ficha?.nome || consulta.voluntario?.nome;
+            const sobrenomeVol =
+              consulta.voluntario?.ficha?.sobrenome ||
+              consulta.voluntario?.sobrenome;
+            profissionalNome =
+              [nomeVol, sobrenomeVol].filter(Boolean).join(" ") ||
+              "Profissional não informado";
+          }
+
+          return {
+            id: consulta.idConsulta,
+            profissional: profissionalNome,
+            especialidade:
+              consulta.especialidade?.nome || "Especialidade não informada",
+            data: new Date(consulta.horario),
+            tipo:
+              consulta.modalidade === "ONLINE"
+                ? "Consulta Online"
+                : "Consulta Presencial",
+            status: consulta.status.toLowerCase(),
+            avaliacao: undefined, // ajuste conforme necessário
+            assistido: consulta.assistido, // agora é o objeto!
+          };
         })
-      );
+        .filter((consulta) => {
+          // Filter out consultations with invalid dates
+          const isValidDate =
+            consulta.data instanceof Date && !isNaN(consulta.data.getTime());
+          if (!isValidDate) {
+            console.warn(
+              `Invalid date detected for consultation ${consulta.id}, skipping`
+            );
+          }
+          return isValidDate;
+        });
       setTodasConsultas(consultasConvertidas);
       // Filter upcoming consultations (future dates only) and sort by date (nearest first)
       const agora = new Date();
@@ -558,37 +680,69 @@ const Home = () => {
       if (!userId) {
         throw new Error("ID do usuário não encontrado");
       }
-      if (String(tipoUsuario).toUpperCase() !== "VOLUNTARIO") {
-        return;
-      }
+
+      // Determine userType based on user data
+      const userTypeParam =
+        String(tipoUsuario).toUpperCase() === "VOLUNTARIO"
+          ? "voluntario"
+          : "assistido";
+
       const proximas = await ConsultaApiService.getProximasConsultas(
         userId,
-        "voluntario"
+        userTypeParam
       );
+
       const proximasFormatadas: Consulta[] = (proximas || []).map(
-        (consulta) => ({
-          id: consulta.idConsulta,
-          profissional:
-            consulta.assistido?.ficha?.nome || "Assistido não informado",
-          especialidade:
-            consulta.especialidade?.nome || "Especialidade não informada",
-          data: new Date(consulta.horario),
-          tipo:
-            consulta.modalidade === "ONLINE"
-              ? "Consulta Online"
-              : "Consulta Presencial",
-          status: String(consulta.status || "AGENDADA").toLowerCase(),
-          assistido: consulta.assistido,
-        })
+        (consulta) => {
+          // Adapt profissional field based on user type
+          let profissionalNome: string;
+          if (userTypeParam === "voluntario") {
+            // Volunteer sees patient name
+            const nome =
+              consulta.assistido?.ficha?.nome || consulta.assistido?.nome;
+            const sobrenome =
+              consulta.assistido?.ficha?.sobrenome ||
+              consulta.assistido?.sobrenome;
+            profissionalNome =
+              [nome, sobrenome].filter(Boolean).join(" ") ||
+              "Assistido não informado";
+          } else {
+            // Assisted user sees volunteer name
+            const nomeVol =
+              consulta.voluntario?.ficha?.nome || consulta.voluntario?.nome;
+            const sobrenomeVol =
+              consulta.voluntario?.ficha?.sobrenome ||
+              consulta.voluntario?.sobrenome;
+            profissionalNome =
+              [nomeVol, sobrenomeVol].filter(Boolean).join(" ") ||
+              "Profissional não informado";
+          }
+
+          return {
+            id: consulta.idConsulta,
+            profissional: profissionalNome,
+            especialidade:
+              consulta.especialidade?.nome || "Especialidade não informada",
+            data: new Date(consulta.horario),
+            tipo:
+              consulta.modalidade === "ONLINE"
+                ? "Consulta Online"
+                : "Consulta Presencial",
+            status: String(consulta.status || "AGENDADA").toLowerCase(),
+            assistido: consulta.assistido,
+          };
+        }
       );
+
       setProximasConsultas(
         proximasFormatadas.sort((a, b) => a.data.getTime() - b.data.getTime())
       );
-    } catch (error) {
-      console.error(
-        "Erro ao carregar próximas consultas do voluntário:",
-        error
+
+      console.log(
+        `✅ Próximas consultas carregadas (${userTypeParam}): ${proximasFormatadas.length} consultas`
       );
+    } catch (error) {
+      console.error("Erro ao carregar próximas consultas:", error);
     }
   };
 
@@ -603,7 +757,11 @@ const Home = () => {
   };
 
   // Função para formatar a data
-  const formatarData = (data: Date) => {
+  const formatarData = (data: Date | null) => {
+    if (!data || !(data instanceof Date) || isNaN(data.getTime())) {
+      return "Data não disponível";
+    }
+
     const hoje = new Date();
     const amanha = new Date();
     amanha.setDate(hoje.getDate() + 1);
@@ -1120,7 +1278,7 @@ const Home = () => {
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+            <span className="font-bold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
               {dadosPessoais?.nome || userData?.nome}{" "}
               {dadosPessoais?.sobrenome || userData?.sobrenome}
             </span>
@@ -1280,8 +1438,11 @@ const Home = () => {
                   Dashboard
                 </h1>
                 <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-                  Bem-vindo(a), {userData?.nome}! Aqui está o resumo das suas
-                  consultas.
+                  Bem-vindo(a), {userData?.nome}! Aqui está o resumo{" "}
+                  {isUserVolunteer
+                    ? "dos seus atendimentos"
+                    : "das suas consultas"}
+                  .
                 </p>
 
                 {error && <ErrorMessage message={error} />}
@@ -1297,13 +1458,21 @@ const Home = () => {
                             <Clock className="w-5 h-5 text-[#ED4231] cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Resumo de todas as suas consultas agendadas</p>
+                            <p>
+                              Resumo de{" "}
+                              {isUserVolunteer
+                                ? "todos os seus atendimentos agendados"
+                                : "todas as suas consultas agendadas"}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
-                        Consultas
+                        {isUserVolunteer ? "Atendimentos" : "Consultas"}
                       </CardTitle>
                       <CardDescription>
-                        Visão geral das suas consultas
+                        Visão geral{" "}
+                        {isUserVolunteer
+                          ? "dos seus atendimentos"
+                          : "das suas consultas"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1333,7 +1502,11 @@ const Home = () => {
                                 </motion.div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Consultas agendadas para hoje</p>
+                                <p>
+                                  {isUserVolunteer
+                                    ? "Atendimentos agendados para hoje"
+                                    : "Consultas agendadas para hoje"}
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -1351,7 +1524,11 @@ const Home = () => {
                                 </motion.div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Consultas agendadas para esta semana</p>
+                                <p>
+                                  {isUserVolunteer
+                                    ? "Atendimentos agendados para esta semana"
+                                    : "Consultas agendadas para esta semana"}
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -1370,7 +1547,11 @@ const Home = () => {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>
-                                  Total de consultas agendadas para este mês
+                                  Total de{" "}
+                                  {isUserVolunteer
+                                    ? "atendimentos agendados"
+                                    : "consultas agendadas"}{" "}
+                                  para este mês
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -1385,7 +1566,9 @@ const Home = () => {
                             >
                               <div className="flex justify-between items-center mb-2">
                                 <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-300">
-                                  Próxima consulta:
+                                  {isUserVolunteer
+                                    ? "Próximo atendimento:"
+                                    : "Próxima consulta:"}
                                 </h3>
                                 {proximaConsulta && (
                                   <div className="flex items-center gap-1">
@@ -1409,11 +1592,7 @@ const Home = () => {
                                 <div className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">
-                                      {proximaConsulta?.assistido?.ficha?.nome}{" "}
-                                      {
-                                        proximaConsulta?.assistido?.ficha
-                                          ?.sobrenome
-                                      }
+                                      {proximaConsulta.profissional}
                                     </span>
                                     <Badge
                                       className={
@@ -1425,24 +1604,23 @@ const Home = () => {
                                   </div>
                                   <div className="flex justify-between text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">
-                                      {proximaConsulta.modalidade}
+                                      {proximaConsulta.tipo}
                                     </span>
                                     <span className="text-gray-600 dark:text-gray-400">
                                       <Clock className="w-3 h-3 inline mr-1" />
-                                      {new Date(
-                                        proximaConsulta.horario
-                                      ).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
+                                      {proximaConsulta.data.toLocaleTimeString(
+                                        [],
+                                        {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        }
+                                      )}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
                                     <Clock className="w-4 h-4 text-[#ED4231]" />
                                     <span className="text-sm font-medium text-[#ED4231]">
-                                      {formatarData(
-                                        new Date(proximaConsulta.horario)
-                                      )}
+                                      {formatarData(proximaConsulta.data)}
                                     </span>
                                   </div>
                                   <div className="flex gap-2 mt-2">
@@ -1568,10 +1746,17 @@ const Home = () => {
                     </CardContent>
                     <CardFooter className="flex justify-between items-center">
                       <Link
-                        to="/agenda-user"
+                        to={
+                          String(tipoUsuario || "").toUpperCase() ===
+                          "VOLUNTARIO"
+                            ? "/agenda"
+                            : "/agenda-user"
+                        }
                         className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1"
                       >
-                        Ver todas as consultas
+                        {isUserVolunteer
+                          ? "Ver todos os atendimentos"
+                          : "Ver todas as consultas"}
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                       {!loading && consultasSummary.proxima && (
@@ -1734,7 +1919,16 @@ const Home = () => {
                             const hoje = new Date();
                             hoje.setHours(0, 0, 0, 0);
                             const isPast = iso.getTime() < hoje.getTime();
-                            const target = isPast ? "/historico" : "/agenda";
+                            const isVoluntario =
+                              String(tipoUsuario || "").toUpperCase() ===
+                              "VOLUNTARIO";
+                            const target = isPast
+                              ? isVoluntario
+                                ? "/historico"
+                                : "/historico-user"
+                              : isVoluntario
+                              ? "/agenda-voluntario"
+                              : "/agenda-user";
                             navigate(`${target}?date=${isoStr}`);
                           }}
                           className="rounded-md border border-[#EDF2FB] dark:border-[#444857] [&_button]:cursor-pointer [&_button[disabled]]:cursor-default"
@@ -1866,7 +2060,7 @@ const Home = () => {
                         </Tooltip>
                         
                         <div className="flex justify-between items-center text-xs">
-                          <Link to="/agenda-user" className="text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
+                          <Link to={(String(tipoUsuario || "").toUpperCase() === "VOLUNTARIO" ? "/agenda-voluntario" : "/agenda-user")} className="text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1">
                             Ver minha agenda
                             <ChevronRight className="w-3 h-3" />
                           </Link>
@@ -1900,7 +2094,7 @@ const Home = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                           Selecione uma data para agendar uma consulta
                         </p>
-                        <Link to="/agenda-user">
+                        <Link to={(String(tipoUsuario || "").toUpperCase() === "VOLUNTARIO" ? "/agenda-voluntario" : "/agenda-user")}>
                           <Button variant="outline" size="sm" className="text-xs border-[#ED4231] text-[#ED4231] hover:bg-[#ED4231]/10">
                             Ver minha agenda
                           </Button>
@@ -1926,14 +2120,21 @@ const Home = () => {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>
-                                  Lista das suas próximas consultas agendadas
+                                  Lista{" "}
+                                  {isUserVolunteer
+                                    ? "dos seus próximos atendimentos agendados"
+                                    : "das suas próximas consultas agendadas"}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
-                            Próximas Consultas
+                            {isUserVolunteer
+                              ? "Próximos Atendimentos"
+                              : "Próximas Consultas"}
                           </CardTitle>
                           <CardDescription>
-                            Consultas agendadas para os próximos dias
+                            {isUserVolunteer
+                              ? "Atendimentos agendados para os próximos dias"
+                              : "Consultas agendadas para os próximos dias"}
                           </CardDescription>
                         </div>
                         <Tooltip>
@@ -1947,8 +2148,11 @@ const Home = () => {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>
-                              Número total de consultas agendadas para os
-                              próximos dias
+                              Número total de{" "}
+                              {isUserVolunteer
+                                ? "atendimentos agendados"
+                                : "consultas agendadas"}{" "}
+                              para os próximos dias
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -2009,8 +2213,7 @@ const Home = () => {
                                       </TooltipContent>
                                     </Tooltip>
                                     <span className="font-medium text-gray-800 dark:text-gray-200">
-                                      {consulta.assistido?.ficha?.nome}{" "}
-                                      {consulta.assistido?.ficha?.sobrenome}
+                                      {consulta.profissional}
                                     </span>
                                   </div>
                                   <Badge
@@ -2170,21 +2373,33 @@ const Home = () => {
                             aria-hidden="true"
                           />
                           <div className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-1">
-                            Sem consultas agendadas
+                            {isUserVolunteer
+                              ? "Sem atendimentos agendados"
+                              : "Sem consultas agendadas"}
                           </div>
                           <div className="text-gray-400 dark:text-gray-500 text-sm">
-                            Você não tem nenhuma consulta agendada para os
-                            próximos dias.
+                            Você não tem{" "}
+                            {isUserVolunteer
+                              ? "nenhum atendimento agendado"
+                              : "nenhuma consulta agendada"}{" "}
+                            para os próximos dias.
                           </div>
                         </div>
                       )}
                     </CardContent>
                     <CardFooter className="flex justify-between items-center">
                       <Link
-                        to="/agenda-user"
+                        to={
+                          String(tipoUsuario || "").toUpperCase() ===
+                          "VOLUNTARIO"
+                            ? "/agenda"
+                            : "/agenda-user"
+                        }
                         className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1"
                       >
-                        Ver todas as consultas
+                        {isUserVolunteer
+                          ? "Ver todos os atendimentos"
+                          : "Ver todas as consultas"}
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     </CardFooter>
@@ -2202,14 +2417,20 @@ const Home = () => {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>
-                                  Histórico das suas consultas mais recentes
+                                  Histórico{" "}
+                                  {isUserVolunteer
+                                    ? "dos seus atendimentos mais recentes"
+                                    : "das suas consultas mais recentes"}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
                             Histórico Recente
                           </CardTitle>
                           <CardDescription>
-                            Últimas consultas realizadas
+                            Últimas{" "}
+                            {isUserVolunteer
+                              ? "sessões realizadas"
+                              : "consultas realizadas"}
                           </CardDescription>
                         </div>
                         <Tooltip>
@@ -2222,7 +2443,12 @@ const Home = () => {
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Total de consultas já realizadas por você</p>
+                            <p>
+                              Total de{" "}
+                              {isUserVolunteer
+                                ? "atendimentos já realizados por você"
+                                : "consultas já realizadas por você"}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -2367,7 +2593,11 @@ const Home = () => {
                             Sem histórico recente
                           </div>
                           <div className="text-gray-400 dark:text-gray-500 text-sm">
-                            Você ainda não realizou nenhuma consulta.
+                            Você ainda não{" "}
+                            {isUserVolunteer
+                              ? "realizou nenhum atendimento"
+                              : "realizou nenhuma consulta"}
+                            .
                           </div>
                         </div>
                       )}
@@ -2377,7 +2607,9 @@ const Home = () => {
                         to="/historico-user"
                         className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-[#ED4231] dark:hover:text-[#ED4231] flex items-center gap-1"
                       >
-                        Ver histórico completo
+                        {isUserVolunteer
+                          ? "Ver histórico completo de atendimentos"
+                          : "Ver histórico completo"}
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                       {!loading &&
@@ -2493,7 +2725,7 @@ const Home = () => {
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-gray-500" />
                         <span className="text-gray-600 dark:text-gray-400">
-                          Profissional:
+                          {isUserVolunteer ? "Paciente:" : "Profissional:"}
                         </span>
                       </div>
                       <p className="font-medium text-gray-900 dark:text-gray-100 ml-6">
@@ -3198,7 +3430,11 @@ const Home = () => {
                   </h4>
                   <div className="text-sm space-y-2">
                     <p>
-                      <strong>Consultas com este profissional:</strong>{" "}
+                      <strong>
+                        {isUserVolunteer
+                          ? "Atendimentos com este paciente:"
+                          : "Consultas com este profissional:"}
+                      </strong>{" "}
                       {consultaDetalhes.status === "realizada"
                         ? "2 (incluindo esta)"
                         : "1ª consulta"}

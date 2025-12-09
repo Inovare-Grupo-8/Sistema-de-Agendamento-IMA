@@ -10,7 +10,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { useProfileImage } from "@/components/useProfileImage";
-import { useVoluntario, DadosPessoaisVoluntario } from "@/hooks/useVoluntario";
+import {
+  useVoluntario,
+  DadosPessoaisVoluntario,
+  DadosProfissionaisVoluntario,
+} from "@/hooks/useVoluntario";
 import VoluntarioApiService from "@/services/voluntarioApi";
 import { useNavigate } from "react-router-dom";
 import {
@@ -35,6 +39,8 @@ import {
   X,
   Menu,
   LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import {
@@ -70,8 +76,10 @@ const MeusHorarios = () => {
   const location = useLocation();
   const { profileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
-  const { buscarDadosPessoais } = useVoluntario();
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } =
+    useVoluntario();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const handleLogout = () => {
     try {
       localStorage.removeItem("auth_token");
@@ -103,6 +111,9 @@ const MeusHorarios = () => {
     telefone: "",
     dataNascimento: "",
   });
+  const [dadosProfissionais, setDadosProfissionais] =
+    useState<DadosProfissionaisVoluntario | null>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>("");
   const displayName = useMemo(() => {
     const n = dadosPessoais?.nome?.trim();
     const s = dadosPessoais?.sobrenome?.trim();
@@ -144,6 +155,14 @@ const MeusHorarios = () => {
     buscarDadosPessoais()
       .then((p) => {
         if (p) setDadosPessoais(p);
+      })
+      .catch(() => {});
+    buscarDadosProfissionais()
+      .then((d) => {
+        if (d) {
+          setDadosProfissionais(d);
+          setFuncaoVoluntario(mapEnumToText(d.funcao));
+        }
       })
       .catch(() => {});
     const raw = localStorage.getItem(availabilityKey(userId));
@@ -423,19 +442,33 @@ const MeusHorarios = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
-        <div className="bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base w-4/5 max-w-xs md:w-72">
+        <div
+          className={`transition-all duration-500 ease-in-out ${
+            sidebarOpen
+              ? "opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72"
+              : "opacity-0 -translate-x-full w-0"
+          } bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}
+        >
+          <div className="w-full flex justify-start mb-6">
+            <Button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md"
+            >
+              <Menu className="w-7 h-7" />
+            </Button>
+          </div>
           <div className="flex flex-col items-center gap-2 mb-8">
             <ProfileAvatar
               profileImage={profileImage}
               name={displayName}
               size="w-16 h-16"
-              className="shadow"
+              className="border-4 border-[#EDF2FB] shadow"
             />
             <span className="font-extrabold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
               {displayName}
             </span>
             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
-              Profissional
+              {funcaoVoluntario || "Profissional"}
             </Badge>
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
@@ -484,7 +517,26 @@ const MeusHorarios = () => {
         </div>
 
         <main className="flex-1 w-full md:w-auto mt-20 md:mt-0 px-2 md:px-6">
-          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-gray-900/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md">
+          <header className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-white/90 dark:bg-[#23272F]/95 shadow-md fixed top-0 left-0 z-20 backdrop-blur-md transition-colors duration-300 border-b border-[#EDF2FB] dark:border-[#23272F]">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Abrir menu lateral"
+                title="Abrir menu"
+                className="p-2 rounded-full bg-[#ED4231] text-white"
+              >
+                <Menu className="w-6 h-6" />
+              </Button>
+              <ProfileAvatar
+                profileImage={profileImage}
+                name={displayName}
+                size="w-10 h-10"
+                className="border-2 border-[#ED4231] shadow hover:scale-105 transition-transform duration-200"
+              />
+              <span className="font-bold text-indigo-900 dark:text-gray-100">
+                {displayName}
+              </span>
+            </div>
             <div className="flex items-center gap-3">
               <Button
                 onClick={toggleTheme}
@@ -493,15 +545,11 @@ const MeusHorarios = () => {
                   theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"
                 }
               >
-                <CalendarIcon className="w-5 h-5 text-[#ED4231]" />
-              </Button>
-              <span className="font-extrabold text-foreground">
-                Meus Horários
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={handleLogout} className="px-4 py-2">
-                Sair
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-800" />
+                )}
               </Button>
             </div>
           </header>

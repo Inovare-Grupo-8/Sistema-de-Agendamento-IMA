@@ -483,6 +483,75 @@ export class VoluntarioApiService {
       return null;
     }
   }
+
+  /**
+   * Cadastra um voluntário - Primeira Fase
+   * @param data Dados básicos do voluntário (nome, sobrenome, email, cpf, senha)
+   * @returns ID do usuário criado
+   */
+  static async cadastrarPrimeiraFase(data: {
+    nome: string;
+    sobrenome: string;
+    email: string;
+    cpf: string;
+    senha: string;
+  }): Promise<{ idUsuario: number }> {
+    try {
+      const response = await apiClient.post(
+        "/usuarios/voluntario/primeira-fase",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao cadastrar voluntário (primeira fase):", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Completa o cadastro do voluntário - Segunda Fase
+   * @param idUsuario ID do usuário retornado da primeira fase
+   * @param data Dados complementares do voluntário
+   */
+  static async cadastrarSegundaFase(
+    idUsuario: number,
+    data: {
+      dataNascimento: string;
+      rendaMinima?: number;
+      rendaMaxima?: number;
+      genero: string;
+      tipo: string;
+      endereco: {
+        cep: string;
+        numero: string;
+        complemento?: string;
+      };
+      telefone: {
+        ddd: string;
+        prefixo: string;
+        sufixo: string;
+        whatsapp?: boolean;
+      };
+      funcao: string;
+      areaOrientacao?: string;
+      comoSoube?: string;
+      profissao?: string;
+    }
+  ): Promise<any> {
+    try {
+      const response = await apiClient.post(
+        `/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      console.error(
+        "Erro ao completar cadastro do voluntário (segunda fase):",
+        error
+      );
+      throw error;
+    }
+  }
 }
 
 export default VoluntarioApiService;

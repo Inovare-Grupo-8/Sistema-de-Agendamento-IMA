@@ -13,7 +13,7 @@ export const appUrls = {
   // Componentes voltados para profissionais
   professional: {
     home: "/home",
-    agenda: "/agenda",
+    agenda: "/agenda-voluntario",
     historico: "/historico",
     disponibilizarHorario: "/disponibilizar-horario",
     meusHorarios: "/meus-horarios",
@@ -27,7 +27,7 @@ export const appUrls = {
     agendarConsulta: "/agendar-horario-user", // Verificar se este é o nome correto do arquivo
     profileForm: "/profile-form-user",
   },
-  
+
   // Mensagens de assistência em português
   mensagens: {
     semResultados: "Nenhum resultado encontrado",
@@ -40,7 +40,7 @@ export const appUrls = {
     duvidas: "Entre em contato com o suporte",
     logout: "Deseja realmente sair do sistema?",
     paginaAtual: "Página atual",
-  }
+  },
 };
 
 export const userNavigationItems: Record<string, UserNavigationItem> = {

@@ -41,6 +41,7 @@ import { ptBR } from "date-fns/locale";
 import {
   getUserNavigationPath,
   userNavigationItems,
+  professionalNavigationItems,
 } from "@/utils/userNavigation";
 import {
   ConsultaApiService,
@@ -50,6 +51,11 @@ import {
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { Input } from "@/components/ui/input";
+import {
+  useVoluntario,
+  DadosPessoaisVoluntario,
+  DadosProfissionaisVoluntario,
+} from "@/hooks/useVoluntario";
 import {
   Select,
   SelectContent,
@@ -129,8 +135,24 @@ const HistoricoUser = () => {
 
   // Use the userData hook to get synchronized user data
   const { userData, fetchPerfil } = useUserData();
-  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const fullName = [userData?.nome, userData?.sobrenome]
+    .filter(Boolean)
+    .join(" ");
   const displayName = fullName || "Usuário";
+
+  // Volunteer data hooks
+  const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } =
+    useVoluntario();
+  const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
+    nome: "",
+    sobrenome: "",
+    email: "",
+    telefone: "",
+    dataNascimento: "",
+  });
+  const [dadosProfissionais, setDadosProfissionais] =
+    useState<DadosProfissionaisVoluntario | null>(null);
+  const [funcaoVoluntario, setFuncaoVoluntario] = useState<string>("");
 
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -142,6 +164,43 @@ const HistoricoUser = () => {
   // Detect user type (volunteer or assisted)
   const userType = getUserType();
   const isUserVolunteer = isVolunteer();
+
+  // Use appropriate navigation items based on user type
+  const navigationItems = isUserVolunteer
+    ? professionalNavigationItems
+    : userNavigationItems;
+
+  // Load volunteer professional data
+  useEffect(() => {
+    const loadDadosPessoais = async () => {
+      try {
+        const dados = await buscarDadosPessoais();
+        if (dados) setDadosPessoais(dados);
+      } catch (error) {
+        console.error("Erro ao carregar dados pessoais:", error);
+      }
+    };
+    if (isUserVolunteer) {
+      loadDadosPessoais();
+    }
+  }, [buscarDadosPessoais, isUserVolunteer]);
+
+  useEffect(() => {
+    const loadDadosProfissionais = async () => {
+      try {
+        const dados = await buscarDadosProfissionais();
+        if (dados) {
+          setDadosProfissionais(dados);
+          setFuncaoVoluntario(mapEnumToText(dados.funcao));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados profissionais:", error);
+      }
+    };
+    if (isUserVolunteer) {
+      loadDadosProfissionais();
+    }
+  }, [buscarDadosProfissionais, mapEnumToText, isUserVolunteer]);
 
   useEffect(() => {
     const loadHistorico = async () => {
@@ -164,6 +223,17 @@ const HistoricoUser = () => {
         // Load historical consultations
         const historicoData = await ConsultaApiService.getHistoricoConsultas(
           userId
+        );
+
+        console.log(
+          "🔥 [HistoricoUser] Dados brutos da API getHistoricoConsultas:",
+          {
+            userId,
+            isUserVolunteer,
+            totalConsultas: historicoData.length,
+            primeiraConsulta: historicoData[0],
+            todasConsultas: historicoData,
+          }
         );
 
         // Load evaluations and feedbacks
@@ -197,17 +267,70 @@ const HistoricoUser = () => {
             const consultaDate = new Date(consulta.horario);
             const consultaId = consulta.idConsulta;
 
+            // Log detalhado da consulta
+            console.log("🔍 [HistoricoUser] Processando consulta:", {
+              id: consultaId,
+              horario: consulta.horario,
+              isUserVolunteer,
+              assistido: consulta.assistido,
+              voluntario: consulta.voluntario,
+              rawConsulta: consulta,
+            });
+
+            console.log(
+              "🔑 [HistoricoUser] Todas as chaves da consulta:",
+              Object.keys(consulta)
+            );
+            console.log(
+              "📦 [HistoricoUser] Consulta completa stringificada:",
+              JSON.stringify(consulta, null, 2)
+            );
+
             // Get evaluation and feedback for this consultation
             const rating = avaliacoesMap.get(consultaId);
             const comment = feedbacksMap.get(consultaId);
+
+            // Build full name based on user type
+            let fullName: string;
+            if (isUserVolunteer) {
+              // Volunteer sees patient name
+              const nome =
+                consulta.assistido?.ficha?.nome || consulta.assistido?.nome;
+              const sobrenome =
+                consulta.assistido?.ficha?.sobrenome ||
+                consulta.assistido?.sobrenome;
+              fullName =
+                [nome, sobrenome].filter(Boolean).join(" ") ||
+                "Assistido não informado";
+
+              console.log("👤 [HistoricoUser] Nome do assistido construído:", {
+                nome,
+                sobrenome,
+                fullName,
+              });
+            } else {
+              // Assisted user sees volunteer name
+              const nomeVol =
+                consulta.voluntario?.ficha?.nome || consulta.voluntario?.nome;
+              const sobrenomeVol =
+                consulta.voluntario?.ficha?.sobrenome ||
+                consulta.voluntario?.sobrenome;
+              fullName =
+                [nomeVol, sobrenomeVol].filter(Boolean).join(" ") ||
+                "Voluntário não informado";
+
+              console.log("👨‍⚕️ [HistoricoUser] Nome do voluntário construído:", {
+                nomeVol,
+                sobrenomeVol,
+                fullName,
+              });
+            }
 
             return {
               id: consultaId.toString(),
               date: consultaDate,
               time: consulta.horario.split("T")[1]?.substring(0, 5) || "00:00",
-              name: isUserVolunteer
-                ? consulta.assistido?.ficha?.nome || "Paciente"
-                : consulta.voluntario?.ficha?.nome || "Voluntário",
+              name: fullName,
               type: consulta.especialidade?.nome || "Especialidade",
               serviceType: consulta.modalidade,
               status: consulta.status.toLowerCase() as
@@ -222,6 +345,15 @@ const HistoricoUser = () => {
                   : undefined,
             };
           }
+        );
+
+        console.log(
+          "📊 [HistoricoUser] Histórico formatado final:",
+          historicoFormatted
+        );
+        console.log(
+          "📋 [HistoricoUser] Total de consultas no histórico:",
+          historicoFormatted.length
         );
 
         setHistoricoConsultas(historicoFormatted);
@@ -383,9 +515,9 @@ const HistoricoUser = () => {
 
   // Handle logout function
   const handleLogout = () => {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('profileData');
-    navigate('/');
+    localStorage.removeItem("userData");
+    localStorage.removeItem("profileData");
+    navigate("/");
     toast({
       title: "Sessão encerrada",
       description: "Você foi desconectado com sucesso.",
@@ -589,21 +721,17 @@ const HistoricoUser = () => {
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            {/* Update to use userData from hook */}
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">
+            <span className="font-bold text-indigo-900 dark:text-gray-100">
               {displayName}
             </span>
           </div>
         )}
         <div
-          className={`transition-all duration-500 ease-in-out
-          ${
+          className={`transition-all duration-500 ease-in-out ${
             sidebarOpen
               ? "opacity-100 translate-x-0 w-4/5 max-w-xs md:w-72"
               : "opacity-0 -translate-x-full w-0"
-          }
-          bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden
-          fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}
+          } bg-gradient-to-b from-white via-[#f8fafc] to-[#EDF2FB] dark:from-[#23272F] dark:via-[#23272F] dark:to-[#181A20] shadow-2xl rounded-2xl p-6 flex flex-col gap-6 overflow-hidden fixed md:static z-40 top-0 left-0 h-full md:h-auto border-r border-[#EDF2FB] dark:border-[#23272F] backdrop-blur-[2px] text-sm md:text-base`}
         >
           <div className="w-full flex justify-start mb-6">
             <Button
@@ -620,138 +748,46 @@ const HistoricoUser = () => {
               size="w-16 h-16"
               className="border-4 border-[#EDF2FB] shadow"
             />
-            {/* Update to use userData from hook */}
-            <span className="font-extrabold text-xl text-indigo-900 tracking-wide">
-              {displayName}
+            <span className="font-bold text-xl text-indigo-900 dark:text-gray-100 tracking-wide">
+              {isUserVolunteer ? (
+                <>
+                  {dadosPessoais?.nome || userData?.nome}{" "}
+                  {dadosPessoais?.sobrenome || userData?.sobrenome}
+                </>
+              ) : (
+                displayName
+              )}
             </span>
+            {isUserVolunteer && (
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                {funcaoVoluntario || "Profissional"}
+              </Badge>
+            )}
           </div>
           <SidebarMenu className="gap-4 text-sm md:text-base">
-            {/* Uniform sidebar navigation using the items from userNavigationItems */}
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === userNavigationItems.home.path
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to={userNavigationItems.home.path}
-                      className="flex items-center gap-3"
+            {/* Dynamic sidebar navigation based on user type */}
+            {Object.values(navigationItems).map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      asChild
+                      className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
+                        location.pathname === item.path
+                          ? "bg-red-50 dark:bg-red-900/20 border-l-4 border-[#ED4231]"
+                          : ""
+                      }`}
                     >
-                      {userNavigationItems.home.icon}
-                      <span>{userNavigationItems.home.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Painel principal com resumo
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === userNavigationItems.agenda.path
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to={userNavigationItems.agenda.path}
-                      className="flex items-center gap-3"
-                    >
-                      {userNavigationItems.agenda.icon}
-                      <span>{userNavigationItems.agenda.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja sua agenda de consultas
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === userNavigationItems.historico.path
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to={userNavigationItems.historico.path}
-                      className="flex items-center gap-3"
-                    >
-                      {userNavigationItems.historico.icon}
-                      <span>{userNavigationItems.historico.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Veja seu histórico de consultas
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === userNavigationItems.agendar.path
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to={userNavigationItems.agendar.path}
-                      className="flex items-center gap-3"
-                    >
-                      {userNavigationItems.agendar.icon}
-                      <span>{userNavigationItems.agendar.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Agende uma nova consulta com um profissional
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className={`rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 ${
-                      location.pathname === userNavigationItems.perfil.path
-                        ? "bg-[#ED4231]/15 dark:bg-[#ED4231]/25 border-l-4 border-[#ED4231] text-[#ED4231] dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to={userNavigationItems.perfil.path}
-                      className="flex items-center gap-3"
-                    >
-                      {userNavigationItems.perfil.icon}
-                      <span>{userNavigationItems.perfil.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
-                <TooltipContent className="z-50">
-                  Edite seu perfil e foto
-                </TooltipContent>
-              </Tooltip>
-            </SidebarMenuItem>{" "}
+                      <Link to={item.path} className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent className="z-50">{item.label}</TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            ))}{" "}
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -857,7 +893,9 @@ const HistoricoUser = () => {
               {getUserNavigationPath(location.pathname)}
               {/* Rest of the component content */}
               <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-6">
-                {isUserVolunteer ? "Histórico de Atendimentos" : "Histórico de Consultas"}
+                {isUserVolunteer
+                  ? "Histórico de Atendimentos"
+                  : "Histórico de Consultas"}
               </h1>
 
               {/* Summary Statistics Cards */}
@@ -866,7 +904,9 @@ const HistoricoUser = () => {
                 <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {isUserVolunteer ? "Atendimentos Realizados" : "Consultas Realizadas"}
+                      {isUserVolunteer
+                        ? "Atendimentos Realizados"
+                        : "Consultas Realizadas"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -886,7 +926,9 @@ const HistoricoUser = () => {
                 <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {isUserVolunteer ? "Próximos Atendimentos" : "Próximas Consultas"}
+                      {isUserVolunteer
+                        ? "Próximos Atendimentos"
+                        : "Próximas Consultas"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1555,12 +1597,25 @@ const HistoricoUser = () => {
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
-            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+            <DialogTitle className="text-xl font-bold">
+              Deseja realmente sair?
+            </DialogTitle>
+            <DialogDescription>
+              Você será desconectado da sua conta.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleLogout}
+              className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium"
+            >
               Sair
             </Button>
           </DialogFooter>
