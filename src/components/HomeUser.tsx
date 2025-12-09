@@ -246,7 +246,8 @@ const HomeUser = () => {
       }
 
       const historicoData = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        "assistido"
       );
       const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback(
         userId,

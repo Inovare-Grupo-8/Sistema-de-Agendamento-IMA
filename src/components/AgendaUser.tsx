@@ -85,38 +85,64 @@ const AgendaUser = () => {
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
     try {
+      const userDataStr = localStorage.getItem("userData");
+      if (!userDataStr) {
+        throw new Error("Usuário não está logado");
+      }
+
+      const userDataParsed = JSON.parse(userDataStr);
+      const userId = Number(userDataParsed.idUsuario || userDataParsed.id);
+
+      if (!userId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+
       const consultasData = await ConsultaApiService.getTodasConsultas();
-      
+
+      // Exibir apenas consultas do assistido logado
+      const consultasDoUsuario = consultasData.filter(
+        (consultaDto) => consultaDto.idAssistido === userId
+      );
+
       // Convert ConsultaDto to Consulta format for compatibility
-      const consultasConvertidas: Consulta[] = consultasData.map(consultaDto => ({
-        id: consultaDto.idConsulta,
-        profissional: consultaDto.nomeVoluntario || "Profissional não informado",
-        especialidade: consultaDto.nomeEspecialidade || "Especialidade não informada",
-        data: new Date(consultaDto.horario),
-        tipo: consultaDto.modalidade === "ONLINE" ? "Consulta Online" : "Consulta Presencial",
-        status: consultaDto.status.toLowerCase()
-      }));
-      
+      const consultasConvertidas: Consulta[] = consultasDoUsuario.map(
+        (consultaDto) => ({
+          id: consultaDto.idConsulta,
+          profissional:
+            consultaDto.nomeVoluntario || "Profissional não informado",
+          especialidade:
+            consultaDto.nomeEspecialidade || "Especialidade não informada",
+          data: new Date(consultaDto.horario),
+          tipo:
+            consultaDto.modalidade === "ONLINE"
+              ? "Consulta Online"
+              : "Consulta Presencial",
+          status: consultaDto.status.toLowerCase(),
+        })
+      );
+
       // Filter upcoming consultations (future dates only) and sort by date (nearest first)
       const agora = new Date();
       const consultasFuturas = consultasConvertidas
-        .filter(consulta => consulta.data > agora)
+        .filter((consulta) => consulta.data > agora)
         .sort((a, b) => a.data.getTime() - b.data.getTime());
-      
+
       setProximasConsultas(consultasFuturas);
-      
+
       toast({
         title: "Consultas carregadas",
-        description: `${consultasFuturas.length} próximas consultas encontradas`,
-        variant: "default"
+        description: `${consultasFuturas.length} consultas futuras encontradas para sua conta`,
+        variant: "default",
       });
     } catch (error) {
       console.error("Erro ao carregar todas as consultas:", error);
-      setError("Não foi possível carregar as consultas");
+      const description =
+        error instanceof Error ? error.message : "Não foi possível carregar as consultas";
+      setError(description);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar as consultas",
-        variant: "destructive"
+        description,
+        variant: "destructive",
       });
     }
   };
@@ -171,7 +197,8 @@ const AgendaUser = () => {
     <SidebarProvider>
       <div className={`min-h-screen w-full flex flex-col md:flex-row text-base md:text-lg bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans`}>
         {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 shadow-md backdrop-blur-md">            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
+          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
+            <Button onClick={() => setSidebarOpen(true)} className="p-2 rounded-full bg-[#ED4231] text-white focus:outline-none shadow-md" aria-label="Abrir menu lateral" tabIndex={0} title="Abrir menu lateral">
               <Menu className="w-7 h-7" />
             </Button>
             <ProfileAvatar 
@@ -181,7 +208,7 @@ const AgendaUser = () => {
               className="border-2 border-[#ED4231] shadow"
             />
             {/* Update to use userData from hook */}
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">{displayName}</span>
+            <span className="font-bold text-indigo-900 dark:text-gray-100 text-sm md:text-lg">{displayName}</span>
           </div>
         )}
         <div className={`transition-all duration-500 ease-in-out

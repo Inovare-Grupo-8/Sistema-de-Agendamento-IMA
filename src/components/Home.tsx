@@ -339,7 +339,8 @@ const Home = () => {
 
       // Load historical consultations (completed and canceled)
       const historicoResponse = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        "voluntario"
       );
 
       // Extrair o array de consultas do objeto retornado
@@ -514,7 +515,8 @@ const Home = () => {
 
       // Buscar histórico para incluir consultas passadas
       const historicoResponse = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        "voluntario"
       );
 
       // Extrair consultas do histórico

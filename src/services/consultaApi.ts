@@ -294,16 +294,18 @@ export class ConsultaApiService {
   /**
    * Get consultation history
    * @param userId - ID of the user (voluntario or assistido)
+   * @param userType - User type used by the backend to filter ("voluntario" | "assistido")
    * @returns Promise with array of historical consultations
    */
   static async getHistoricoConsultas(
-    userId: number
+    userId: number,
+    userType: "voluntario" | "assistido" = "assistido"
   ): Promise<ConsultaOutput[]> {
     try {
       const response = await apiClient.get<any>(
         `/consulta/consultas/historico`,
         {
-          params: { userId },
+          params: { userId, user: userType },
         }
       );
       // Backend retorna um Map com a chave "consultas"

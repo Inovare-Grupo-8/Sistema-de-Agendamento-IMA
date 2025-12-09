@@ -531,7 +531,6 @@ const HistoricoUser = () => {
       return sortOrder === "desc" ? -comparison : comparison;
     });
 
-  // Estatísticas do histórico
   const stats = {
     total: historicoConsultas.length,
     realizadas: historicoConsultas.filter((c) => c.status === "realizada")
@@ -549,7 +548,6 @@ const HistoricoUser = () => {
       .reduce((acc, c) => acc + (c.cost || 0), 0),
   };
 
-  // Add statusColors definition
   const statusColors: Record<string, string> = {
     realizada:
       "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
@@ -564,7 +562,7 @@ const HistoricoUser = () => {
         className={`min-h-screen w-full flex flex-col md:flex-row text-base md:text-lg bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300 font-sans`}
       >
         {!sidebarOpen && (
-          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 shadow-md backdrop-blur-md">
+          <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-[#23272F]/90 shadow-md backdrop-blur-md">
             {" "}
             <Button
               onClick={() => setSidebarOpen(true)}
@@ -581,8 +579,7 @@ const HistoricoUser = () => {
               size="w-10 h-10"
               className="border-2 border-[#ED4231] shadow"
             />
-            {/* Update to use userData from hook */}
-            <span className="font-bold text-indigo-900 text-sm md:text-lg">
+            <span className="font-bold text-indigo-900 dark:text-gray-100 text-sm md:text-lg">
               {displayName}
             </span>
           </div>
