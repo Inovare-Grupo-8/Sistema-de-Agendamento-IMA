@@ -232,7 +232,7 @@ const HistoricoUser = () => {
   const [currentRating, setCurrentRating] = useState(0);
   const [currentComment, setCurrentComment] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "rating" | "type">("date");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isExporting, setIsExporting] = useState(false);
   const [historicoConsultas, setHistoricoConsultas] = useState<
     HistoricoConsulta[]
@@ -358,7 +358,7 @@ const HistoricoUser = () => {
         todasConsultasLista.forEach(addConsultaToHistorico);
 
         const historicoFinal = Array.from(mergedConsultas.values()).sort(
-          (a, b) => b.date.getTime() - a.date.getTime()
+          (a, b) => a.date.getTime() - b.date.getTime()
         );
 
         setHistoricoConsultas(historicoFinal);
