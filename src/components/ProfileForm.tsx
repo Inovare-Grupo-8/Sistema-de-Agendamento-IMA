@@ -18,6 +18,8 @@ import {
   ArrowLeft,
   Home as HomeIcon,
   LogOut,
+  X,
+  Plus,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
@@ -113,6 +115,25 @@ const ProfileForm = () => {
       biografiaProfissional: "",
     });
 
+  // Estado para especialidades múltiplas
+  const [especialidades, setEspecialidades] = useState<string[]>([]);
+  const [novaEspecialidade, setNovaEspecialidade] = useState<string>("");
+  const [especialidadesDisponiveis, setEspecialidadesDisponiveis] = useState<
+    string[]
+  >([
+    "Psicologia",
+    "Psicopedagogia",
+    "Fonoaudiologia",
+    "Fisioterapia",
+    "Nutrição",
+    "Pediatria",
+    "Quiropraxia",
+    "Jurídica",
+    "Contábil",
+    "Financeira",
+    "Assistência Social",
+  ]);
+
   const [endereco, setEndereco] = useState<EnderecoVoluntario>({
     logradouro: "",
     numero: "",
@@ -142,6 +163,15 @@ const ProfileForm = () => {
         if (dadosProf) {
           setDadosProfissionais(dadosProf);
           setFuncaoVoluntario(mapEnumToText(dadosProf.funcao));
+          // Carregar especialidades se existirem
+          if (
+            dadosProf.especialidades &&
+            Array.isArray(dadosProf.especialidades)
+          ) {
+            setEspecialidades(dadosProf.especialidades);
+          } else if (dadosProf.especialidade) {
+            setEspecialidades([dadosProf.especialidade]);
+          }
         }
       } catch (error) {
         console.log("Dados profissionais não encontrados");
@@ -319,11 +349,43 @@ const ProfileForm = () => {
     }
   };
 
+  // Funções para gerenciar especialidades
+  const handleAddEspecialidade = (especialidade: string) => {
+    if (especialidade && !especialidades.includes(especialidade)) {
+      setEspecialidades([...especialidades, especialidade]);
+    }
+  };
+
+  const handleRemoveEspecialidade = (especialidade: string) => {
+    setEspecialidades(especialidades.filter((e) => e !== especialidade));
+  };
+
+  const handleAddNovaEspecialidade = () => {
+    const trimmed = novaEspecialidade.trim();
+    if (trimmed && !especialidades.includes(trimmed)) {
+      setEspecialidades([...especialidades, trimmed]);
+      // Adicionar à lista de disponíveis se não existir
+      if (!especialidadesDisponiveis.includes(trimmed)) {
+        setEspecialidadesDisponiveis([...especialidadesDisponiveis, trimmed]);
+      }
+      setNovaEspecialidade("");
+    }
+  };
+
   const handleSaveDadosProfissionais = async () => {
     if (!validateDadosProfissionais()) {
       toast({
         title: "Erros no formulário",
         description: "Corrija os erros antes de salvar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (especialidades.length === 0) {
+      toast({
+        title: "Selecione ao menos uma especialidade",
+        description: "Você precisa ter pelo menos uma especialidade.",
         variant: "destructive",
       });
       return;
@@ -336,6 +398,8 @@ const ProfileForm = () => {
         funcao: dadosProfissionais.funcao,
         registroProfissional: dadosProfissionais.registroProfissional,
         biografiaProfissional: dadosProfissionais.biografiaProfissional,
+        especialidade: especialidades[0], // Primeira é a principal
+        especialidades: especialidades,
       });
       setFuncaoVoluntario(mapEnumToText(dadosProfissionais.funcao));
       toast({
@@ -787,14 +851,14 @@ const ProfileForm = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                      {/* Campo Função (único) */}
                       <div className="space-y-2">
-                        <Label htmlFor="funcao">Função/Especialidade *</Label>
+                        <Label htmlFor="funcao">Função *</Label>
                         <select
                           id="funcao"
                           name="funcao"
                           value={dadosProfissionais.funcao}
                           onChange={handleDadosProfissionaisChange}
-                          onInput={handleDadosProfissionaisChange}
                           className={`w-full rounded-md border ${
                             validationErrors.funcao
                               ? "border-red-500"
@@ -802,25 +866,126 @@ const ProfileForm = () => {
                           } bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]`}
                         >
                           <option value="">Selecione uma função</option>
-                          <option value="PSICOLOGIA">Psicologia</option>
+                          <option value="PSICOLOGIA">Psicólogo(a)</option>
                           <option value="ASSISTENCIA_SOCIAL">
-                            Assistência Social
+                            Assistente Social
                           </option>
-                          <option value="PSICOPEDAGOGIA">Psicopedagogia</option>
-                          <option value="FONOAUDIOLOGIA">Fonoaudiologia</option>
-                          <option value="FISIOTERAPIA">Fisioterapia</option>
-                          <option value="NUTRICAO">Nutrição</option>
-                          <option value="PEDIATRIA">Pediatria</option>
-                          <option value="QUIROPRAXIA">Quiropraxia</option>
-                          <option value="JURIDICA">Jurídica</option>
-                          <option value="CONTABIL">Contábil</option>
-                          <option value="FINANCEIRA">Financeira</option>
+                          <option value="PSICOPEDAGOGIA">
+                            Psicopedagogo(a)
+                          </option>
+                          <option value="FONOAUDIOLOGIA">
+                            Fonoaudiólogo(a)
+                          </option>
+                          <option value="FISIOTERAPIA">Fisioterapeuta</option>
+                          <option value="NUTRICAO">Nutricionista</option>
+                          <option value="PEDIATRIA">Pediatra</option>
+                          <option value="QUIROPRAXIA">Quiropraxista</option>
+                          <option value="JURIDICA">Advogado(a)</option>
+                          <option value="CONTABIL">Contador(a)</option>
+                          <option value="FINANCEIRA">
+                            Consultor(a) Financeiro(a)
+                          </option>
                         </select>
                         {validationErrors.funcao && (
                           <p className="text-xs text-red-500">
                             {validationErrors.funcao}
                           </p>
                         )}
+                      </div>
+
+                      {/* Campo Especialidades (múltiplas) */}
+                      <div className="space-y-3">
+                        <Label>Especialidades *</Label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Selecione uma ou mais especialidades. A primeira será
+                          considerada a principal.
+                        </p>
+
+                        {/* Especialidades selecionadas */}
+                        <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800">
+                          {especialidades.length === 0 ? (
+                            <span className="text-sm text-gray-400">
+                              Nenhuma especialidade selecionada
+                            </span>
+                          ) : (
+                            especialidades.map((esp, index) => (
+                              <Badge
+                                key={esp}
+                                className={`flex items-center gap-1 px-2 py-1 ${
+                                  index === 0
+                                    ? "bg-[#ED4231] text-white"
+                                    : "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300"
+                                }`}
+                              >
+                                {index === 0 && (
+                                  <span className="text-xs">(Principal)</span>
+                                )}
+                                {esp}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveEspecialidade(esp)}
+                                  className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Dropdown para adicionar especialidade existente */}
+                        <div className="flex gap-2">
+                          <select
+                            className="flex-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231]"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                handleAddEspecialidade(e.target.value);
+                                e.target.value = "";
+                              }
+                            }}
+                            defaultValue=""
+                          >
+                            <option value="">Adicionar especialidade...</option>
+                            {especialidadesDisponiveis
+                              .filter((e) => !especialidades.includes(e))
+                              .map((esp) => (
+                                <option key={esp} value={esp}>
+                                  {esp}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        {/* Campo para criar nova especialidade */}
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Ou digite uma nova especialidade..."
+                            value={novaEspecialidade}
+                            onChange={(e) =>
+                              setNovaEspecialidade(e.target.value)
+                            }
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddNovaEspecialidade();
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            onClick={handleAddNovaEspecialidade}
+                            variant="outline"
+                            className="px-3"
+                            disabled={!novaEspecialidade.trim()}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Se a especialidade não existir na lista, ela será
+                          criada automaticamente ao salvar.
+                        </p>
                       </div>
 
                       <div className="space-y-2">
@@ -832,7 +997,6 @@ const ProfileForm = () => {
                           name="registroProfissional"
                           value={dadosProfissionais.registroProfissional}
                           onChange={handleDadosProfissionaisChange}
-                          onInput={handleDadosProfissionaisChange}
                           className={
                             validationErrors.registroProfissional
                               ? "border-red-500"
@@ -856,7 +1020,6 @@ const ProfileForm = () => {
                           name="biografiaProfissional"
                           value={dadosProfissionais.biografiaProfissional}
                           onChange={handleDadosProfissionaisChange}
-                          onInput={handleDadosProfissionaisChange}
                           rows={4}
                           className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ED4231] resize-vertical min-h-[100px]"
                           placeholder="Descreva sua experiência profissional..."

@@ -25,7 +25,9 @@ api.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     if (status === 401 || status === 403) {
-      try { localStorage.clear(); } catch {}
+      try {
+        localStorage.clear();
+      } catch {}
       if (typeof window !== "undefined") window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -34,28 +36,65 @@ api.interceptors.response.use(
 
 export const perfilApi = {
   async getDadosPessoaisVoluntario(usuarioId: number) {
-    const resp = await api.get(`/perfil/voluntario/dados-pessoais`, { params: { usuarioId } });
+    const resp = await api.get(`/perfil/voluntario/dados-pessoais`, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
-  async patchDadosPessoaisVoluntario(usuarioId: number, payload: { email?: string; telefone?: string }) {
-    const resp = await api.patch(`/perfil/voluntario/dados-pessoais`, payload, { params: { usuarioId } });
+  async patchDadosPessoaisVoluntario(
+    usuarioId: number,
+    payload: { email?: string; telefone?: string }
+  ) {
+    const resp = await api.patch(`/perfil/voluntario/dados-pessoais`, payload, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
   async getDadosProfissionaisVoluntario(usuarioId: number) {
-    const resp = await api.get(`/perfil/voluntario/dados-profissionais`, { params: { usuarioId } });
-    return resp.data;
+    // O endpoint dados-pessoais já retorna os dados profissionais também (funcao, registroProfissional, biografiaProfissional, especialidades)
+    const resp = await api.get(`/perfil/voluntario/dados-pessoais`, {
+      params: { usuarioId },
+    });
+    const data = resp.data;
+    return {
+      funcao: data.funcao || "",
+      registroProfissional: data.registroProfissional || data.crp || "",
+      biografiaProfissional: data.biografiaProfissional || data.bio || "",
+      especialidade: data.especialidade || "",
+      especialidades: data.especialidades || [],
+    };
   },
-  async patchDadosProfissionaisVoluntario(usuarioId: number, payload: { funcao: string; registroProfissional?: string; biografiaProfissional?: string; especialidade?: string; especialidades?: string[] }) {
+  async patchDadosProfissionaisVoluntario(
+    usuarioId: number,
+    payload: {
+      funcao: string;
+      registroProfissional?: string;
+      biografiaProfissional?: string;
+      especialidade?: string;
+      especialidades?: string[];
+    }
+  ) {
     const body = { ...payload, especialidades: payload.especialidades ?? [] };
-    const resp = await api.patch(`/perfil/voluntario/dados-profissionais`, body, { params: { usuarioId } });
+    const resp = await api.patch(
+      `/perfil/voluntario/dados-profissionais`,
+      body,
+      { params: { usuarioId } }
+    );
     return resp.data;
   },
   async getEnderecoVoluntario(usuarioId: number) {
-    const resp = await api.get(`/perfil/voluntario/endereco`, { params: { usuarioId } });
+    const resp = await api.get(`/perfil/voluntario/endereco`, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
-  async putEnderecoVoluntario(usuarioId: number, payload: { cep: string; numero: string; complemento?: string }) {
-    const resp = await api.put(`/perfil/voluntario/endereco`, payload, { params: { usuarioId } });
+  async putEnderecoVoluntario(
+    usuarioId: number,
+    payload: { cep: string; numero: string; complemento?: string }
+  ) {
+    const resp = await api.put(`/perfil/voluntario/endereco`, payload, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
   async uploadFotoVoluntario(usuarioId: number, file: File) {
@@ -72,14 +111,33 @@ export const perfilApi = {
     return resp.data;
   },
   async getDadosPessoaisAssistente(usuarioId: number) {
-    const resp = await api.get(`/perfil/assistente-social/dados-pessoais`, { params: { usuarioId } });
+    const resp = await api.get(`/perfil/assistente-social/dados-pessoais`, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
-  async patchDadosPessoaisAssistente(usuarioId: number, payload: { email?: string; telefone?: string; nome?: string; sobrenome?: string; dataNascimento?: string; genero?: string }) {
-    const resp = await api.patch(`/perfil/assistente-social/dados-pessoais`, payload, { params: { usuarioId } });
+  async patchDadosPessoaisAssistente(
+    usuarioId: number,
+    payload: {
+      email?: string;
+      telefone?: string;
+      nome?: string;
+      sobrenome?: string;
+      dataNascimento?: string;
+      genero?: string;
+    }
+  ) {
+    const resp = await api.patch(
+      `/perfil/assistente-social/dados-pessoais`,
+      payload,
+      { params: { usuarioId } }
+    );
     return resp.data;
   },
-  async patchDadosProfissionaisAssistente(usuarioId: number, payload: { crp?: string; especialidade?: string; bio?: string }) {
+  async patchDadosProfissionaisAssistente(
+    usuarioId: number,
+    payload: { crp?: string; especialidade?: string; bio?: string }
+  ) {
     const body = {
       funcao: "ASSISTENCIA_SOCIAL",
       registroProfissional: payload.crp ?? "",
@@ -87,21 +145,35 @@ export const perfilApi = {
       especialidade: payload.especialidade ?? "",
       especialidades: [],
     };
-    const resp = await api.patch(`/perfil/assistente-social/dados-profissionais`, body, { params: { usuarioId } });
+    const resp = await api.patch(
+      `/perfil/assistente-social/dados-profissionais`,
+      body,
+      { params: { usuarioId } }
+    );
     return resp.data;
   },
   async getEnderecoAssistente(usuarioId: number) {
-    const resp = await api.get(`/perfil/assistente-social/endereco`, { params: { usuarioId } });
+    const resp = await api.get(`/perfil/assistente-social/endereco`, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
-  async putEnderecoAssistente(usuarioId: number, payload: { cep: string; numero: string; complemento?: string }) {
-    const resp = await api.put(`/perfil/assistente-social/endereco`, payload, { params: { usuarioId } });
+  async putEnderecoAssistente(
+    usuarioId: number,
+    payload: { cep: string; numero: string; complemento?: string }
+  ) {
+    const resp = await api.put(`/perfil/assistente-social/endereco`, payload, {
+      params: { usuarioId },
+    });
     return resp.data;
   },
   async uploadFotoAssistente(usuarioId: number, file: File) {
     const form = new FormData();
     form.append("file", file);
-    const resp = await api.post(`/perfil/assistente-social/foto`, form, { params: { usuarioId }, headers: { "Content-Type": "multipart/form-data" } });
+    const resp = await api.post(`/perfil/assistente-social/foto`, form, {
+      params: { usuarioId },
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return resp.data;
   },
 };

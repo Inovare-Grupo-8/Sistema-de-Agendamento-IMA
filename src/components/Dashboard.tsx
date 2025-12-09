@@ -34,6 +34,17 @@ import { useState, useEffect } from "react";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { useUserData } from "@/hooks/useUserData";
+import { ConsultaApiService } from "@/services/consultaApi";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 type VoluntarioProfile = {
   nome: string;
@@ -59,6 +70,75 @@ const Dashboard = () => {
   );
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchPerfil } = useUserData();
+  const [loading, setLoading] = useState(true);
+  const [proximasConsultas, setProximasConsultas] = useState<
+    Array<{
+      id: number;
+      profissional: string;
+      especialidade: string;
+      data: Date;
+      tipo: string;
+      status: string;
+    }>
+  >([]);
+  const [historicoConsultas, setHistoricoConsultas] = useState<
+    Array<{
+      id: number;
+      profissional: string;
+      especialidade: string;
+      data: Date;
+      tipo: string;
+      status: string;
+    }>
+  >([]);
+  const [atendimentosSummary, setAtendimentosSummary] = useState<{
+    realizados: number;
+    canceladas: number;
+    ultimaAvaliacao: number | null;
+  }>({ realizados: 0, canceladas: 0, ultimaAvaliacao: null });
+  const statusColors: Record<string, string> = {
+    agendada:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    realizada:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    cancelada: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    remarcada:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  };
+  const formatarData = (data: Date) => {
+    const hoje = new Date();
+    const amanha = new Date();
+    amanha.setDate(hoje.getDate() + 1);
+    if (data.toDateString() === hoje.toDateString()) {
+      return `Hoje às ${data.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    } else if (data.toDateString() === amanha.toDateString()) {
+      return `Amanhã às ${data.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    } else {
+      return `${data.toLocaleDateString()} às ${data.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    }
+  };
+
+  const [consultasSummary, setConsultasSummary] = useState<{
+    total: number;
+    proxima: Date | null;
+    mes: number;
+    semana: number;
+  }>({ total: 0, proxima: null, mes: 0, semana: 0 });
+  const [proximaConsultaData, setProximaConsultaData] = useState<{
+    profissional: string;
+    especialidade: string;
+    tipo: string;
+    status: string;
+  } | null>(null);
 
   useEffect(() => {
     const data = localStorage.getItem("voluntarioProfileData");
@@ -110,6 +190,125 @@ const Dashboard = () => {
 
     loadUserData();
   }, [fetchPerfil]);
+
+  useEffect(() => {
+    const carregarDadosVoluntario = async () => {
+      try {
+        setLoading(true);
+        const userDataStr = localStorage.getItem("userData");
+        if (!userDataStr) {
+          setProximasConsultas([]);
+          setHistoricoConsultas([]);
+          setLoading(false);
+          return;
+        }
+        const user = JSON.parse(userDataStr);
+        const userId = user.idUsuario;
+        const tipo = String(user.tipo || "").toUpperCase();
+        if (!userId || tipo !== "VOLUNTARIO") {
+          setProximasConsultas([]);
+          setHistoricoConsultas([]);
+          setLoading(false);
+          return;
+        }
+        const recentes = await ConsultaApiService.getConsultasRecentes(userId);
+        const agora = new Date();
+        const proximasMapped = (recentes || [])
+          .map((consulta) => ({
+            id: consulta.idConsulta,
+            profissional:
+              consulta.assistido?.ficha?.nome || "Assistido não informado",
+            especialidade:
+              consulta.especialidade?.nome || "Especialidade não informada",
+            data: new Date(consulta.horario),
+            tipo:
+              consulta.modalidade === "ONLINE"
+                ? "Consulta Online"
+                : "Consulta Presencial",
+            status: String(consulta.status || "AGENDADA").toLowerCase(),
+          }))
+          .filter((c) => c.data > agora)
+          .sort((a, b) => a.data.getTime() - b.data.getTime());
+        setProximasConsultas(proximasMapped);
+
+        const historico = await ConsultaApiService.getHistoricoConsultas(
+          userId
+        );
+        const historicoMapped = (
+          Array.isArray(historico)
+            ? historico
+            : (historico as any)?.consultas || []
+        )
+          .map((consulta: any) => ({
+            id: consulta.idConsulta,
+            profissional:
+              consulta.assistido?.ficha?.nome || "Assistido não informado",
+            especialidade: consulta.especialidade?.nome || "Especialidade",
+            data: new Date(consulta.horario),
+            tipo:
+              consulta.modalidade === "ONLINE"
+                ? "Consulta Online"
+                : "Consulta Presencial",
+            status: String(consulta.status || "REALIZADA").toLowerCase(),
+          }))
+          .filter((c) => c.status === "realizada" || c.status === "cancelada")
+          .sort((a, b) => b.data.getTime() - a.data.getTime());
+        setHistoricoConsultas(historicoMapped);
+
+        const realizados = historicoMapped.filter(
+          (c) => c.status === "realizada"
+        ).length;
+        const canceladas = historicoMapped.filter(
+          (c) => c.status === "cancelada"
+        ).length;
+        let ultimaAvaliacao: number | null = null;
+        try {
+          const af = await ConsultaApiService.getAvaliacoesFeedback(
+            userId,
+            "voluntario"
+          );
+          if (Array.isArray(af?.avaliacoes) && af.avaliacoes.length > 0) {
+            const last = af.avaliacoes[af.avaliacoes.length - 1];
+            ultimaAvaliacao = (last?.nota ?? null) as number | null;
+          }
+        } catch {}
+        setAtendimentosSummary({ realizados, canceladas, ultimaAvaliacao });
+
+        const proximaData =
+          proximasMapped.length > 0 ? proximasMapped[0].data : null;
+        setConsultasSummary({
+          total: proximasMapped.length,
+          proxima: proximaData,
+          mes: 0,
+          semana: 0,
+        });
+        if (proximaData) {
+          const proxima = proximasMapped.find(
+            (c) => c.data.toDateString() === proximaData.toDateString()
+          );
+          if (proxima) {
+            setProximaConsultaData({
+              profissional: proxima.profissional,
+              especialidade: proxima.especialidade,
+              tipo: proxima.tipo,
+              status: proxima.status,
+            });
+          }
+        } else {
+          setProximaConsultaData(null);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do voluntário:", error);
+        setProximasConsultas([]);
+        setHistoricoConsultas([]);
+        setConsultasSummary({ total: 0, proxima: null, mes: 0, semana: 0 });
+        setProximaConsultaData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    carregarDadosVoluntario();
+  }, []);
 
   const handleLogout = () => {
     try {
@@ -425,7 +624,224 @@ const Dashboard = () => {
             </div>
           </header>
 
-          {/* Conteúdo principal do dashboard do voluntário vem aqui */}
+          <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="flex flex-col items-center justify-center p-2 bg-green-50 dark:bg-green-900/20 rounded-md cursor-help gap-1">
+                  <span className="font-semibold text-green-600 dark:text-green-400">
+                    {atendimentosSummary.realizados}
+                  </span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Realizadas
+                  </span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 bg-red-50 dark:bg-red-900/20 rounded-md cursor-help gap-1">
+                  <span className="font-semibold text-red-600 dark:text-red-400">
+                    {atendimentosSummary.canceladas}
+                  </span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Canceladas
+                  </span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-md cursor-help gap-1">
+                  <span className="font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1">
+                    {typeof atendimentosSummary.ultimaAvaliacao === "number"
+                      ? atendimentosSummary.ultimaAvaliacao
+                      : "N/A"}
+                  </span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Última avaliação
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                        Próximas Consultas
+                      </CardTitle>
+                      <CardDescription>
+                        Consultas agendadas como voluntário
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="cursor-default">
+                      {proximasConsultas.length} agendadas
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[...Array(2)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg"
+                        >
+                          <div className="flex flex-col gap-2">
+                            <Skeleton className="h-5 w-36" />
+                            <Skeleton className="h-5 w-24" />
+                            <div className="flex justify-between">
+                              <Skeleton className="h-5 w-28" />
+                              <Skeleton className="h-5 w-20" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : proximasConsultas.length > 0 ? (
+                    <div className="space-y-3">
+                      {proximasConsultas.map((consulta) => (
+                        <motion.div
+                          key={consulta.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg hover:border-primary/30 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {consulta.profissional}
+                                </span>
+                              </div>
+                              <Badge
+                                className={statusColors[consulta.status] || ""}
+                              >
+                                {consulta.status === "agendada"
+                                  ? "Agendada"
+                                  : consulta.status === "realizada"
+                                  ? "Realizada"
+                                  : consulta.status === "cancelada"
+                                  ? "Cancelada"
+                                  : "Remarcada"}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-muted-foreground">
+                                {consulta.especialidade}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {consulta.tipo}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+                              <div className="text-primary">
+                                <span className="text-sm font-medium">
+                                  {formatarData(consulta.data)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-center py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg">
+                      <span className="text-sm text-muted-foreground">
+                        Você não tem nenhuma consulta agendada para os próximos
+                        dias.
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                        Histórico de Consultas
+                      </CardTitle>
+                      <CardDescription>
+                        Realizadas ou canceladas
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="cursor-default">
+                      {historicoConsultas.length}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[...Array(2)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg"
+                        >
+                          <div className="flex flex-col gap-2">
+                            <Skeleton className="h-5 w-36" />
+                            <Skeleton className="h-5 w-24" />
+                            <div className="flex justify-between">
+                              <Skeleton className="h-5 w-28" />
+                              <Skeleton className="h-5 w-20" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : historicoConsultas.length > 0 ? (
+                    <div className="space-y-3">
+                      {historicoConsultas.map((consulta) => (
+                        <motion.div
+                          key={consulta.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg hover:border-primary/30 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {consulta.profissional}
+                                </span>
+                              </div>
+                              <Badge
+                                className={statusColors[consulta.status] || ""}
+                              >
+                                {consulta.status === "realizada"
+                                  ? "Realizada"
+                                  : consulta.status === "cancelada"
+                                  ? "Cancelada"
+                                  : ""}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-muted-foreground">
+                                {consulta.especialidade}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {consulta.tipo}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+                              <div className="text-primary">
+                                <span className="text-sm font-medium">
+                                  {formatarData(consulta.data)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-center py-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg">
+                      <span className="text-sm text-muted-foreground">
+                        Nenhum atendimento encontrado
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </main>
       </div>
 

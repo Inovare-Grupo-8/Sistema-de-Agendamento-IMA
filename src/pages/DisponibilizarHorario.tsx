@@ -52,7 +52,7 @@ import {
 } from "@/hooks/useVoluntario";
 import VoluntarioApiService from "@/services/voluntarioApi";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
-import { useAuth } from "@/hooks/useAuth";
+// removed useAuth to avoid hook misuse in non-component contexts
 
 const DisponibilizarHorario = () => {
   const { t } = useTranslation();
@@ -62,7 +62,29 @@ const DisponibilizarHorario = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { buscarDadosPessoais, buscarDadosProfissionais, mapEnumToText } =
     useVoluntario();
-  const { logout } = useAuth();
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("savedProfile");
+      localStorage.removeItem("profileData");
+      localStorage.removeItem("userProfileData");
+      localStorage.removeItem("selectedDates");
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || "";
+        if (
+          key.startsWith("availabilityVoluntario:") ||
+          key.startsWith("availabilityIds:")
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {}
+    navigate("/login", { replace: true });
+  };
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoaisVoluntario>({
@@ -320,7 +342,7 @@ const DisponibilizarHorario = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-900/20 text-[#ED4231] flex items-center gap-3 cursor-pointer"
                   >
                     <LogOut className="w-5 h-5" />
@@ -395,7 +417,11 @@ const DisponibilizarHorario = () => {
                   <Moon className="w-5 h-5 text-gray-800" />
                 )}
               </Button>
-              <Button variant="outline" onClick={logout} className="px-4 py-2">
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="px-4 py-2"
+              >
                 Sair
               </Button>
             </div>

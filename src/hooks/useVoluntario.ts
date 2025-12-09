@@ -10,6 +10,8 @@ export interface DadosProfissionaisVoluntario {
   funcao: string;
   registroProfissional: string;
   biografiaProfissional: string;
+  especialidade?: string;
+  especialidades?: string[];
 }
 
 export interface EnderecoVoluntario {

@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -56,7 +56,7 @@ import {
   ProximaConsulta,
   ConsultaOutput,
 } from "@/services/consultaApi";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
 import ErrorMessage from "./ErrorMessage";
 import { STATUS_COLORS } from "../constants/ui";
@@ -117,6 +117,7 @@ interface ConsultaCancelamento {
 }
 
 const Home = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -246,83 +247,7 @@ const Home = () => {
   // Removido useEffect que chamava endpoint inexistente
   // Estado para histórico recente - carregado via API
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
-  // Carregar dados das consultas via API
-  useEffect(() => {
-    const loadConsultaData = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        // Buscar userId do localStorage
-        const userDataStr = localStorage.getItem("userData");
-        if (!userDataStr) {
-          throw new Error("Usuário não está logado");
-        }
-        const user = JSON.parse(userDataStr);
-        const userId = user.idUsuario;
-
-        if (!userId) {
-          throw new Error("ID do usuário não encontrado");
-        }
-
-        // Buscar dados de consultas da API usando userId
-        const consultaStats = await ConsultaApiService.getAllConsultaStats(
-          userId
-        );
-
-        // Para o usuário assistido, mapear os dados corretamente
-        const proximaData =
-          proximasConsultas.length > 0 ? proximasConsultas[0].data : null; // Sem mock - se não há consultas, fica null
-
-        setConsultasSummary({
-          total: consultaStats.hoje, // Consultas de hoje (card azul)
-          proxima: proximaData, // Próxima consulta agendada
-          mes: consultaStats.mes, // Consultas do mês (card vermelho)
-          semana: consultaStats.semana, // Consultas da semana (card verde)
-        });
-
-        // Preencher dados da próxima consulta se existir
-        if (proximasConsultas.length > 0 && proximaData) {
-          const proximaConsulta = proximasConsultas.find(
-            (c) => c.data.toDateString() === proximaData.toDateString()
-          );
-
-          if (proximaConsulta) {
-            setProximaConsultaData({
-              profissional: proximaConsulta.profissional,
-              especialidade: proximaConsulta.especialidade,
-              tipo: proximaConsulta.tipo,
-              status: proximaConsulta.status,
-            });
-          }
-        } else {
-          // Limpar dados de próxima consulta se não houver
-          setProximaConsultaData(null);
-        }
-        // Dados de atendimentos serão atualizados pelo loadHistoricoRecente
-      } catch (err) {
-        console.error("Erro ao carregar dados das consultas:", err);
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Erro ao carregar dados das consultas";
-        setError(message);
-
-        // Limpar dados em caso de erro
-        setConsultasSummary({
-          total: 0,
-          proxima: null,
-          mes: 0,
-          semana: 0,
-        });
-        setProximaConsultaData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadConsultaData();
-  }, [proximasConsultas]); // Load all consultations when component mounts
+  // Carregar dados das consultas via API uma vez, junto ao carregamento principal
   const loadHistoricoRecente = useCallback(async () => {
     try {
       // Buscar userId do localStorage
@@ -472,25 +397,67 @@ const Home = () => {
     }
   }, [proximasConsultas, setAtendimentosSummary]);
 
+  const atualizarResumoConsultas = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const userDataStr = localStorage.getItem("userData");
+      if (!userDataStr) {
+        throw new Error("Usuário não está logado");
+      }
+      const user = JSON.parse(userDataStr);
+      const userId = user.idUsuario;
+      if (!userId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+      const consultaStats = await ConsultaApiService.getAllConsultaStats(
+        userId
+      );
+      const proximaData =
+        proximasConsultas.length > 0 ? proximasConsultas[0].data : null;
+      setConsultasSummary({
+        total: consultaStats.hoje,
+        proxima: proximaData,
+        mes: consultaStats.mes,
+        semana: consultaStats.semana,
+      });
+      if (proximasConsultas.length > 0 && proximaData) {
+        const proximaConsulta = proximasConsultas.find(
+          (c) => c.data.toDateString() === proximaData.toDateString()
+        );
+        if (proximaConsulta) {
+          setProximaConsultaData({
+            profissional: proximaConsulta.profissional,
+            especialidade: proximaConsulta.especialidade,
+            tipo: proximaConsulta.tipo,
+            status: proximaConsulta.status,
+          });
+        }
+      } else {
+        setProximaConsultaData(null);
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Erro ao carregar dados das consultas";
+      setError(message);
+      setConsultasSummary({ total: 0, proxima: null, mes: 0, semana: 0 });
+      setProximaConsultaData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       await loadTodasConsultas();
-      // After loading próximas consultas, load histórico to calculate statistics properly
-      setTimeout(() => {
-        loadHistoricoRecente();
-      }, 100); // Small delay to ensure proximasConsultas state is updated
+      await loadProximasConsultasVoluntario();
+      await atualizarResumoConsultas();
+      await loadHistoricoRecente();
     };
     loadData();
-
-    // Reload de 5 em 5 minutos (300000ms)
-    const intervalId = setInterval(() => {
-      console.log("Recarregando dados (5 minutos)...");
-      loadData();
-    }, 300000); // 5 minutos
-
-    // Cleanup: limpar interval ao desmontar
-    return () => clearInterval(intervalId);
-  }, []); // Executar apenas uma vez ao montar
+  }, []);
 
   // Removed infinite loop useEffect that was triggering on proximasConsultas changes  // Function to load recent history including canceled consultations
   // Function to load all consultations and order them by date
@@ -575,6 +542,52 @@ const Home = () => {
         description: "Não foi possível carregar as consultas",
         variant: "destructive",
       });
+    }
+  };
+
+  const loadProximasConsultasVoluntario = async () => {
+    try {
+      const userDataStr = localStorage.getItem("userData");
+      if (!userDataStr) {
+        throw new Error("Usuário não está logado");
+      }
+      const user = JSON.parse(userDataStr);
+      const userId = user.idUsuario;
+      const tipoUsuario = user.tipo;
+      if (!userId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+      if (String(tipoUsuario).toUpperCase() !== "VOLUNTARIO") {
+        return;
+      }
+      const proximas = await ConsultaApiService.getProximasConsultas(
+        userId,
+        "voluntario"
+      );
+      const proximasFormatadas: Consulta[] = (proximas || []).map(
+        (consulta) => ({
+          id: consulta.idConsulta,
+          profissional:
+            consulta.assistido?.ficha?.nome || "Assistido não informado",
+          especialidade:
+            consulta.especialidade?.nome || "Especialidade não informada",
+          data: new Date(consulta.horario),
+          tipo:
+            consulta.modalidade === "ONLINE"
+              ? "Consulta Online"
+              : "Consulta Presencial",
+          status: String(consulta.status || "AGENDADA").toLowerCase(),
+          assistido: consulta.assistido,
+        })
+      );
+      setProximasConsultas(
+        proximasFormatadas.sort((a, b) => a.data.getTime() - b.data.getTime())
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao carregar próximas consultas do voluntário:",
+        error
+      );
     }
   };
 
@@ -948,8 +961,8 @@ const Home = () => {
             typeof parsedUserData.sobrenome === "string"
               ? parsedUserData.sobrenome.trim()
               : typeof parsedUserData.sobreNome === "string"
-                ? parsedUserData.sobreNome.trim()
-                : "";
+              ? parsedUserData.sobreNome.trim()
+              : "";
 
           if (sobrenomeDireto) {
             updates.sobrenome = sobrenomeDireto;
@@ -1001,12 +1014,12 @@ const Home = () => {
     fetchUserData();
   }, [setProfileImage, updateUserData]);
 
+  const perfilIntervalRef = useRef<number | null>(null);
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const userProfile = await fetchPerfil();
         console.log("User profile data:", userProfile);
-        // Update user data context or local state if needed
       } catch (error) {
         console.error("Error fetching user profile:", error);
         toast({
@@ -1016,9 +1029,18 @@ const Home = () => {
         });
       }
     };
-
     loadUserData();
-  }, [fetchPerfil]);
+    if (!perfilIntervalRef.current) {
+      const id = window.setInterval(loadUserData, 300000);
+      perfilIntervalRef.current = id;
+    }
+    return () => {
+      if (perfilIntervalRef.current) {
+        clearInterval(perfilIntervalRef.current);
+        perfilIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const [voluntarioProfile, setVoluntarioProfile] = useState<{
     nome: string;
@@ -1133,7 +1155,32 @@ const Home = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3">
+                  <SidebarMenuButton
+                    onClick={() => {
+                      try {
+                        localStorage.removeItem("auth_token");
+                        localStorage.removeItem("auth_user");
+                        localStorage.removeItem("userData");
+                        localStorage.removeItem("savedProfile");
+                        localStorage.removeItem("profileData");
+                        localStorage.removeItem("userProfileData");
+                        localStorage.removeItem("selectedDates");
+                        const keysToRemove: string[] = [];
+                        for (let i = 0; i < localStorage.length; i++) {
+                          const key = localStorage.key(i) || "";
+                          if (
+                            key.startsWith("availabilityVoluntario:") ||
+                            key.startsWith("availabilityIds:")
+                          ) {
+                            keysToRemove.push(key);
+                          }
+                        }
+                        keysToRemove.forEach((k) => localStorage.removeItem(k));
+                      } catch {}
+                      navigate("/login", { replace: true });
+                    }}
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
