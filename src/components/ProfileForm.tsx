@@ -36,11 +36,11 @@ import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCep } from "@/hooks/useCep";
 import {
-  useVoluntario,
   DadosPessoaisVoluntario,
   DadosProfissionaisVoluntario,
   EnderecoVoluntario,
 } from "@/hooks/useVoluntario";
+import perfilApi from "@/services/perfilApi";
 import { Badge } from "@/components/ui/badge";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { professionalNavigationItems } from "@/utils/userNavigation";
@@ -79,17 +79,17 @@ const ProfileForm = () => {
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { fetchAddressByCep, formatCep } = useCep();
 
-  const {
-    buscarDadosPessoais,
-    atualizarDadosPessoais,
-    buscarDadosProfissionais,
-    atualizarDadosProfissionais,
-    buscarEndereco,
-    atualizarEndereco,
-    mapEnumToText,
-    uploadFoto,
-    clearCache,
-  } = useVoluntario();
+  const userId = (() => {
+    const stored = localStorage.getItem("userData");
+    if (!stored) return undefined;
+    try {
+      const u = JSON.parse(stored);
+      return Number(u.idUsuario);
+    } catch {
+      return undefined;
+    }
+  })();
+  const mapEnumToText = (f: string) => f;
 
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
@@ -104,6 +104,7 @@ const ProfileForm = () => {
     telefone: "",
     dataNascimento: "",
   });
+  const [initialEmail, setInitialEmail] = useState<string>("");
 
   const [dadosProfissionais, setDadosProfissionais] =
     useState<DadosProfissionaisVoluntario>({
@@ -129,12 +130,15 @@ const ProfileForm = () => {
   const loadProfileData = useCallback(async () => {
     try {
       setInitialLoading(true);
-
-      const dados = await buscarDadosPessoais();
+      if (!userId) throw new Error("Usuário inválido");
+      const dados = await perfilApi.getDadosPessoaisVoluntario(userId);
       if (dados) setDadosPessoais(dados);
+      if (dados?.email) setInitialEmail(String(dados.email));
 
       try {
-        const dadosProf = await buscarDadosProfissionais();
+        const dadosProf = await perfilApi.getDadosProfissionaisVoluntario(
+          userId
+        );
         if (dadosProf) {
           setDadosProfissionais(dadosProf);
           setFuncaoVoluntario(mapEnumToText(dadosProf.funcao));
@@ -144,7 +148,7 @@ const ProfileForm = () => {
       }
 
       try {
-        const enderecoData = await buscarEndereco();
+        const enderecoData = await perfilApi.getEnderecoVoluntario(userId);
         if (enderecoData) setEndereco(enderecoData);
       } catch (error) {
         console.log("Endereço não encontrado");
@@ -159,12 +163,7 @@ const ProfileForm = () => {
     } finally {
       setInitialLoading(false);
     }
-  }, [
-    buscarDadosPessoais,
-    buscarDadosProfissionais,
-    buscarEndereco,
-    mapEnumToText,
-  ]);
+  }, [userId]);
 
   useEffect(() => {
     loadProfileData();
@@ -288,11 +287,26 @@ const ProfileForm = () => {
 
     setLoading(true);
     try {
-      await atualizarDadosPessoais(dadosPessoais);
+      if (!userId) throw new Error("Usuário inválido");
+      await perfilApi.patchDadosPessoaisVoluntario(userId, {
+        email: dadosPessoais.email,
+        telefone: dadosPessoais.telefone,
+      });
       toast({
         title: "Dados atualizados",
         description: "Seus dados pessoais foram atualizados com sucesso!",
       });
+      const before = (initialEmail || "").trim().toLowerCase();
+      const after = (dadosPessoais.email || "").trim().toLowerCase();
+      if (before && after && before !== after) {
+        toast({
+          title: "Sessão necessária",
+          description:
+            "Você alterou o e-mail. Faça login novamente para continuar.",
+        });
+        localStorage.clear();
+        navigate("/login");
+      }
     } catch (error) {
       console.error("Erro ao salvar:", error);
       toast({
@@ -317,7 +331,12 @@ const ProfileForm = () => {
 
     setLoading(true);
     try {
-      await atualizarDadosProfissionais(dadosProfissionais);
+      if (!userId) throw new Error("Usuário inválido");
+      await perfilApi.patchDadosProfissionaisVoluntario(userId, {
+        funcao: dadosProfissionais.funcao,
+        registroProfissional: dadosProfissionais.registroProfissional,
+        biografiaProfissional: dadosProfissionais.biografiaProfissional,
+      });
       setFuncaoVoluntario(mapEnumToText(dadosProfissionais.funcao));
       toast({
         title: "Dados profissionais atualizados",
@@ -347,7 +366,12 @@ const ProfileForm = () => {
 
     setLoading(true);
     try {
-      await atualizarEndereco(endereco);
+      if (!userId) throw new Error("Usuário inválido");
+      await perfilApi.putEnderecoVoluntario(userId, {
+        cep: endereco.cep.replace(/\D/g, ""),
+        numero: endereco.numero,
+        complemento: endereco.complemento,
+      });
       toast({
         title: "Endereço atualizado",
         description: "Seu endereço foi atualizado com sucesso!",
@@ -376,8 +400,10 @@ const ProfileForm = () => {
 
     setLoading(true);
     try {
-      const photoUrl = await uploadFoto(selectedImage);
-      setProfileImage(photoUrl);
+      if (!userId) throw new Error("Usuário inválido");
+      const resp = await perfilApi.uploadFotoVoluntario(userId, selectedImage);
+      const url = resp?.urlFoto || resp?.url || resp?.fotoUrl || "";
+      if (url) setProfileImage(url);
       setSelectedImage(null);
       setImagePreview(null);
       toast({
@@ -402,7 +428,6 @@ const ProfileForm = () => {
   };
 
   const handleCancel = () => {
-    clearCache(); // Limpar cache para forçar recarga
     loadProfileData();
     setSelectedImage(null);
     setImagePreview(null);

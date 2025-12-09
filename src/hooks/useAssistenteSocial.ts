@@ -316,7 +316,9 @@ export const useAssistenteSocial = () => {
                 cep: endereco.cep,
                 numero: endereco.numero,
                 complemento: endereco.complemento || ''
-            };            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
+            };
+            const tipoPathAddr = String(user.tipo || '').toUpperCase() === 'ADMINISTRADOR' ? 'administrador' : (String(user.tipo || '').toUpperCase() === 'VOLUNTARIO' && String(user.funcao || '').toUpperCase() === 'ASSISTENCIA_SOCIAL') ? 'assistente-social' : 'assistente-social';
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoPathAddr}/endereco?usuarioId=${usuarioId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -362,19 +364,22 @@ export const useAssistenteSocial = () => {
 
             const user = JSON.parse(userData);
             const token = user.token;
-            const usuarioId = user.idUsuario;
+            const usuarioId = user.idUsuario || user.id;
+            const tipo = String(user.tipo || '').toUpperCase();
+            const funcao = String(user.funcao || '').toUpperCase();
             
             if (!usuarioId) {
                 throw new Error('ID do usuário não encontrado');
             }
 
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
+            const tipoPath = tipo === 'ADMINISTRADOR' ? 'administrador' : (tipo === 'VOLUNTARIO' && funcao === 'ASSISTENCIA_SOCIAL') ? 'assistente-social' : 'assistente-social';
+            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token || ''}`
                 },
-                body: JSON.stringify(dados)
+                body: JSON.stringify({ email: dados.email, telefone: dados.telefone, genero: dados.genero })
             });
 
             if (!response.ok) {

@@ -356,7 +356,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
       if (permitidos.email) {
         updateEmailInLocalStorage(permitidos.email);
       }
-
+      
       return {
         nome: profile.nome,
         sobrenome: profile.sobrenome,
