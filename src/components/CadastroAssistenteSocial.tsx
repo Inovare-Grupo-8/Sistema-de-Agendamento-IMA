@@ -669,17 +669,7 @@ export default function CadastroAssistenteSocial() {
                     <TooltipTrigger asChild>
                       <SidebarMenuButton
                         className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
-                        onClick={() => {
-                          // Clear user session data
-                          localStorage.removeItem("userData");
-                          localStorage.removeItem("profileData");
-                          // Redirect to login page
-                          navigate("/");
-                          toast({
-                            title: "Sessão encerrada",
-                            description: "Você foi desconectado com sucesso.",
-                          });
-                        }}
+                        onClick={handleLogout}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -1145,3 +1135,30 @@ export default function CadastroAssistenteSocial() {
     </SidebarProvider>
   );
 }
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("savedProfile");
+      localStorage.removeItem("profileData");
+      localStorage.removeItem("userProfileData");
+      localStorage.removeItem("selectedDates");
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || "";
+        if (
+          key.startsWith("availabilityVoluntario:") ||
+          key.startsWith("availabilityIds:")
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {}
+    toast({
+      title: "Sessão encerrada",
+      description: "Você foi desconectado com sucesso.",
+    });
+    navigate("/login", { replace: true });
+  };

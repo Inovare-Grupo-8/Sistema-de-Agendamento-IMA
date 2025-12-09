@@ -98,12 +98,31 @@ const Agenda = () => {
     useState<Appointment | null>(null);
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
+    try {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("savedProfile");
+      localStorage.removeItem("profileData");
+      localStorage.removeItem("userProfileData");
+      localStorage.removeItem("selectedDates");
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || "";
+        if (
+          key.startsWith("availabilityVoluntario:") ||
+          key.startsWith("availabilityIds:")
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {}
     toast({
       title: "Sessão encerrada",
       description: "Você foi desconectado com sucesso.",
     });
+    navigate("/login", { replace: true });
   };
 
   useEffect(() => {
