@@ -583,40 +583,60 @@ export class ConsultaApiService {
     especialidade?: string;
   }): Promise<ConsultaOutput> {
     try {
+      console.log("🚀 [AGENDAMENTO] Iniciando processo de criação de consulta");
+      console.log("📋 [AGENDAMENTO] Dados recebidos:", consultaData);
+
       // Get current user ID from localStorage
       const userData = localStorage.getItem("userData");
       if (!userData) {
+        console.error("❌ [AGENDAMENTO] Usuário não está logado");
         throw new Error("Usuário não está logado");
       }
 
       const user = JSON.parse(userData);
       const idAssistido = user.idUsuario;
+      console.log("👤 [AGENDAMENTO] ID do assistido:", idAssistido);
 
       if (!idAssistido) {
+        console.error("❌ [AGENDAMENTO] ID do usuário não encontrado");
         throw new Error("ID do usuário não encontrado");
       }
 
       // Combine date and time into a proper datetime string
       const dateTime = `${consultaData.data}T${consultaData.horario}:00`;
+      console.log("📅 [AGENDAMENTO] Data/hora formatada:", dateTime);
 
       // Get specialization ID if specialization name is provided
       let idEspecialidade: number | null = null;
       if (consultaData.especialidade) {
+        console.log(
+          "🔍 [AGENDAMENTO] Buscando ID da especialidade:",
+          consultaData.especialidade
+        );
         idEspecialidade = await this.getEspecialidadeIdByName(
           consultaData.especialidade
         );
         if (!idEspecialidade) {
           console.warn(
-            `Especialidade '${consultaData.especialidade}' não encontrada. Usando ID padrão 1.`
+            `⚠️ [AGENDAMENTO] Especialidade '${consultaData.especialidade}' não encontrada. Usando ID padrão 1.`
           );
           idEspecialidade = 1; // Default specialization ID
+        } else {
+          console.log(
+            "✅ [AGENDAMENTO] ID da especialidade encontrado:",
+            idEspecialidade
+          );
         }
       } else {
+        console.log(
+          "ℹ️ [AGENDAMENTO] Especialidade não fornecida. Usando ID padrão 1."
+        );
         idEspecialidade = 1; // Default specialization ID
       }
 
       const payload = {
         idVoluntario: consultaData.idVoluntario,
+        idEspecialista: consultaData.idVoluntario, // idEspecialista is the same as idVoluntario
         idAssistido: idAssistido,
         horario: dateTime,
         modalidade: consultaData.modalidade,
@@ -626,13 +646,42 @@ export class ConsultaApiService {
         idEspecialidade: idEspecialidade,
       };
 
+      console.log("📦 [AGENDAMENTO] Payload montado:");
+      console.log(JSON.stringify(payload, null, 2));
+      console.log("🌐 [AGENDAMENTO] Enviando requisição POST /consulta...");
+
       const response = await apiClient.post<ConsultaOutput>(
         "/consulta",
         payload
       );
+
+      console.log("✅ [AGENDAMENTO] Consulta criada com sucesso!");
+      console.log("📄 [AGENDAMENTO] Resposta do servidor:", response.data);
+
       return response.data;
-    } catch (error) {
-      console.error("Error creating consulta:", error);
+    } catch (error: any) {
+      console.error("❌ [AGENDAMENTO] Erro ao criar consulta:", error);
+
+      // Log detalhado do erro
+      if (error.response) {
+        console.error("❌ [AGENDAMENTO] Status HTTP:", error.response.status);
+        console.error(
+          "❌ [AGENDAMENTO] Dados da resposta:",
+          error.response.data
+        );
+        console.error(
+          "❌ [AGENDAMENTO] Headers da resposta:",
+          error.response.headers
+        );
+      } else if (error.request) {
+        console.error(
+          "❌ [AGENDAMENTO] Requisição sem resposta:",
+          error.request
+        );
+      } else {
+        console.error("❌ [AGENDAMENTO] Erro na configuração:", error.message);
+      }
+
       throw this.handleApiError(error);
     }
   }

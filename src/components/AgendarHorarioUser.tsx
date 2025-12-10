@@ -371,10 +371,23 @@ const AgendarHorarioUser = () => {
       setStep(step + 1);
     } else {
       setLoading(true);
+      console.log("🎯 [AGENDAMENTO UI] Iniciando agendamento - Step 7");
+
       try {
         const especialistaAtual = especialistas.find(
           (e) => e.id === especialistaSelecionado
         );
+
+        console.log(
+          "👨‍⚕️ [AGENDAMENTO UI] Especialista selecionado:",
+          especialistaAtual
+        );
+        console.log("📅 [AGENDAMENTO UI] Data selecionada:", dataSelecionada);
+        console.log(
+          "⏰ [AGENDAMENTO UI] Horário selecionado:",
+          horarioSelecionado
+        );
+        console.log("💻 [AGENDAMENTO UI] Tipo de consulta:", tipoConsulta);
 
         const consultaData = {
           idVoluntario: especialistaSelecionado!,
@@ -385,10 +398,19 @@ const AgendarHorarioUser = () => {
           especialidade: especialistaAtual?.especialidade,
         };
 
-        console.log("[AgendarHorarioUser] Resumo pronto", consultaData);
+        console.log(
+          "📋 [AGENDAMENTO UI] Dados da consulta preparados:",
+          consultaData
+        );
+        console.log(
+          "🚀 [AGENDAMENTO UI] Chamando ConsultaApiService.criarConsulta..."
+        );
+
         await ConsultaApiService.criarConsulta(consultaData);
 
         setLoading(false);
+        console.log("✅ [AGENDAMENTO UI] Consulta criada com sucesso!");
+
         toast({
           title: "Consulta agendada com sucesso!",
           description:
@@ -396,10 +418,13 @@ const AgendarHorarioUser = () => {
         });
 
         setTimeout(() => {
+          console.log("🔄 [AGENDAMENTO UI] Redirecionando para /agenda-user");
           navigate("/agenda-user");
         }, 2000);
       } catch (error) {
         setLoading(false);
+        console.error("❌ [AGENDAMENTO UI] Erro ao agendar consulta:", error);
+
         toast({
           title: "Erro ao agendar consulta",
           description:
