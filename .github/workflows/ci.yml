@@ -24,4 +24,4 @@ jobs:
           push: true
           # AQUI: O nome da imagem será 'seu-usuario/front-1'. 
           # O Docker Hub cria o repositório automaticamente se não existir.
-          tags: ${{ secrets.DOCKERHUB_USER }}/front-1:latest
+          tags: ryanzin1380/ima-docker-repo:frontend
