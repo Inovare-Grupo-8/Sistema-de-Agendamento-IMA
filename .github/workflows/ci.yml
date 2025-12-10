@@ -21,6 +21,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile-front
           push: true
           # AQUI: O nome da imagem será 'seu-usuario/front-1'. 
           # O Docker Hub cria o repositório automaticamente se não existir.
