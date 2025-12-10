@@ -1,0 +1,23 @@
+name: CD Front 1
+
+on:
+  workflow_run:
+    workflows: ["CI Front 1"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Pull Docker image
+        run: docker pull ryanzin1380/ima-docker-repo:frontend
+
+      - name: Stop and Remove Old Container
+        run: |
+          docker stop container-front-1 || true
+          docker rm container-front-1 || true
+
+      - name: Run New Container
+        run: docker run -d -p 80:80 --restart always --name container-front-1 ryanzin1380/ima-docker-repo:frontend
