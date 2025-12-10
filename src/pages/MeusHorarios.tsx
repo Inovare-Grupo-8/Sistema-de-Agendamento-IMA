@@ -441,7 +441,7 @@ const MeusHorarios = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300">
         <div
           className={`transition-all duration-500 ease-in-out ${
             sidebarOpen

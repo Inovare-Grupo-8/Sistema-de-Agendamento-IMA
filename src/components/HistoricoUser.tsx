@@ -887,84 +887,67 @@ const HistoricoUser = () => {
             <div className="max-w-6xl mx-auto p-4 md:p-8 pt-24 md:pt-10">
               {/* Add proper navigation breadcrumb */}
               {getUserNavigationPath(location.pathname)}
-              {/* Rest of the component content */}
-              <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100 mb-6">
-                {isUserVolunteer
-                  ? "Histórico de Atendimentos"
-                  : "Histórico de Consultas"}
-              </h1>
 
-              {/* Summary Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {/* Consultas Realizadas */}
-                <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {isUserVolunteer
-                        ? "Atendimentos Realizados"
-                        : "Consultas Realizadas"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {loading ? (
-                          <Skeleton className="h-8 w-8" />
-                        ) : (
-                          stats.realizadas
-                        )}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* Próximas Consultas */}
-                <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {isUserVolunteer
-                        ? "Próximos Atendimentos"
-                        : "Próximas Consultas"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center space-x-2">
-                      <CalendarIcon className="w-5 h-5 text-blue-500" />
-                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {loading ? (
-                          <Skeleton className="h-8 w-8" />
-                        ) : (
-                          proximasConsultas
-                        )}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* Última Avaliação */}
-                <Card className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Última Avaliação
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center space-x-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
-                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {loading ? (
-                          <Skeleton className="h-8 w-8" />
-                        ) : ultimaAvaliacao !== null ? (
-                          <div className="flex items-center space-x-1">
-                            <span>{ultimaAvaliacao.toFixed(1)}</span>
-                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          </div>
-                        ) : (
-                          <span className="text-gray-500">N/A</span>
-                        )}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>{" "}
+              {/* Header Section */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-indigo-900 dark:text-gray-100">
+                  {isUserVolunteer
+                    ? "Histórico de Atendimentos"
+                    : "Histórico de Consultas"}
+                </h1>
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                  <div className="relative flex-grow md:flex-grow-0 md:w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                      type="text"
+                      placeholder={
+                        isUserVolunteer
+                          ? "Buscar por paciente, tipo..."
+                          : "Buscar por profissional, tipo..."
+                      }
+                      className="w-full py-2 pl-10 pr-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272F] focus:ring-2 focus:ring-[#ED4231] focus:outline-none transition-all duration-200"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      aria-label="Buscar no histórico"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setFilterStatus(null)}
+                      variant="outline"
+                      className={`flex items-center gap-2 ${
+                        filterStatus === null ? "bg-[#ED4231] text-white" : ""
+                      }`}
+                    >
+                      <Filter size={16} />
+                      <span>Todos</span>
+                    </Button>
+                    <Button
+                      onClick={() => setFilterStatus("realizada")}
+                      variant="outline"
+                      className={`flex items-center gap-2 ${
+                        filterStatus === "realizada"
+                          ? "bg-[#ED4231] text-white"
+                          : ""
+                      }`}
+                    >
+                      <FileText size={16} />
+                      <span>Realizadas</span>
+                    </Button>
+                    <Button
+                      onClick={() => setFilterStatus("cancelada")}
+                      variant="outline"
+                      className={`flex items-center gap-2 ${
+                        filterStatus === "cancelada"
+                          ? "bg-[#ED4231] text-white"
+                          : ""
+                      }`}
+                    >
+                      <FileText size={16} />
+                      <span>Canceladas</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1080,313 +1063,63 @@ const HistoricoUser = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {filteredHistorico.map((consulta, index) => (
+                    <AnimatePresence>
+                      {filteredHistorico.map((consulta, idx) => (
                         <motion.div
-                          key={`${format(consulta.date, "yyyy-MM-dd")}-${
-                            consulta.time
-                          }`}
+                          key={consulta.id}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          transition={{ duration: 0.3, delay: idx * 0.05 }}
                           className="bg-white dark:bg-[#181A20] rounded-lg border border-[#EDF2FB] dark:border-[#444857] shadow-sm dark:shadow-none transition-transform duration-300 hover:scale-[1.01] hover:shadow-md"
                         >
                           <div className="p-4">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
-                              <div className="flex items-center gap-2">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <CalendarIcon className="w-5 h-5 text-[#ED4231]" />
-                                <span className="font-medium text-gray-800 dark:text-gray-200">
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">
                                   {format(consulta.date, "dd/MM", {
                                     locale: ptBR,
                                   })}{" "}
                                   às {consulta.time}
                                 </span>
-                              </div>
-                              <Badge
-                                className={`${
-                                  statusColors[consulta.status]
-                                } px-3 py-1 rounded-full text-xs font-medium`}
-                              >
-                                {consulta.status === "realizada"
-                                  ? "Realizada"
-                                  : consulta.status === "cancelada"
-                                  ? "Cancelada"
-                                  : "Remarcada"}
-                              </Badge>
-                            </div>
-
-                            <div className="flex flex-col">
-                              <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                {consulta.name}
-                              </span>
-                              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 mt-1">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {consulta.type}
-                                </span>
-                                <span className="hidden md:inline text-gray-400 dark:text-gray-500">
-                                  •
-                                </span>
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {consulta.serviceType}
-                                </span>
+                                <Badge
+                                  className={`${
+                                    statusColors[consulta.status]
+                                  } px-3 py-1 rounded-full text-xs font-medium`}
+                                >
+                                  {consulta.status === "realizada"
+                                    ? "Realizada"
+                                    : consulta.status === "cancelada"
+                                    ? "Cancelada"
+                                    : "Remarcada"}
+                                </Badge>
                               </div>
                             </div>
 
-                            {consulta.status === "realizada" && (
-                              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                {consulta.feedback ? (
-                                  <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                          Sua avaliação:
-                                        </span>
-                                        <div className="flex gap-1 ml-2">
-                                          {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star
-                                              key={star}
-                                              size={16}
-                                              fill={
-                                                star <=
-                                                (consulta.feedback?.rating || 0)
-                                                  ? "#ED4231"
-                                                  : "transparent"
-                                              }
-                                              stroke={
-                                                star <=
-                                                (consulta.feedback?.rating || 0)
-                                                  ? "#ED4231"
-                                                  : "#94A3B8"
-                                              }
-                                            />
-                                          ))}
-                                        </div>
-                                        <span className="text-sm text-gray-500 ml-2">
-                                          ({consulta.feedback.rating}/5)
-                                        </span>
-                                      </div>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                          openFeedbackModal(consulta)
-                                        }
-                                        className="text-xs"
-                                      >
-                                        Editar
-                                      </Button>
-                                    </div>
-                                    {consulta.feedback.comment && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border-l-4 border-[#ED4231]">
-                                        <MessageSquare className="inline w-4 h-4 mr-2 text-[#ED4231]" />
-                                        "{consulta.feedback.comment}"
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                      Como foi sua experiência com esta
-                                      consulta?
-                                    </span>
-                                    <Button
-                                      onClick={() =>
-                                        openFeedbackModal(consulta)
-                                      }
-                                      variant="outline"
-                                      className="w-fit bg-gradient-to-r from-[#ED4231] to-[#c32d22] text-white border-none hover:from-[#c32d22] hover:to-[#a02419] transition-all duration-200"
-                                    >
-                                      <Star className="w-4 h-4 mr-2" />
-                                      Avaliar Consulta
-                                    </Button>
-                                  </div>
-                                )}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <User className="w-5 h-5 text-gray-500" />
+                                <span className="font-medium text-gray-800 dark:text-gray-200">
+                                  {consulta.name}
+                                </span>
                               </div>
-                            )}
+                              <div className="flex flex-col md:flex-row gap-2 md:gap-6 text-sm text-gray-600 dark:text-gray-400">
+                                <span>{consulta.type}</span>
+                                <span>{consulta.serviceType}</span>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       ))}
-                    </div>
+                    </AnimatePresence>
                   )}
                 </div>
               </motion.div>
             </AnimatePresence>
-
-            {filteredHistorico.length > 5 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() =>
-                      window.scrollTo({ top: 0, behavior: "smooth" })
-                    }
-                    className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[#ED4231] text-white shadow-lg hover:bg-[#c32d22] focus:outline-none focus:ring-2 focus:ring-[#ED4231] animate-fade-in transition-transform duration-200 hover:scale-110 active:scale-95"
-                    aria-label="Voltar ao topo"
-                  >
-                    ↑
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                  <p>Voltar ao topo da página</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
           </div>
         </main>
 
-        {/* Modal de Detalhes */}
-        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Eye className="w-5 h-5 text-[#ED4231]" />
-                Detalhes da Consulta
-              </DialogTitle>
-              <DialogDescription>
-                Informações completas sobre sua consulta
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedConsulta && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        Informações Básicas
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div>
-                        <span className="font-medium">Profissional:</span>{" "}
-                        {selectedConsulta.name}
-                      </div>
-                      <div>
-                        <span className="font-medium">Especialidade:</span>{" "}
-                        {selectedConsulta.type}
-                      </div>
-                      <div>
-                        <span className="font-medium">Data:</span>{" "}
-                        {format(
-                          selectedConsulta.date,
-                          "dd 'de' MMMM 'de' yyyy",
-                          { locale: ptBR }
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-medium">Horário:</span>{" "}
-                        {selectedConsulta.time}
-                      </div>
-                      <div>
-                        <span className="font-medium">Duração:</span>{" "}
-                        {selectedConsulta.duration || 50} minutos
-                      </div>
-                      <div>
-                        <span className="font-medium">Tipo:</span>{" "}
-                        {selectedConsulta.serviceType}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        Informações Financeiras
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div>
-                        <span className="font-medium">Valor:</span>
-                        <span className="text-green-600 dark:text-green-400 ml-2">
-                          R$ {selectedConsulta.cost || "N/A"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <Badge
-                          className={`${
-                            statusColors[selectedConsulta.status]
-                          } ml-2`}
-                        >
-                          {selectedConsulta.status === "realizada"
-                            ? "Realizada"
-                            : selectedConsulta.status === "cancelada"
-                            ? "Cancelada"
-                            : "Remarcada"}
-                        </Badge>
-                      </div>
-                      {selectedConsulta.feedback && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Sua avaliação:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                size={16}
-                                fill={
-                                  star <=
-                                  (selectedConsulta.feedback?.rating || 0)
-                                    ? "#ED4231"
-                                    : "transparent"
-                                }
-                                stroke={
-                                  star <=
-                                  (selectedConsulta.feedback?.rating || 0)
-                                    ? "#ED4231"
-                                    : "#94A3B8"
-                                }
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {selectedConsulta.prescription && (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        Prescrição/Orientações
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        {selectedConsulta.prescription}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {selectedConsulta.feedback?.comment && (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                        Seu Comentário
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700 dark:text-gray-300 italic">
-                        "{selectedConsulta.feedback.comment}"
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                Fechar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Modal de Feedback */}
+        {/* Modal de Feedback - mantido para funcionalidade de avaliação */}
         <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
           <DialogContent className="max-w-lg">
             <DialogHeader>

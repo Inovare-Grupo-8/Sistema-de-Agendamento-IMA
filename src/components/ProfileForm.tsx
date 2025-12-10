@@ -505,7 +505,7 @@ const ProfileForm = () => {
   if (initialLoading) {
     return (
       <SidebarProvider>
-        <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ED4231] mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-300">
@@ -519,7 +519,7 @@ const ProfileForm = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
+      <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#EDF2FB] dark:bg-gradient-to-br dark:from-[#181A20] dark:via-[#23272F] dark:to-[#181A20] transition-colors duration-300">
         {/* Sidebar */}
         {!sidebarOpen && (
           <div className="w-full flex justify-start items-center gap-3 p-4 fixed top-0 left-0 z-30 bg-white/80 dark:bg-gray-900/90 shadow-md backdrop-blur-md">
