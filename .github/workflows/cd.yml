@@ -20,4 +20,4 @@ jobs:
           docker rm container-front-1 || true
 
       - name: Run New Container
-        run: docker run -d -p 80:80 --restart always --name container-front-1 ryanzin1380/ima-docker-repo:frontend
+        run: docker run -d -p 8080:80 --restart always --name container-front-1 ryanzin1380/ima-docker-repo:frontend
