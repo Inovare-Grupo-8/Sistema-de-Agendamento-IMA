@@ -232,7 +232,8 @@ const Dashboard = () => {
         setProximasConsultas(proximasMapped);
 
         const historico = await ConsultaApiService.getHistoricoConsultas(
-          userId
+          userId,
+          "voluntario"
         );
         const historicoMapped = (
           Array.isArray(historico)

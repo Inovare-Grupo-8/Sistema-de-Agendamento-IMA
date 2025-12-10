@@ -110,7 +110,9 @@ const HomeUser = () => {
   const { profileImage, setProfileImage } = useProfileImage();
   const { theme, toggleTheme } = useThemeToggleWithNotification();
   const { userData, updateUserData, fetchPerfil } = useUserData();
-  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const fullName = [userData?.nome, userData?.sobrenome]
+    .filter(Boolean)
+    .join(" ");
   const displayName = fullName || "Usuário";
 
   // Estado para o modal de logout
@@ -202,80 +204,80 @@ const HomeUser = () => {
   }, []);
   // Estado para histórico recente - carregado via API
   const [historicoRecente, setHistoricoRecente] = useState<Consulta[]>([]);
-  
+
   // Carregar dados das consultas via API - usando useCallback para evitar loops
   const loadConsultaData = useCallback(
     async (
       consultas: Consulta[],
       statsOverride?: { hoje: number; semana: number; mes: number }
     ) => {
-    try {
-      // Buscar userId do localStorage
-      const userDataStr = localStorage.getItem("userData");
-      if (!userDataStr) {
-        throw new Error("Usuário não está logado");
-      }
-      const user = JSON.parse(userDataStr);
-      const userId = user.idUsuario;
-
-      if (!userId) {
-        throw new Error("ID do usuário não encontrado");
-      }
-
-      const consultaStats =
-        statsOverride ??
-        (await ConsultaApiService.getAllConsultaStats(userId));
-
-      const proximaData =
-        consultas.length > 0
-          ? consultas[0].data
-          : new Date(2025, 4, 18, 10, 0);
-
-      setConsultasSummary({
-        total: consultaStats.hoje,
-        proxima: proximaData,
-        mes: consultaStats.mes,
-        semana: consultaStats.semana,
-      });
-
-      if (consultas.length > 0) {
-        const proximaConsultaEncontrada = consultas.find(
-          (consulta) =>
-            consulta.data.toDateString() === proximaData.toDateString()
-        );
-
-        if (proximaConsultaEncontrada) {
-          setProximaConsultaData({
-            profissional: proximaConsultaEncontrada.profissional,
-            especialidade: proximaConsultaEncontrada.especialidade,
-            tipo: proximaConsultaEncontrada.tipo,
-            status: proximaConsultaEncontrada.status,
-          });
+      try {
+        // Buscar userId do localStorage
+        const userDataStr = localStorage.getItem("userData");
+        if (!userDataStr) {
+          throw new Error("Usuário não está logado");
         }
+        const user = JSON.parse(userDataStr);
+        const userId = user.idUsuario;
+
+        if (!userId) {
+          throw new Error("ID do usuário não encontrado");
+        }
+
+        const consultaStats =
+          statsOverride ??
+          (await ConsultaApiService.getAllConsultaStats(userId));
+
+        const proximaData =
+          consultas.length > 0
+            ? consultas[0].data
+            : new Date(2025, 4, 18, 10, 0);
+
+        setConsultasSummary({
+          total: consultaStats.hoje,
+          proxima: proximaData,
+          mes: consultaStats.mes,
+          semana: consultaStats.semana,
+        });
+
+        if (consultas.length > 0) {
+          const proximaConsultaEncontrada = consultas.find(
+            (consulta) =>
+              consulta.data.toDateString() === proximaData.toDateString()
+          );
+
+          if (proximaConsultaEncontrada) {
+            setProximaConsultaData({
+              profissional: proximaConsultaEncontrada.profissional,
+              especialidade: proximaConsultaEncontrada.especialidade,
+              tipo: proximaConsultaEncontrada.tipo,
+              status: proximaConsultaEncontrada.status,
+            });
+          }
+        }
+
+        // Atualizar dados dos atendimentos com dados zerados até API estar completa
+        setAtendimentosSummary({
+          realizados: 0,
+          canceladas: 0,
+          ultimaAvaliacao: null,
+        });
+      } catch (err) {
+        console.error("Erro ao carregar dados das consultas:", err);
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Erro ao carregar dados das consultas";
+        setError(message);
+
+        const fallbackDate = new Date(2025, 4, 18, 10, 0);
+        setConsultasSummary({
+          total: 0,
+          proxima: fallbackDate,
+          mes: 0,
+          semana: 0,
+        });
       }
-
-      // Atualizar dados dos atendimentos com dados zerados até API estar completa
-      setAtendimentosSummary({
-        realizados: 0,
-        canceladas: 0,
-        ultimaAvaliacao: null,
-      });
-    } catch (err) {
-      console.error("Erro ao carregar dados das consultas:", err);
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Erro ao carregar dados das consultas";
-      setError(message);
-
-      const fallbackDate = new Date(2025, 4, 18, 10, 0);
-      setConsultasSummary({
-        total: 0,
-        proxima: fallbackDate,
-        mes: 0,
-        semana: 0,
-      });
-    }
     },
     []
   );
@@ -294,7 +296,8 @@ const HomeUser = () => {
       }
 
       const historicoData = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        "assistido"
       );
       const avaliacoesFeedback = await ConsultaApiService.getAvaliacoesFeedback(
         userId,
@@ -377,7 +380,7 @@ const HomeUser = () => {
     const loadData = async () => {
       setLoading(true);
       setError("");
-      
+
       try {
         const userDataStr = localStorage.getItem("userData");
         if (!userDataStr) {
@@ -393,7 +396,7 @@ const HomeUser = () => {
 
         // 1. Primeiro carregar todas as consultas
         const consultasData = await ConsultaApiService.getTodasConsultas();
-        
+
         const consultasDoUsuario = consultasData.filter(
           (consultaDto) => consultaDto.idAssistido === userId
         );
@@ -417,7 +420,11 @@ const HomeUser = () => {
         const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
         fimMes.setHours(23, 59, 59, 999);
 
-        const statsOverrides = consultasDoUsuario.reduce<{ hoje: number; semana: number; mes: number }>(
+        const statsOverrides = consultasDoUsuario.reduce<{
+          hoje: number;
+          semana: number;
+          mes: number;
+        }>(
           (acc, consultaDto) => {
             const dataConsulta = new Date(consultaDto.horario);
             if (Number.isNaN(dataConsulta.getTime())) {
@@ -473,13 +480,13 @@ const HomeUser = () => {
           .sort((a, b) => a.data.getTime() - b.data.getTime());
 
         setProximasConsultas(consultasFuturas);
-        
+
         // 2. Depois carregar estatísticas usando as consultas carregadas
         await loadConsultaData(consultasFuturas, statsOverrides);
-        
+
         // 3. Por último carregar o histórico usando as consultas carregadas
         await loadHistoricoRecente(consultasFuturas);
-        
+
         console.log(`${consultasFuturas.length} próximas consultas carregadas`);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -488,7 +495,7 @@ const HomeUser = () => {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, [loadConsultaData, loadHistoricoRecente]);
 
@@ -665,9 +672,9 @@ const HomeUser = () => {
 
   // Handle logout function
   const handleLogout = () => {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('profileData');
-    navigate('/');
+    localStorage.removeItem("userData");
+    localStorage.removeItem("profileData");
+    navigate("/");
     toast({
       title: "Sessão encerrada",
       description: "Você foi desconectado com sucesso.",
@@ -802,7 +809,9 @@ const HomeUser = () => {
       }
 
       // Atualizar consultas localmente removendo a cancelada
-      const consultasAtualizadas = proximasConsultas.filter(c => c.id !== consultaParaCancelar.id);
+      const consultasAtualizadas = proximasConsultas.filter(
+        (c) => c.id !== consultaParaCancelar.id
+      );
       setProximasConsultas(consultasAtualizadas);
 
       // Reload recent history to show the canceled consultation
@@ -885,7 +894,9 @@ const HomeUser = () => {
           return;
         }
 
-        const parsedUserData = JSON.parse(storedUserJson) as Partial<UserData> & {
+        const parsedUserData = JSON.parse(
+          storedUserJson
+        ) as Partial<UserData> & {
           nomeCompleto?: string;
           sobreNome?: string;
           data_nascimento?: string;
@@ -895,7 +906,10 @@ const HomeUser = () => {
 
         const updates: Partial<UserData> = {};
 
-        const assignIfChanged = <K extends keyof UserData>(key: K, value: unknown) => {
+        const assignIfChanged = <K extends keyof UserData>(
+          key: K,
+          value: unknown
+        ) => {
           if (typeof value !== "string") {
             return;
           }
@@ -911,27 +925,36 @@ const HomeUser = () => {
           typeof parsedUserData.sobrenome === "string"
             ? parsedUserData.sobrenome.trim()
             : typeof parsedUserData.sobreNome === "string"
-              ? parsedUserData.sobreNome.trim()
-              : "";
+            ? parsedUserData.sobreNome.trim()
+            : "";
 
         if (sobrenomeDireto && sobrenomeDireto !== userData.sobrenome) {
           updates.sobrenome = sobrenomeDireto;
         }
 
         if (!updates.nome || !updates.sobrenome) {
-          const nomeCompleto = typeof parsedUserData.nomeCompleto === "string"
-            ? parsedUserData.nomeCompleto.trim()
-            : "";
+          const nomeCompleto =
+            typeof parsedUserData.nomeCompleto === "string"
+              ? parsedUserData.nomeCompleto.trim()
+              : "";
 
           if (nomeCompleto) {
             const [primeiroNome, ...resto] = nomeCompleto.split(/\s+/);
 
-            if (!updates.nome && primeiroNome && primeiroNome !== userData.nome) {
+            if (
+              !updates.nome &&
+              primeiroNome &&
+              primeiroNome !== userData.nome
+            ) {
               updates.nome = primeiroNome;
             }
 
             const sobrenomeDerivado = resto.join(" ");
-            if (!updates.sobrenome && sobrenomeDerivado && sobrenomeDerivado !== userData.sobrenome) {
+            if (
+              !updates.sobrenome &&
+              sobrenomeDerivado &&
+              sobrenomeDerivado !== userData.sobrenome
+            ) {
               updates.sobrenome = sobrenomeDerivado;
             }
           }
@@ -944,8 +967,8 @@ const HomeUser = () => {
           typeof parsedUserData.dataNascimento === "string"
             ? parsedUserData.dataNascimento
             : typeof parsedUserData.data_nascimento === "string"
-              ? parsedUserData.data_nascimento
-              : undefined;
+            ? parsedUserData.data_nascimento
+            : undefined;
         assignIfChanged("dataNascimento", dataNascimentoDireta);
 
         const generoDireto =
@@ -958,7 +981,10 @@ const HomeUser = () => {
           updateUserData(updates);
         }
 
-        if (typeof parsedUserData.fotoUrl === "string" && parsedUserData.fotoUrl.trim()) {
+        if (
+          typeof parsedUserData.fotoUrl === "string" &&
+          parsedUserData.fotoUrl.trim()
+        ) {
           setProfileImage(parsedUserData.fotoUrl.trim());
         }
       } catch (error) {
@@ -1091,7 +1117,10 @@ const HomeUser = () => {
             <SidebarMenuItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SidebarMenuButton className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3" onClick={() => setShowLogoutDialog(true)}>
+                  <SidebarMenuButton
+                    className="rounded-xl px-4 py-3 font-normal text-sm md:text-base transition-all duration-300 hover:bg-[#ED4231]/20 focus:bg-[#ED4231]/20 text-[#ED4231] flex items-center gap-3"
+                    onClick={() => setShowLogoutDialog(true)}
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -1456,6 +1485,73 @@ const HomeUser = () => {
                                   </span>
                                 </div>
                               )}
+                            </motion.div>
+                          ) : proximaConsulta ? (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3 }}
+                              className="mt-2 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                            >
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                Próxima consulta:
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                    {proximaConsulta.voluntario?.ficha?.nome ||
+                                      "Voluntário"}{" "}
+                                    {proximaConsulta.voluntario?.ficha
+                                      ?.sobrenome || ""}
+                                  </span>
+                                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
+                                    {proximaConsulta.status === "CONFIRMADA"
+                                      ? "Confirmada"
+                                      : proximaConsulta.status}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  {proximaConsulta.especialidade?.nome ||
+                                    "Especialidade"}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                  {proximaConsulta.modalidade === "ONLINE"
+                                    ? "ONLINE"
+                                    : "PRESENCIAL"}
+                                </div>
+                                <div className="flex items-center gap-1 text-gray-900 dark:text-gray-100">
+                                  <Clock className="w-3 h-3 text-[#ED4231]" />
+                                  <span className="text-sm font-semibold">
+                                    {format(
+                                      new Date(proximaConsulta.horario),
+                                      "dd/MM",
+                                      { locale: ptBR }
+                                    )}{" "}
+                                    às{" "}
+                                    {format(
+                                      new Date(proximaConsulta.horario),
+                                      "HH:mm",
+                                      { locale: ptBR }
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="mt-3 flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 text-xs border-red-500 text-red-500 hover:bg-red-500/10"
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 text-xs border-blue-500 text-blue-500 hover:bg-blue-500/10"
+                                >
+                                  Detalhes
+                                </Button>
+                              </div>
                             </motion.div>
                           ) : (
                             <motion.div
@@ -2041,6 +2137,108 @@ const HomeUser = () => {
                             </motion.div>
                           ))}
                         </div>
+                      ) : proximaConsulta ? (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                          className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                        >
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            Próxima consulta:
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                                {proximaConsulta.voluntario?.ficha?.nome ||
+                                  "Voluntário"}{" "}
+                                {proximaConsulta.voluntario?.ficha?.sobrenome ||
+                                  ""}
+                              </span>
+                              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                {proximaConsulta.status === "CONFIRMADA"
+                                  ? "Confirmada"
+                                  : proximaConsulta.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                              <span className="font-medium">
+                                {proximaConsulta.especialidade?.nome ||
+                                  "Especialidade"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                              <span className="text-sm">
+                                {proximaConsulta.modalidade === "ONLINE"
+                                  ? "Consulta Online"
+                                  : "Consulta Presencial"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                              <Clock className="w-4 h-4 text-[#ED4231]" />
+                              <span className="font-semibold">
+                                {format(
+                                  new Date(proximaConsulta.horario),
+                                  "dd/MM",
+                                  { locale: ptBR }
+                                )}{" "}
+                                às{" "}
+                                {format(
+                                  new Date(proximaConsulta.horario),
+                                  "HH:mm",
+                                  { locale: ptBR }
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 border-red-500 text-red-500 hover:bg-red-500/10"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="mr-2"
+                              >
+                                <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z" />
+                                <path d="m10 11 4 4m0-4-4 4" />
+                              </svg>
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 border-blue-500 text-blue-500 hover:bg-blue-500/10"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="mr-2"
+                              >
+                                <path d="M10 11h2v5" />
+                                <circle cx="12" cy="7" r="1" />
+                                <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                              </svg>
+                              Detalhes
+                            </Button>
+                          </div>
+                        </motion.div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                           <Clock
@@ -3409,12 +3607,25 @@ const HomeUser = () => {
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
-            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+            <DialogTitle className="text-xl font-bold">
+              Deseja realmente sair?
+            </DialogTitle>
+            <DialogDescription>
+              Você será desconectado da sua conta.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleLogout}
+              className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium"
+            >
               Sair
             </Button>
           </DialogFooter>

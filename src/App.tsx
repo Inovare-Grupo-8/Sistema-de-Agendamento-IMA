@@ -263,7 +263,7 @@ const App = () => {
                                 u?.funcao !== "ASSISTENCIA_SOCIAL"
                               }
                             >
-                              <HistoricoUser />
+                              <Historico />
                             </ProtectedRoute>
                           }
                         />

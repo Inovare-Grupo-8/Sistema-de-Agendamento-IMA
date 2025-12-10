@@ -271,7 +271,8 @@ const Home = () => {
 
       // Load historical consultations (completed and canceled)
       const historicoResponse = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        isUserVolunteer ? "voluntario" : "assistido"
       );
 
       // Extrair o array de consultas do objeto retornado
@@ -334,38 +335,46 @@ const Home = () => {
           const rating = avaliacoesMap.get(consultaId);
 
           // Adapt profissional field based on user type
+          // Use direct fields first, then nested objects as fallback
           let profissionalNome: string;
           if (isUserVolunteer) {
             // Volunteer sees patient name
-            const nome =
-              consulta.assistido?.ficha?.nome || consulta.assistido?.nome;
-            const sobrenome =
-              consulta.assistido?.ficha?.sobrenome ||
-              consulta.assistido?.sobrenome;
             profissionalNome =
-              [nome, sobrenome].filter(Boolean).join(" ") ||
-              "Assistido não informado";
+              consulta.nomeAssistido?.trim() ||
+              (consulta.assistido?.ficha?.nome &&
+              consulta.assistido?.ficha?.sobrenome
+                ? `${consulta.assistido.ficha.nome} ${consulta.assistido.ficha.sobrenome}`.trim()
+                : consulta.assistido?.ficha?.nome || "Assistido não informado");
           } else {
             // Assisted user sees volunteer name
-            const nomeVol =
-              consulta.voluntario?.ficha?.nome || consulta.voluntario?.nome;
-            const sobrenomeVol =
-              consulta.voluntario?.ficha?.sobrenome ||
-              consulta.voluntario?.sobrenome;
             profissionalNome =
-              [nomeVol, sobrenomeVol].filter(Boolean).join(" ") ||
-              "Voluntário não informado";
+              consulta.nomeVoluntario?.trim() ||
+              (consulta.voluntario?.ficha?.nome &&
+              consulta.voluntario?.ficha?.sobrenome
+                ? `${consulta.voluntario.ficha.nome} ${consulta.voluntario.ficha.sobrenome}`.trim()
+                : consulta.voluntario?.ficha?.nome ||
+                  "Voluntário não informado");
           }
+
+          // Get specialty name from direct field or nested object
+          const especialidadeNome =
+            consulta.nomeEspecialidade?.trim() ||
+            consulta.especialidade?.nome ||
+            "Especialidade";
+
+          // Get service type/location
+          const tipoConsulta =
+            consulta.local ||
+            (consulta.modalidade === "ONLINE"
+              ? "Consulta Online"
+              : "Consulta Presencial");
 
           return {
             id: consultaId,
             profissional: profissionalNome,
-            especialidade: consulta.especialidade?.nome || "Especialidade",
+            especialidade: especialidadeNome,
             data: consultaDate,
-            tipo:
-              consulta.modalidade === "ONLINE"
-                ? "Consulta Online"
-                : "Consulta Presencial",
+            tipo: tipoConsulta,
             status: consulta.status.toLowerCase() as
               | "realizada"
               | "cancelada"
@@ -569,7 +578,8 @@ const Home = () => {
 
       // Buscar histórico para incluir consultas passadas
       const historicoResponse = await ConsultaApiService.getHistoricoConsultas(
-        userId
+        userId,
+        isUserVolunteer ? "voluntario" : "assistido"
       );
 
       // Extrair consultas do histórico

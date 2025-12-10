@@ -85,22 +85,35 @@ export interface ConsultaOutput {
   modalidade: string;
   local: string;
   observacoes: string;
-  especialidade: {
+  idEspecialidade?: number;
+  nomeEspecialidade?: string;
+  idVoluntario?: number;
+  nomeVoluntario?: string;
+  idAssistido?: number;
+  nomeAssistido?: string;
+  feedbackStatus?: string;
+  avaliacaoStatus?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
+  // Legacy fields for backward compatibility
+  especialidade?: {
     id: number;
     nome: string;
   };
-  voluntario: {
+  voluntario?: {
     idUsuario: number;
     email: string;
     ficha: {
       nome: string;
+      sobrenome?: string;
     };
   };
-  assistido: {
+  assistido?: {
     idUsuario: number;
     email: string;
     ficha: {
       nome: string;
+      sobrenome?: string;
     };
   };
 }
@@ -294,17 +307,22 @@ export class ConsultaApiService {
   /**
    * Get consultation history
    * @param userId - ID of the user (voluntario or assistido)
+   * @param userType - Type of user ("voluntario" or "assistido") - optional, defaults to "assistido"
    * @returns Promise with array of historical consultations
    */
   static async getHistoricoConsultas(
-    userId: number
+    userId: number,
+    userType?: "voluntario" | "assistido"
   ): Promise<ConsultaOutput[]> {
     try {
+      const params: any = { userId };
+      if (userType) {
+        params.user = userType;
+      }
+
       const response = await apiClient.get<any>(
         `/consulta/consultas/historico`,
-        {
-          params: { userId },
-        }
+        { params }
       );
       // Backend retorna um Map com a chave "consultas"
       return response.data.consultas || response.data;
@@ -458,7 +476,7 @@ export class ConsultaApiService {
    * Get available time slots for a specific volunteer on a specific date
    * @param date - Date in YYYY-MM-DD format
    * @param voluntarioId - ID of the volunteer/specialist
-  * @returns Lista normalizada de horários disponíveis
+   * @returns Lista normalizada de horários disponíveis
    */
   static async getHorariosDisponiveis(
     date: string,
@@ -476,8 +494,8 @@ export class ConsultaApiService {
       const rawValues = Array.isArray(payload)
         ? payload
         : Array.isArray((payload as { horarios?: unknown[] })?.horarios)
-          ? ((payload as { horarios?: unknown[] }).horarios ?? [])
-          : [];
+        ? (payload as { horarios?: unknown[] }).horarios ?? []
+        : [];
 
       return rawValues
         .map((value: unknown) => {
@@ -526,7 +544,10 @@ export class ConsultaApiService {
       const dataIso = dataAtual.toISOString().split("T")[0];
 
       try {
-        const horarios = await this.getHorariosDisponiveis(dataIso, voluntarioId);
+        const horarios = await this.getHorariosDisponiveis(
+          dataIso,
+          voluntarioId
+        );
         if (horarios.length > 0) {
           disponibilidades[dataIso] = horarios;
           diasSemHorarioSeguidos = 0;
@@ -538,7 +559,10 @@ export class ConsultaApiService {
         diasSemHorarioSeguidos += 1;
       }
 
-      if (diasSemHorarioSeguidos >= 7 && Object.keys(disponibilidades).length > 0) {
+      if (
+        diasSemHorarioSeguidos >= 7 &&
+        Object.keys(disponibilidades).length > 0
+      ) {
         break;
       }
     }

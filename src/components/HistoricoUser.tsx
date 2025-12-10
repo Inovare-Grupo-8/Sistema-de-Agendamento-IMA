@@ -222,7 +222,8 @@ const HistoricoUser = () => {
 
         // Load historical consultations
         const historicoData = await ConsultaApiService.getHistoricoConsultas(
-          userId
+          userId,
+          isUserVolunteer ? "voluntario" : "assistido"
         );
 
         console.log(
@@ -272,67 +273,62 @@ const HistoricoUser = () => {
               id: consultaId,
               horario: consulta.horario,
               isUserVolunteer,
-              assistido: consulta.assistido,
-              voluntario: consulta.voluntario,
-              rawConsulta: consulta,
+              nomeAssistido: consulta.nomeAssistido,
+              nomeVoluntario: consulta.nomeVoluntario,
+              nomeEspecialidade: consulta.nomeEspecialidade,
+              modalidade: consulta.modalidade,
+              local: consulta.local,
+              status: consulta.status,
+              assistidoObj: consulta.assistido,
+              voluntarioObj: consulta.voluntario,
+              especialidadeObj: consulta.especialidade,
             });
-
-            console.log(
-              "🔑 [HistoricoUser] Todas as chaves da consulta:",
-              Object.keys(consulta)
-            );
-            console.log(
-              "📦 [HistoricoUser] Consulta completa stringificada:",
-              JSON.stringify(consulta, null, 2)
-            );
 
             // Get evaluation and feedback for this consultation
             const rating = avaliacoesMap.get(consultaId);
             const comment = feedbacksMap.get(consultaId);
 
-            // Build full name based on user type
+            // Build full name based on user type - use both direct fields and nested objects as fallback
             let fullName: string;
             if (isUserVolunteer) {
               // Volunteer sees patient name
-              const nome =
-                consulta.assistido?.ficha?.nome || consulta.assistido?.nome;
-              const sobrenome =
-                consulta.assistido?.ficha?.sobrenome ||
-                consulta.assistido?.sobrenome;
               fullName =
-                [nome, sobrenome].filter(Boolean).join(" ") ||
-                "Assistido não informado";
-
-              console.log("👤 [HistoricoUser] Nome do assistido construído:", {
-                nome,
-                sobrenome,
-                fullName,
-              });
+                consulta.nomeAssistido?.trim() ||
+                (consulta.assistido?.ficha?.nome &&
+                consulta.assistido?.ficha?.sobrenome
+                  ? `${consulta.assistido.ficha.nome} ${consulta.assistido.ficha.sobrenome}`.trim()
+                  : consulta.assistido?.ficha?.nome ||
+                    "Assistido não informado");
+              console.log("👤 [HistoricoUser] Nome do assistido:", fullName);
             } else {
               // Assisted user sees volunteer name
-              const nomeVol =
-                consulta.voluntario?.ficha?.nome || consulta.voluntario?.nome;
-              const sobrenomeVol =
-                consulta.voluntario?.ficha?.sobrenome ||
-                consulta.voluntario?.sobrenome;
               fullName =
-                [nomeVol, sobrenomeVol].filter(Boolean).join(" ") ||
-                "Voluntário não informado";
-
-              console.log("👨‍⚕️ [HistoricoUser] Nome do voluntário construído:", {
-                nomeVol,
-                sobrenomeVol,
-                fullName,
-              });
+                consulta.nomeVoluntario?.trim() ||
+                (consulta.voluntario?.ficha?.nome &&
+                consulta.voluntario?.ficha?.sobrenome
+                  ? `${consulta.voluntario.ficha.nome} ${consulta.voluntario.ficha.sobrenome}`.trim()
+                  : consulta.voluntario?.ficha?.nome ||
+                    "Voluntário não informado");
+              console.log("👨‍⚕️ [HistoricoUser] Nome do voluntário:", fullName);
             }
+
+            // Get specialty name from direct field or nested object
+            const especialidadeNome =
+              consulta.nomeEspecialidade?.trim() ||
+              consulta.especialidade?.nome ||
+              "Especialidade não informada";
+
+            // Get service type/location
+            const serviceType =
+              consulta.local || consulta.modalidade || "Local não informado";
 
             return {
               id: consultaId.toString(),
               date: consultaDate,
               time: consulta.horario.split("T")[1]?.substring(0, 5) || "00:00",
               name: fullName,
-              type: consulta.especialidade?.nome || "Especialidade",
-              serviceType: consulta.modalidade,
+              type: especialidadeNome,
+              serviceType: serviceType,
               status: consulta.status.toLowerCase() as
                 | "realizada"
                 | "cancelada"
@@ -397,7 +393,7 @@ const HistoricoUser = () => {
     };
 
     loadHistorico();
-  }, [fetchPerfil]);
+  }, [fetchPerfil, isUserVolunteer]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -1100,11 +1096,9 @@ const HistoricoUser = () => {
                               <div className="flex items-center gap-2">
                                 <CalendarIcon className="w-5 h-5 text-[#ED4231]" />
                                 <span className="font-medium text-gray-800 dark:text-gray-200">
-                                  {format(
-                                    consulta.date,
-                                    "dd 'de' MMMM 'de' yyyy",
-                                    { locale: ptBR }
-                                  )}{" "}
+                                  {format(consulta.date, "dd/MM", {
+                                    locale: ptBR,
+                                  })}{" "}
                                   às {consulta.time}
                                 </span>
                               </div>
