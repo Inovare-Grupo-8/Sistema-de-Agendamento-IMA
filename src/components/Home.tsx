@@ -535,7 +535,7 @@ const Home = () => {
       ) {
         const hoje = new Date();
         const futuras = todasConsultas
-          .filter((c) => c.data > hoje && c.status !== "cancelada")
+          .filter((c) => c.data > hoje && c.status.toLowerCase() === "agendada")
           .sort((a, b) => a.data.getTime() - b.data.getTime());
         proximaData = futuras.length ? futuras[0].data : null;
 
@@ -715,10 +715,14 @@ const Home = () => {
           return isValidDate;
         });
       setTodasConsultas(consultasConvertidas);
-      // Filter upcoming consultations (future dates only) and sort by date (nearest first)
+      // Filter upcoming consultations (future dates only, and only scheduled status) and sort by date (nearest first)
       const agora = new Date();
       const consultasFuturas = consultasConvertidas
-        .filter((consulta) => consulta.data > agora)
+        .filter(
+          (consulta) =>
+            consulta.data > agora &&
+            consulta.status.toLowerCase() === "agendada"
+        )
         .sort((a, b) => a.data.getTime() - b.data.getTime());
       setProximasConsultas(consultasFuturas);
 

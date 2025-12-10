@@ -476,7 +476,11 @@ const HomeUser = () => {
 
         const agora = new Date();
         const consultasFuturas = consultasConvertidas
-          .filter((consulta) => consulta.data > agora)
+          .filter(
+            (consulta) =>
+              consulta.data > agora &&
+              consulta.status.toLowerCase() === "agendada"
+          )
           .sort((a, b) => a.data.getTime() - b.data.getTime());
 
         setProximasConsultas(consultasFuturas);
