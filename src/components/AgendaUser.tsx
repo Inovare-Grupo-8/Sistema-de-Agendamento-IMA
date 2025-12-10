@@ -62,28 +62,12 @@ const AgendaUser = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoading(true);
     loadTodasConsultas();
-    setTimeout(() => setLoading(false), 800);
   }, []);
-
-  // Synchronize user data with the backend
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const userProfile = await fetchPerfil();
-        console.log('User profile data:', userProfile);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        setError('Failed to load user data.');
-  }
-    };
-
-    loadUserData();
-  }, [fetchPerfil]);
 
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
+    setLoading(true);
     try {
       const userDataStr = localStorage.getItem("userData");
       if (!userDataStr) {
@@ -129,11 +113,13 @@ const AgendaUser = () => {
 
       setProximasConsultas(consultasFuturas);
 
-      toast({
-        title: "Consultas carregadas",
-        description: `${consultasFuturas.length} consultas futuras encontradas para sua conta`,
-        variant: "default",
-      });
+      if (consultasFuturas.length === 0) {
+        toast({
+          title: "Nenhuma consulta futura",
+          description: "Você não possui consultas agendadas.",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error("Erro ao carregar todas as consultas:", error);
       const description =
@@ -144,6 +130,8 @@ const AgendaUser = () => {
         description,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -424,7 +412,7 @@ const AgendaUser = () => {
                         key={consulta.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: consulta.id * 0.1 }}
+                        transition={{ duration: 0.2 }}
                         className="p-3 border border-gray-100 dark:border-gray-800 rounded-lg hover:border-[#ED4231]/30 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                       >
                         <div className="flex flex-col gap-1">

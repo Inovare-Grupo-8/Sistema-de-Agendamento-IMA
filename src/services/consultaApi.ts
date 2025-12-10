@@ -616,6 +616,7 @@ export class ConsultaApiService {
         local: consultaData.modalidade === "ONLINE" ? "Online" : "Presencial",
         observacoes: consultaData.observacoes || "",
         status: "AGENDADA",
+        idEspecialista: idEspecialidade,
         idEspecialidade: idEspecialidade,
       };
 

@@ -460,7 +460,9 @@ const TelaLogin: React.FC = () => {
             <button type="submit" className="btn solid">Entrar</button>
             <button
               className="btn-google"
-              onClick={() => (window.location.href = "/home")}
+              onClick={() =>
+                (window.location.href = `${import.meta.env.VITE_URL_BACKEND}/oauth2/authorization/google`)
+              }
             >
               <img src="./image/google-icon-logo.svg" alt="" />
             </button>
@@ -553,9 +555,7 @@ const TelaLogin: React.FC = () => {
             <button
               className="btn-google"
               onClick={() =>
-                (window.location.href = `${
-                  import.meta.env.VITE_URL_BACKEND
-                }/login/authorization/google`)
+                (window.location.href = `${import.meta.env.VITE_URL_BACKEND}/oauth2/authorization/google`)
               }
             >
               <img src="./image/google-icon-logo.svg" alt="" />
