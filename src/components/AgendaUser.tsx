@@ -202,10 +202,17 @@ const AgendaUser = () => {
         })
       );
 
-      // Filter upcoming consultations (future dates only) and sort by date (nearest first)
+      // Filter upcoming consultations (future dates only, excluding cancelled and completed)
+      // Only show: agendada, remarcada
       const agora = new Date();
       const consultasFuturas = consultasConvertidas
-        .filter((consulta) => consulta.data > agora)
+        .filter((consulta) => {
+          const isFuture = consulta.data > agora;
+          const isValidStatus = ["agendada", "remarcada"].includes(
+            consulta.status
+          );
+          return isFuture && isValidStatus;
+        })
         .sort((a, b) => a.data.getTime() - b.data.getTime());
 
       setProximasConsultas(consultasFuturas);
