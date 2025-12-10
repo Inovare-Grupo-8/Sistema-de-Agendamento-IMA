@@ -246,19 +246,34 @@ const Home = () => {
             [nome, sobrenome].filter(Boolean).join(" ") ||
             "Assistido não informado";
 
+          const proximaData = new Date(consulta.horario);
+          const especialidadeNome =
+            consulta.especialidade?.nome || "Especialidade não informada";
+          const tipoConsulta =
+            consulta.modalidade === "ONLINE"
+              ? "Consulta Online"
+              : "Consulta Presencial";
+          const statusConsulta = consulta.status.toLowerCase();
+
           setProximaConsultaData({
             profissional: profissionalNome,
-            especialidade:
-              consulta.especialidade?.nome || "Especialidade não informada",
-            tipo:
-              consulta.modalidade === "ONLINE"
-                ? "Consulta Online"
-                : "Consulta Presencial",
-            status: consulta.status.toLowerCase(),
+            especialidade: especialidadeNome,
+            tipo: tipoConsulta,
+            status: statusConsulta,
+          });
+
+          // Set proximaConsulta as a Consulta object
+          setProximaConsulta({
+            id: 0, // Will be replaced when proximasConsultas loads
+            profissional: profissionalNome,
+            especialidade: especialidadeNome,
+            data: proximaData,
+            tipo: tipoConsulta,
+            status: statusConsulta,
+            assistido: consulta.assistido,
           });
 
           // Also update consultasSummary with the next consultation date
-          const proximaData = new Date(consulta.horario);
           setConsultasSummary((prev) => ({
             ...prev,
             proxima: proximaData,
@@ -445,19 +460,10 @@ const Home = () => {
         (consulta: any) => consulta.status.toLowerCase() === "realizada"
       ).length;
 
-      // Calculate cancelled consultations (both from historical data and upcoming)
-      const consultasHistoricoCanceladas = historicoData.filter(
+      // Calculate cancelled consultations only from historical data
+      const consultasCanceladas = historicoData.filter(
         (consulta: any) => consulta.status.toLowerCase() === "cancelada"
       ).length;
-
-      const consultasProximasCanceladas = proximasConsultas.filter(
-        (consulta) => {
-          return consulta.status.toLowerCase() === "cancelada";
-        }
-      ).length;
-
-      const consultasCanceladas =
-        consultasHistoricoCanceladas + consultasProximasCanceladas;
 
       // Get the most recent evaluation from real API data
       let ultimaAvaliacao = null;
