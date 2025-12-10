@@ -222,6 +222,57 @@ const Home = () => {
     loadDadosProfissionais();
   }, [buscarDadosProfissionais, mapEnumToText]);
 
+  // Adicionar useEffect para carregar a próxima consulta do voluntário
+  useEffect(() => {
+    const loadProximaConsultaVoluntario = async () => {
+      try {
+        const userData = localStorage.getItem("userData");
+        if (!userData) {
+          console.log("User data not found - continuing without data");
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const idUsuario = user.idUsuario;
+
+        const consulta = await ConsultaApiService.getProximaConsulta(idUsuario);
+
+        // Format the next consultation data for display
+        if (consulta) {
+          // Extract patient name for volunteer view
+          const nome = consulta.assistido?.ficha?.nome;
+          const sobrenome = consulta.assistido?.ficha?.sobrenome;
+          const profissionalNome =
+            [nome, sobrenome].filter(Boolean).join(" ") ||
+            "Assistido não informado";
+
+          setProximaConsultaData({
+            profissional: profissionalNome,
+            especialidade:
+              consulta.especialidade?.nome || "Especialidade não informada",
+            tipo:
+              consulta.modalidade === "ONLINE"
+                ? "Consulta Online"
+                : "Consulta Presencial",
+            status: consulta.status.toLowerCase(),
+          });
+
+          // Also update consultasSummary with the next consultation date
+          const proximaData = new Date(consulta.horario);
+          setConsultasSummary((prev) => ({
+            ...prev,
+            proxima: proximaData,
+          }));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar próxima consulta:", error);
+        console.log("Continuando sem dados da próxima consulta");
+      }
+    };
+
+    loadProximaConsultaVoluntario();
+  }, []);
+
   // Estado para o resumo dos dados
   const [consultasSummary, setConsultasSummary] = useState<ConsultaSummary>({
     total: 0,
