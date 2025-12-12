@@ -20,7 +20,8 @@ const TelaLogin: React.FC = () => {
 
   // Verificar se o usuário já está logado e redirecionar (exceto em rotas públicas)
   useEffect(() => {
-    const isPublic = location.pathname === "/login" || location.pathname === "/cadastro";
+    const isPublic =
+      location.pathname === "/login" || location.pathname === "/cadastro";
     const userData = localStorage.getItem("userData");
     if (userData && !isPublic) {
       try {
@@ -43,7 +44,10 @@ const TelaLogin: React.FC = () => {
           }).catch(() => {});
         }
 
-        if (user.tipo === "VOLUNTARIO" && user.funcao === "ASSISTENCIA_SOCIAL") {
+        if (
+          user.tipo === "VOLUNTARIO" &&
+          user.funcao === "ASSISTENCIA_SOCIAL"
+        ) {
           navigate("/assistente-social", { replace: true });
         } else if (user.tipo === "ADMINISTRADOR") {
           navigate("/assistente-social", { replace: true });
@@ -340,9 +344,11 @@ const TelaLogin: React.FC = () => {
         );
         navigate("/assistente-social", { replace: true });
       } else if (data.tipo === "ADMINISTRADOR") {
-        // Administrador do sistema
-        console.log("➡️ Redirecionando para: /home-admin (Administrador)");
-        navigate("/home-admin", { replace: true });
+        // Administrador segue fluxo de Assistente Social
+        console.log(
+          "➡️ Redirecionando para: /assistente-social (Administrador)"
+        );
+        navigate("/assistente-social", { replace: true });
       } else if (
         data.tipo === "GRATUIDADE" ||
         data.tipo === "VALOR_SOCIAL" ||

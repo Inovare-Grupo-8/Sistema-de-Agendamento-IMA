@@ -353,17 +353,7 @@ const App = () => {
                         />
                         {/* Rota raiz - redireciona para login */}
                         <Route path="/" element={<TelaLogin />} />
-                        {/* Rota do administrador */}
-                        <Route
-                          path="/home-admin"
-                          element={
-                            <ProtectedRoute
-                              allow={(u) => u?.tipo === "ADMINISTRADOR"}
-                            >
-                              <HomeAdmin />
-                            </ProtectedRoute>
-                          }
-                        />
+                        {/* Administrador usa o fluxo de Assistente Social */}
                         {/* Rota padrão para página não encontrada */}
                         <Route path="*" element={<NotFound />} />{" "}
                       </Routes>
