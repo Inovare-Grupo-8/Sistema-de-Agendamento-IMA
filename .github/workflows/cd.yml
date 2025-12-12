@@ -28,4 +28,4 @@ jobs:
 
       - name: Run New Container
         # Sobe na porta 8080 em ambas as máquinas
-        run: docker run -d -p 8081:80 --restart always --name container-front ryanzin1380/ima-docker-repo:frontend
+        run: docker run -d -p 8080:80 --restart always --name container-front ryanzin1380/ima-docker-repo:frontend
