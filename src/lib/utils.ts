@@ -44,7 +44,9 @@ export function getBackendBaseUrl(): string {
       : "";
   const envTrim = rawEnv.trim();
   const isInvalid = !envTrim || envTrim === "undefined" || envTrim === "null";
-  const rawBase = isInvalid ? "/api" : envTrim;
+  // Se a variável de ambiente estiver ausente/invalid, não forçar '/api'.
+  // O load balancer já expõe o prefixo `/api`, então o frontend não deve adicioná-lo.
+  const rawBase = isInvalid ? "" : envTrim;
   return normalizeBase(rawBase);
 }
 
@@ -59,7 +61,16 @@ export function buildBackendUrl(path: string | null | undefined): string {
 
   const base = getBackendBaseUrl();
   const normalizedPath = normalizePath(path);
-  return `${base}${normalizedPath}`;
+  // Remover qualquer prefixo '/api' que tenha sido incluído no path,
+  // pois o load balancer já aplica esse prefixo.
+  let cleanedPath = normalizedPath;
+  if (cleanedPath === "/api") {
+    cleanedPath = "";
+  } else if (cleanedPath.startsWith("/api/")) {
+    cleanedPath = cleanedPath.slice(4);
+  }
+
+  return `${base}${cleanedPath}`;
 }
 
 const normalizeString = (value: string | null | undefined): string =>

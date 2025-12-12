@@ -741,6 +741,36 @@ export class ConsultaApiService {
   }
 
   /**
+   * Get all consultations for a specific user by role, combining histórico + próximas
+   */
+  static async getConsultasDoUsuario(
+    userId: number,
+    userType: "voluntario" | "assistido"
+  ): Promise<ConsultaOutput[]> {
+    try {
+      const [historico, proximas] = await Promise.all([
+        this.getHistoricoConsultas(userId, userType),
+        this.getProximasConsultas(userId, userType),
+      ]);
+
+      const map = new Map<number, ConsultaOutput>();
+      [...historico, ...proximas].forEach((c) => {
+        if (c?.idConsulta != null) {
+          map.set(c.idConsulta, c);
+        }
+      });
+      return Array.from(map.values()).sort((a, b) => {
+        const da = new Date(a.horario).getTime();
+        const db = new Date(b.horario).getTime();
+        return da - db;
+      });
+    } catch (error) {
+      console.error("Error fetching consultas do usuario:", error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
    * Get specialization ID by name
    * @param nome - Name of the specialization
    * @returns Promise with specialization ID or null if not found

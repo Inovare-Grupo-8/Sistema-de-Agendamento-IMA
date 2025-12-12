@@ -181,18 +181,27 @@ const AgendaUser = () => {
   // Function to load all consultations and order them by date
   const loadTodasConsultas = async () => {
     try {
-      const consultasData = await ConsultaApiService.getTodasConsultas();
+      const userDataStr = localStorage.getItem("userData");
+      const user = userDataStr ? JSON.parse(userDataStr) : null;
+      const userId = user?.idUsuario;
+      const userType: "voluntario" | "assistido" = isUserVolunteer
+        ? "voluntario"
+        : "assistido";
+      const consultasDataOutput = await ConsultaApiService.getConsultasDoUsuario(
+        userId,
+        userType
+      );
 
       // Convert ConsultaDto to Consulta format for compatibility
       // For volunteers, show assisted user name; for assisted users, show volunteer name
-      const consultasConvertidas: Consulta[] = consultasData.map(
+      const consultasConvertidas: Consulta[] = consultasDataOutput.map(
         (consultaDto) => ({
           id: consultaDto.idConsulta,
           profissional: isUserVolunteer
-            ? consultaDto.nomeAssistido || "Paciente não informado"
-            : consultaDto.nomeVoluntario || "Profissional não informado",
+            ? consultaDto.assistido?.ficha?.nome || consultaDto.nomeAssistido || "Paciente não informado"
+            : consultaDto.voluntario?.ficha?.nome || consultaDto.nomeVoluntario || "Profissional não informado",
           especialidade:
-            consultaDto.nomeEspecialidade || "Especialidade não informada",
+            consultaDto.especialidade?.nome || consultaDto.nomeEspecialidade || "Especialidade não informada",
           data: new Date(consultaDto.horario),
           tipo:
             consultaDto.modalidade === "ONLINE"

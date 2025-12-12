@@ -394,12 +394,32 @@ const HomeUser = () => {
           throw new Error("ID do usuário não encontrado");
         }
 
-        // 1. Primeiro carregar todas as consultas
-        const consultasData = await ConsultaApiService.getTodasConsultas();
-
-        const consultasDoUsuario = consultasData.filter(
-          (consultaDto) => consultaDto.idAssistido === userId
+        // 1. Carregar consultas apenas do usuário (assistido)
+        const consultasDoUsuarioOutput = await ConsultaApiService.getConsultasDoUsuario(
+          userId,
+          "assistido"
         );
+
+        const consultasDoUsuario = consultasDoUsuarioOutput.map((consultaDto) => ({
+          idConsulta: consultaDto.idConsulta,
+          horario: consultaDto.horario,
+          status: consultaDto.status,
+          modalidade: consultaDto.modalidade,
+          local: consultaDto.local,
+          observacoes: consultaDto.observacoes,
+          idEspecialidade: consultaDto.idEspecialidade || consultaDto.especialidade?.id,
+          nomeEspecialidade: consultaDto.nomeEspecialidade || consultaDto.especialidade?.nome || "",
+          idVoluntario: consultaDto.idVoluntario || consultaDto.voluntario?.idUsuario,
+          nomeVoluntario:
+            consultaDto.nomeVoluntario || consultaDto.voluntario?.ficha?.nome || "",
+          idAssistido: consultaDto.idAssistido || consultaDto.assistido?.idUsuario,
+          nomeAssistido:
+            consultaDto.nomeAssistido || consultaDto.assistido?.ficha?.nome || "",
+          feedbackStatus: consultaDto.feedbackStatus || "",
+          avaliacaoStatus: consultaDto.avaliacaoStatus || "",
+          criadoEm: consultaDto.criadoEm,
+          atualizadoEm: consultaDto.atualizadoEm,
+        }));
 
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
