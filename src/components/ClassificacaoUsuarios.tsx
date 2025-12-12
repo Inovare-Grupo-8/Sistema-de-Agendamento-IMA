@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { buildBackendUrl } from "@/lib/utils";
-import { buildBackendUrl } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

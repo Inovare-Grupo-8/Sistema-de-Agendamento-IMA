@@ -20,8 +20,7 @@ const TelaLogin: React.FC = () => {
 
   // Verificar se o usuário já está logado e redirecionar (exceto em rotas públicas)
   useEffect(() => {
-    const isPublic =
-      location.pathname === "/login" || location.pathname === "/cadastro";
+    const isPublic = location.pathname === "/login" || location.pathname === "/cadastro";
     const userData = localStorage.getItem("userData");
     if (userData && !isPublic) {
       try {
@@ -32,10 +31,19 @@ const TelaLogin: React.FC = () => {
           classificacao: user.classificacao,
         });
 
-        if (
-          user.tipo === "VOLUNTARIO" &&
-          user.funcao === "ASSISTENCIA_SOCIAL"
-        ) {
+        const usuarioId = user.idUsuario || user.id;
+        const token = user.token;
+        if (usuarioId && token) {
+          fetch(buildBackendUrl(`/usuarios/${usuarioId}/ultimo-acesso`), {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }).catch(() => {});
+        }
+
+        if (user.tipo === "VOLUNTARIO" && user.funcao === "ASSISTENCIA_SOCIAL") {
           navigate("/assistente-social", { replace: true });
         } else if (user.tipo === "ADMINISTRADOR") {
           navigate("/assistente-social", { replace: true });
