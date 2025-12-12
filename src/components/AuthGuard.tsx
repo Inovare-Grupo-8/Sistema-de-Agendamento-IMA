@@ -10,20 +10,26 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, loading, isPublicRoute } = useAuth();
+  const hasRedirectedRef = React.useRef(false);
 
   useEffect(() => {
     // Se ainda está carregando, não faça nada
     if (loading) return;
 
+    // Evitar redirecionamentos múltiplos
+    if (hasRedirectedRef.current) return;
+
     const currentPath = location.pathname;
 
     // Se é uma rota pública, sempre permitir acesso
     if (isPublicRoute(currentPath)) {
+      hasRedirectedRef.current = false;
       return;
     }
 
     // Se não está autenticado e não é uma rota pública, redirecionar para login
     if (!isAuthenticated) {
+      hasRedirectedRef.current = true;
       navigate("/login", {
         state: { from: currentPath },
         replace: true,
@@ -32,61 +38,54 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
 
     // Se está autenticado, verificar se precisa redirecionar baseado no tipo de usuário
-    const userData = localStorage.getItem("userData");
-    if (userData) {
-      try {
-        const raw = JSON.parse(userData);
-        const user = {
-          ...raw,
-          tipo: String(raw.tipo || "").toUpperCase(),
-          funcao: String(raw.funcao || "").toUpperCase(),
-        };
+    // Apenas redirecionar na rota raiz para evitar loops
+    if (currentPath === "/") {
+      const userData = localStorage.getItem("userData");
+      if (userData) {
+        try {
+          const raw = JSON.parse(userData);
+          const user = {
+            ...raw,
+            tipo: String(raw.tipo || "").toUpperCase(),
+            funcao: String(raw.funcao || "").toUpperCase(),
+          };
 
-        // Redirecionamento baseado no tipo de usuário
-        switch (user.tipo) {
-          case "ADMINISTRADOR":
-            if (
-              currentPath === "/" ||
-              currentPath.startsWith("/home") ||
-              currentPath.startsWith("/disponibilizar-horario") ||
-              currentPath.startsWith("/agenda") ||
-              currentPath.startsWith("/historico") ||
-              currentPath.startsWith("/profile-form") ||
-              currentPath.startsWith("/home-user")
-            ) {
+          hasRedirectedRef.current = true;
+
+          // Redirecionamento baseado no tipo de usuário
+          switch (user.tipo) {
+            case "ADMINISTRADOR":
               navigate("/assistente-social", { replace: true });
-            }
-            break;
-          case "VOLUNTARIO":
-            if (user.funcao === "ASSISTENCIA_SOCIAL") {
-              if (currentPath === "/") {
+              break;
+            case "VOLUNTARIO":
+              if (user.funcao === "ASSISTENCIA_SOCIAL") {
                 navigate("/assistente-social", { replace: true });
-              }
-            } else {
-              // Outros tipos de voluntários vão para home do profissional
-              if (currentPath === "/") {
+              } else {
+                // Outros tipos de voluntários vão para home do profissional
                 navigate("/home", { replace: true });
               }
-            }
-            break;
-          case "USUARIO":
-            if (currentPath === "/") {
+              break;
+            case "USUARIO":
+            case "GRATUIDADE":
+            case "VALOR_SOCIAL":
               navigate("/home-user", { replace: true });
-            }
-            break;
-          default:
-            // Tipo desconhecido, redirecionar para login
-            if (currentPath === "/") {
+              break;
+            default:
+              // Tipo desconhecido, redirecionar para login
               navigate("/login", { replace: true });
-            }
-            break;
+              break;
+          }
+        } catch (error) {
+          console.error("Erro ao processar dados do usuário:", error);
+          // Se houver erro ao processar os dados, limpar e redirecionar para login
+          localStorage.removeItem("userData");
+          hasRedirectedRef.current = true;
+          navigate("/login", { replace: true });
         }
-      } catch (error) {
-        console.error("Erro ao processar dados do usuário:", error);
-        // Se houver erro ao processar os dados, limpar e redirecionar para login
-        localStorage.removeItem("userData");
-        navigate("/login", { replace: true });
       }
+    } else {
+      // Reset flag quando não estiver na rota raiz
+      hasRedirectedRef.current = false;
     }
   }, [location.pathname, isAuthenticated, loading, navigate, isPublicRoute]);
 
