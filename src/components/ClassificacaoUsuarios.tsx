@@ -96,18 +96,24 @@ export function ClassificacaoUsuarios({
           return "";
         }
       })();
-      const response = await fetch(
-        buildBackendUrl(`/usuarios/nao-classificados`),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
+      const urlNC = buildBackendUrl(`/usuarios/nao-classificados`);
+      console.log("[Classificacao] GET /usuarios/nao-classificados", {
+        url: urlNC,
+        tokenPresent: !!token,
+      });
+      const response = await fetch(urlNC, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
 
       if (response.ok) {
+        console.log("[Classificacao] Resposta", {
+          status: response.status,
+          contentType: response.headers.get("content-type") || "",
+        });
         const ct = response.headers.get("content-type") || "";
         if (!ct.includes("application/json")) {
           throw new Error("Resposta inesperada do backend (não JSON)");
@@ -177,19 +183,26 @@ export function ClassificacaoUsuarios({
           return "";
         }
       })();
-      const response = await fetch(
-        buildBackendUrl(`/usuarios/classificar/${endpoint}/${id}`),
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
+      const urlCL = buildBackendUrl(`/usuarios/classificar/${endpoint}/${id}`);
+      console.log("[Classificacao] POST classificar", {
+        url: urlCL,
+        endpoint,
+        id,
+        tokenPresent: !!token,
+      });
+      const response = await fetch(urlCL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
 
       if (response.ok) {
+        console.log("[Classificacao] Classificado", {
+          status: response.status,
+        });
         // Remover o usuário da lista após classificação
         setUsuarios((prev) => prev.filter((usuario) => usuario.id !== id));
         setDialogAberto(false);
