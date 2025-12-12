@@ -825,13 +825,20 @@ export function CompletarCadastroUsuarioAssistido() {
     ) {
       setFetchingUser(true);
       // Não mostra erro, apenas tenta preencher se encontrar
-      fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/usuarios/verificar-cadastro?email=${encodeURIComponent(
-          formData.email
-        )}`
-      )
+      (() => {
+        const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+          .toString()
+          .trim();
+        const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+        const url = computedBase
+          ? `${computedBase}/usuarios/verificar-cadastro?email=${encodeURIComponent(
+              formData.email
+            )}`
+          : `/api/usuarios/verificar-cadastro?email=${encodeURIComponent(
+              formData.email
+            )}`;
+        return fetch(url);
+      })()
         .then(async (res) => {
           if (!res.ok) {
             // Se não encontrou o usuário, é um usuário novo
@@ -840,6 +847,10 @@ export function CompletarCadastroUsuarioAssistido() {
             throw new Error("Usuário não encontrado com este email.");
           }
 
+          const contentType = res.headers.get("content-type") || "";
+          if (!contentType.includes("application/json")) {
+            throw new Error("Resposta inesperada do backend (não JSON)");
+          }
           const data = await res.json();
 
           // Usuário encontrado no banco - alguns campos serão readonly
