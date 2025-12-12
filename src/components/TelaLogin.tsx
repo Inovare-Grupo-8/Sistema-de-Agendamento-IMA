@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../TelaLogin.css";
 import ModalErro from "./ui/ModalErro";
@@ -294,7 +294,7 @@ const TelaLogin: React.FC = () => {
         throw new Error(errorData.message || "Email ou senha inválidos");
       }
 
-      const data = await response.json();
+      const data = await parseJsonSafe(response);
       console.log("✅ [Login] Dados completos do usuário:", data);
       console.log(
         "🔀 [Login] Redirecionamento - tipo:",
@@ -400,7 +400,7 @@ const TelaLogin: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonSafe(response);
 
       if (!response.ok) {
         if (

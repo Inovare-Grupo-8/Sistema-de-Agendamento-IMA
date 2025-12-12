@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
-import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 
 interface UserProfileData {
   nome?: string;
@@ -70,7 +70,7 @@ export const useProfileSync = () => {
           throw new Error("Erro ao buscar dados do perfil");
         }
 
-        const data = await response.json();
+        const data = await parseJsonSafe(response);
 
         // Se houver uma foto, ajustar a URL
         if (data.fotoUrl && !data.fotoUrl.startsWith("http")) {

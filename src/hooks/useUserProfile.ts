@@ -4,6 +4,7 @@ import {
   buildBackendUrl,
   resolvePerfilPath,
   resolvePerfilSegment,
+  parseJsonSafe,
 } from "@/lib/utils";
 import { updateEmailInLocalStorage } from "../utils/localStorage";
 
@@ -114,13 +115,9 @@ const normalizeEndereco = (value: unknown): Endereco | undefined => {
   const source = value as Record<string, unknown>;
 
   const rua =
-    toOptionalString(source.rua) ??
-    toOptionalString(source.logradouro) ??
-    "";
+    toOptionalString(source.rua) ?? toOptionalString(source.logradouro) ?? "";
   const numero =
-    toOptionalString(source.numero) ??
-    toOptionalString(source.num) ??
-    "";
+    toOptionalString(source.numero) ?? toOptionalString(source.num) ?? "";
   const complemento = toOptionalString(source.complemento) ?? "";
   const bairro = toOptionalString(source.bairro) ?? "";
   const cidade =
@@ -128,9 +125,7 @@ const normalizeEndereco = (value: unknown): Endereco | undefined => {
     toOptionalString(source.localidade) ??
     "";
   const estado =
-    toOptionalString(source.estado) ??
-    toOptionalString(source.uf) ??
-    "";
+    toOptionalString(source.estado) ?? toOptionalString(source.uf) ?? "";
   const cep = toOptionalString(source.cep) ?? "";
 
   if (
@@ -156,9 +151,7 @@ const normalizeEndereco = (value: unknown): Endereco | undefined => {
   };
 };
 
-const createOfflineProfile = (
-  authData: UserAuthData
-): UserProfileOutput => {
+const createOfflineProfile = (authData: UserAuthData): UserProfileOutput => {
   const saved =
     readJson<Partial<UserProfileOutput>>(STORAGE_KEYS.savedProfile) ?? {};
   const { user, usuarioId } = authData;
@@ -253,7 +246,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         return createOfflineProfile(authData);
       }
 
-      const data = (await response.json()) as Record<string, unknown>;
+      const data = (await parseJsonSafe(response)) as Record<string, unknown>;
 
       const rawPhotoUrl =
         toOptionalString(data.fotoUrl) ??
@@ -330,7 +323,10 @@ export const useUserProfile = (): UseUserProfileReturn => {
           `[useUserProfile] Erro ${response.status} ao atualizar dados, mantendo alterações locais`
         );
       } else {
-        const result = (await response.json()) as Record<string, unknown>;
+        const result = (await parseJsonSafe(response)) as Record<
+          string,
+          unknown
+        >;
 
         const resolved: UserProfileInput = {
           nome: toOptionalString(result.nome) ?? dados.nome,
@@ -357,7 +353,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
 
         return resolved;
       }
-      
+
       return {
         nome: profile.nome,
         sobrenome: profile.sobrenome,
@@ -393,7 +389,11 @@ export const useUserProfile = (): UseUserProfileReturn => {
     const { token, usuarioId, tipoUsuario, funcao } = authData;
 
     const endpoint = buildBackendUrl(
-      `${resolvePerfilPath(tipoUsuario, funcao, "endereco")}?usuarioId=${usuarioId}`
+      `${resolvePerfilPath(
+        tipoUsuario,
+        funcao,
+        "endereco"
+      )}?usuarioId=${usuarioId}`
     );
 
     try {
@@ -419,7 +419,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         return saved?.endereco ?? null;
       }
 
-      const data = await response.json();
+      const data = await parseJsonSafe(response);
       const endereco = normalizeEndereco(data) ?? null;
 
       const saved =
@@ -432,14 +432,14 @@ export const useUserProfile = (): UseUserProfileReturn => {
       return endereco;
     } catch (error) {
       console.warn("[useUserProfile] Falha ao buscar endereço, usando cache");
-      const saved = readJson<Partial<UserProfileOutput>>(STORAGE_KEYS.savedProfile);
+      const saved = readJson<Partial<UserProfileOutput>>(
+        STORAGE_KEYS.savedProfile
+      );
       return saved?.endereco ?? null;
     }
   };
 
-  const atualizarEndereco = async (
-    endereco: Endereco
-  ): Promise<Endereco> => {
+  const atualizarEndereco = async (endereco: Endereco): Promise<Endereco> => {
     if (!endereco.cep?.trim() || !endereco.numero?.trim()) {
       throw new Error("CEP e número são obrigatórios para salvar o endereço");
     }
@@ -448,7 +448,11 @@ export const useUserProfile = (): UseUserProfileReturn => {
     const { token, usuarioId, tipoUsuario, funcao } = authData;
 
     const endpoint = buildBackendUrl(
-      `${resolvePerfilPath(tipoUsuario, funcao, "endereco")}?usuarioId=${usuarioId}`
+      `${resolvePerfilPath(
+        tipoUsuario,
+        funcao,
+        "endereco"
+      )}?usuarioId=${usuarioId}`
     );
 
     const payload = {
@@ -520,7 +524,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
         );
       }
 
-      const result = (await response.json()) as Record<string, unknown>;
+      const result = (await parseJsonSafe(response)) as Record<string, unknown>;
 
       const rawPhotoPath =
         toOptionalString(result.url) ??

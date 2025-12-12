@@ -1,4 +1,4 @@
-import { buildBackendUrl, getBackendBaseUrl } from "@/lib/utils";
+import { buildBackendUrl, getBackendBaseUrl, parseJsonSafe } from "@/lib/utils";
 
 export interface DadosPessoaisVoluntario {
   nome: string;
@@ -120,7 +120,9 @@ export const useVoluntario = () => {
           throw new Error("Erro ao buscar dados pessoais");
         }
 
-        const dados = (await response.json()) as DadosPessoaisVoluntario;
+        const dados = (await parseJsonSafe(
+          response
+        )) as DadosPessoaisVoluntario;
 
         // ✅ Salvar no cache
         setCache((prev) => {
@@ -181,7 +183,7 @@ export const useVoluntario = () => {
         throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
 
       // Atualizar localStorage com mudança de email
       const updatedUser = {
@@ -248,7 +250,7 @@ export const useVoluntario = () => {
           throw new Error("Erro ao buscar dados profissionais");
         }
 
-        const dadosCompletos = await response.json();
+        const dadosCompletos = await parseJsonSafe(response);
 
         // Extrair apenas os dados profissionais
         const dadosProfissionais: DadosProfissionaisVoluntario = {
@@ -384,7 +386,7 @@ export const useVoluntario = () => {
         throw new Error("Erro ao buscar endereço");
       }
 
-      const enderecoOutput = await response.json();
+      const enderecoOutput = await parseJsonSafe(response);
 
       // Mapear EnderecoOutput do backend para EnderecoVoluntario
       const endereco: EnderecoVoluntario = {
@@ -522,7 +524,7 @@ export const useVoluntario = () => {
         throw new Error(`Erro ao fazer upload da foto: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
 
       // Construir URL completa da foto
       const photoUrl = result.url

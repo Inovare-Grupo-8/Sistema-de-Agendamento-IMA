@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 
@@ -143,7 +143,7 @@ export function useAuth() {
           throw new Error(errorData.message || "Email ou senha inválidos");
         }
 
-        const data = await response.json();
+        const data = await parseJsonSafe(response);
         const tipoNormalized = String(data.tipo || "").toUpperCase();
         const funcaoNormalized = String(data.funcao || "").toUpperCase();
         const dataNormalized = {

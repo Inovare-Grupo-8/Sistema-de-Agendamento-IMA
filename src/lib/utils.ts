@@ -111,3 +111,16 @@ export function resolvePerfilPath(
   const segment = resolvePerfilSegment(tipoUsuario, funcao);
   return `/perfil/${segment}/${suffix}`;
 }
+
+export async function parseJsonSafe(response: Response): Promise<any> {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      `Resposta não é JSON (status ${
+        response.status
+      }). Conteúdo inicial: ${text.slice(0, 200)}`
+    );
+  }
+  return response.json();
+}

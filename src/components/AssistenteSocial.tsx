@@ -19,7 +19,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getBackendBaseUrl } from "@/lib/utils";
+import { getBackendBaseUrl, parseJsonSafe } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -339,7 +339,7 @@ export function AssistenteSocial() {
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const response = await fetch(`${base}/usuarios`, { headers });
       if (response.ok) {
-        const usuarios = (await response.json()) as UsuarioResumo[];
+        const usuarios = (await parseJsonSafe(response)) as UsuarioResumo[];
         setTotalUsuarios(usuarios.length);
 
         // Contar usuários não classificados

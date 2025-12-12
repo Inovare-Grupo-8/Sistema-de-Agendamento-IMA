@@ -1,4 +1,4 @@
-import { cn, buildBackendUrl } from "@/lib/utils";
+import { cn, buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -586,7 +586,7 @@ export function CompletarCadastroUsuarioAssistido() {
         const response = await fetch(
           `https://viacep.com.br/ws/${cleanCep}/json/`
         );
-        const data = await response.json();
+        const data = await parseJsonSafe(response);
 
         if (!data.erro) {
           setFormData((prev) => ({

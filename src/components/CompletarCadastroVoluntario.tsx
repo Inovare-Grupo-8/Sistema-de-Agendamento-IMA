@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn, buildBackendUrl } from "@/lib/utils";
+import { cn, buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -558,7 +558,7 @@ export function CompletarCadastroVoluntario() {
           complemento?: string;
         }
 
-        const data: ViaCepResponse = await response.json();
+        const data: ViaCepResponse = await parseJsonSafe(response);
 
         if (!data.erro) {
           setFormData((prev) => ({

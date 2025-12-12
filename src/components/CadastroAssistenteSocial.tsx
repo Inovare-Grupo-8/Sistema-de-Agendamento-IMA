@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { buildBackendUrl } from "@/lib/utils";
+import { cn, buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -414,7 +414,7 @@ export default function CadastroAssistenteSocial() {
         throw new Error("Erro ao cadastrar assistente social - primeira fase");
       }
 
-      const { idUsuario } = await response.json();
+      const { idUsuario } = await parseJsonSafe(response);
       console.log("Usuário criado com ID:", idUsuario);
 
       // Segunda fase - Dados complementares

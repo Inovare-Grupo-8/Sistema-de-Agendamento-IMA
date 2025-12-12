@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import { updateEmailInLocalStorage } from "../utils/localStorage";
 import { useNavigate } from "react-router-dom";
 
@@ -125,7 +125,7 @@ export const useAssistenteSocial = () => {
         return offline;
       }
 
-      const data = await response.json();
+      const data = await parseJsonSafe(response);
 
       // Se houver uma foto, adiciona a URL base
       if (data.fotoUrl) {
@@ -173,7 +173,7 @@ export const useAssistenteSocial = () => {
       if (!response.ok) {
         throw new Error("Erro ao atualizar perfil");
       }
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
 
       // Atualizar localStorage se o email foi alterado
       if (result.email) {
@@ -255,7 +255,7 @@ export const useAssistenteSocial = () => {
         return dados; // Return the original data since update was successful
       }
 
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
       console.log("Resposta do backend:", result);
 
       // Return the server response data if available, otherwise fallback to original data
@@ -306,7 +306,7 @@ export const useAssistenteSocial = () => {
         throw new Error("Erro ao buscar endereço");
       }
 
-      const enderecoOutput = await response.json();
+      const enderecoOutput = await parseJsonSafe(response);
 
       // Converter EnderecoOutput para Endereco
       return {
@@ -446,7 +446,7 @@ export const useAssistenteSocial = () => {
         console.error("Erro na resposta:", errorText);
         throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
       }
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
 
       // Atualizar localStorage se o email foi alterado
       if (result.email) {
@@ -576,7 +576,7 @@ export const useAssistenteSocial = () => {
         throw new Error(`Erro ao fazer upload da foto: ${errorText}`);
       }
 
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
       // Concatena a URL base com o caminho relativo retornado pelo servidor
       const photoUrl =
         result.url && result.url.startsWith("http")

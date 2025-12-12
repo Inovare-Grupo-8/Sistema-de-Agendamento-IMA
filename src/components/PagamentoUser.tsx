@@ -31,7 +31,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl, parseJsonSafe } from "@/lib/utils";
 import { useProfileImage } from "@/components/useProfileImage";
 import { userNavigationItems } from "@/utils/userNavigation";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
@@ -338,7 +338,7 @@ const PagamentoUser = () => {
         throw new Error("Erro ao processar pagamento");
       }
 
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
 
       // Etapa 3: Finalizando transação
       setLoadingState({

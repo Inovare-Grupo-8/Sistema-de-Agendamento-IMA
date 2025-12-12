@@ -4,6 +4,7 @@ import {
   buildBackendUrl,
   resolvePerfilPath,
   getBackendBaseUrl,
+  parseJsonSafe,
 } from "@/lib/utils";
 import type { Endereco, UserData } from "@/types/user";
 
@@ -174,7 +175,7 @@ const useUser = () => {
         throw new Error("Erro ao buscar dados do perfil");
       }
 
-      const dados = await response.json();
+      const dados = await parseJsonSafe(response);
 
       // Se houver uma foto, ajustar a URL se necessário
       if (dados.fotoUrl && !dados.fotoUrl.startsWith("http")) {
@@ -319,7 +320,7 @@ const useUser = () => {
         throw new Error(`Erro ao fazer upload da foto: ${errorText}`);
       }
 
-      const result = await response.json();
+      const result = await parseJsonSafe(response);
       // Concatena a URL base com o caminho relativo retornado pelo servidor
       return buildBackendUrl(result.url);
     } catch (error) {
