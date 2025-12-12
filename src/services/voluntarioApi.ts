@@ -452,9 +452,14 @@ export class VoluntarioApiService {
     idVoluntario: number
   ): Promise<Array<{ id: number; dataHorario: string }>> {
     try {
+      const fullUrl = `${
+        apiClient.defaults.baseURL || ""
+      }/disponibilidade/voluntario/${idVoluntario}`;
+      console.log("🔎 [VoluntarioApi] GET:", fullUrl);
       const resp = await apiClient.get<
         Array<{ id: number; dataHorario: string }>
       >(`/disponibilidade/voluntario/${idVoluntario}`);
+      console.log("✅ [VoluntarioApi] resposta status:", resp.status);
       const arr: Array<{ id: number; dataHorario: string }> = Array.isArray(
         resp.data
       )
@@ -462,7 +467,25 @@ export class VoluntarioApiService {
         : [];
       return arr.map((d) => ({ id: d.id, dataHorario: d.dataHorario }));
     } catch (error) {
-      console.error("Erro ao listar disponibilidades por voluntário:", error);
+      // Log detalhado para debugar 404/ERROS do backend
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyErr = error as any;
+        if (anyErr?.response) {
+          console.error(
+            "Erro ao listar disponibilidades por voluntário: status",
+            anyErr.response.status,
+            anyErr.response.data
+          );
+        } else {
+          console.error(
+            "Erro ao listar disponibilidades por voluntário:",
+            anyErr
+          );
+        }
+      } catch (logErr) {
+        console.error("Erro ao logar erro de disponibilidades:", logErr);
+      }
       return [];
     }
   }
