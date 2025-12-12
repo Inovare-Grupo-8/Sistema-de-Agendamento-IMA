@@ -391,12 +391,23 @@ export function CompletarCadastroVoluntario() {
     setFetchingUser(true);
     setFetchUserError(null);
 
-    fetch(
-      `${import.meta.env.VITE_URL_BACKEND}/usuarios/primeira-fase/${idUsuario}`
-    )
+    (() => {
+      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+        .toString()
+        .trim();
+      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+      const url = computedBase
+        ? `${computedBase}/usuarios/primeira-fase/${idUsuario}`
+        : `/api/usuarios/primeira-fase/${idUsuario}`;
+      return fetch(url, { credentials: "include" });
+    })()
       .then(async (res) => {
         if (!res.ok) {
           throw new Error("Erro ao buscar dados do usuário");
+        }
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("Resposta inesperada do backend (não JSON)");
         }
         const data = await res.json();
         console.log("Dados recebidos:", data);
@@ -461,14 +472,27 @@ export function CompletarCadastroVoluntario() {
     ) {
       setFetchingUser(true);
 
-      fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/usuarios/primeira-fase/email/${encodeURIComponent(formData.email)}`
-      )
+      (() => {
+        const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+          .toString()
+          .trim();
+        const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+        const url = computedBase
+          ? `${computedBase}/usuarios/primeira-fase/email/${encodeURIComponent(
+              formData.email
+            )}`
+          : `/api/usuarios/primeira-fase/email/${encodeURIComponent(
+              formData.email
+            )}`;
+        return fetch(url, { credentials: "include" });
+      })()
         .then(async (res) => {
           if (!res.ok) {
             throw new Error("Usuário não encontrado");
+          }
+          const contentType = res.headers.get("content-type") || "";
+          if (!contentType.includes("application/json")) {
+            throw new Error("Resposta inesperada do backend (não JSON)");
           }
           const data = await res.json();
 
@@ -707,8 +731,10 @@ export function CompletarCadastroVoluntario() {
 
       const payload = getPayload();
       console.log("Enviando payload:", JSON.stringify(payload, null, 2));
-      const baseUrl = (import.meta.env.VITE_URL_BACKEND || '').toString().trim();
-      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, '') : '';
+      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+        .toString()
+        .trim();
+      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
       const url = computedBase
         ? `${computedBase}/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
         : `/api/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;

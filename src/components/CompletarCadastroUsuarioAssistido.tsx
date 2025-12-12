@@ -756,9 +756,16 @@ export function CompletarCadastroUsuarioAssistido() {
     console.log("Buscando usuário com idUsuario:", idUsuario);
     setFetchingUser(true);
     setFetchUserError(null);
-    fetch(
-      `${import.meta.env.VITE_URL_BACKEND}/usuarios/primeira-fase/${idUsuario}`
-    )
+    (() => {
+      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+        .toString()
+        .trim();
+      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+      const url = computedBase
+        ? `${computedBase}/usuarios/primeira-fase/${idUsuario}`
+        : `/api/usuarios/primeira-fase/${idUsuario}`;
+      return fetch(url, { credentials: "include" });
+    })()
       .then(async (res) => {
         console.log("Resposta da API:", res);
         if (!res.ok) {
@@ -766,6 +773,10 @@ export function CompletarCadastroUsuarioAssistido() {
           setIsNewUser(true);
           setReadOnlyFields(new Set()); // Nenhum campo é readonly
           throw new Error("Usuário não encontrado - pode cadastrar do zero.");
+        }
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("Resposta inesperada do backend (não JSON)");
         }
         const data = await res.json();
         console.log("Dados recebidos:", data);

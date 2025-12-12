@@ -394,14 +394,21 @@ export default function CadastroAssistenteSocial() {
       };
 
       // Chamada da primeira fase
+      const baseUrlPF = (import.meta.env.VITE_URL_BACKEND || '').toString().trim();
+      const computedBasePF = baseUrlPF ? baseUrlPF.replace(/\/+$/, '') : '';
+      const primeiraFaseUrl = computedBasePF
+        ? `${computedBasePF}/usuarios/voluntario/primeira-fase`
+        : `/api/usuarios/voluntario/primeira-fase`;
       const response = await fetch(
-        `${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/primeira-fase`,
+        primeiraFaseUrl,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(primeiraFaseData),
+          credentials: "include",
         }
       );
 

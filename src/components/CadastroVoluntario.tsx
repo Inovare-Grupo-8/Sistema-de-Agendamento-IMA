@@ -531,14 +531,21 @@ const CadastroVoluntario = () => {
         cpf: formData.cpf.replace(/\D/g, ""), // Remove formatting for backend
         senha: formData.senha,
       };
+      const baseUrlPF = (import.meta.env.VITE_URL_BACKEND || '').toString().trim();
+      const computedBasePF = baseUrlPF ? baseUrlPF.replace(/\/+$/, '') : '';
+      const primeiraFaseUrl = computedBasePF
+        ? `${computedBasePF}/usuarios/voluntario/primeira-fase`
+        : `/api/usuarios/voluntario/primeira-fase`;
       const response1 = await fetch(
-        `${import.meta.env.VITE_URL_BACKEND}/usuarios/voluntario/primeira-fase`,
+        primeiraFaseUrl,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(primeiraFaseData),
+          credentials: "include",
         }
       );
 
@@ -549,19 +556,20 @@ const CadastroVoluntario = () => {
       const fase1Result = await response1.json();
       const userId = fase1Result.idUsuario; // Enviar credenciais por email
       try {
+        const baseUrlCR = (import.meta.env.VITE_URL_BACKEND || '').toString().trim();
+        const computedBaseCR = baseUrlCR ? baseUrlCR.replace(/\/+$/, '') : '';
+        const credUrl = computedBaseCR
+          ? `${computedBaseCR}/usuarios/voluntario/credenciais?email=${encodeURIComponent(formData.email)}&nome=${encodeURIComponent(formData.nome)}&senha=${encodeURIComponent(formData.senha)}`
+          : `/api/usuarios/voluntario/credenciais?email=${encodeURIComponent(formData.email)}&nome=${encodeURIComponent(formData.nome)}&senha=${encodeURIComponent(formData.senha)}`;
         const credentialsResponse = await fetch(
-          `${
-            import.meta.env.VITE_URL_BACKEND
-          }/usuarios/voluntario/credenciais?email=${encodeURIComponent(
-            formData.email
-          )}&nome=${encodeURIComponent(
-            formData.nome
-          )}&senha=${encodeURIComponent(formData.senha)}`,
+          credUrl,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Accept: "application/json",
             },
+            credentials: "include",
           }
         );
 
