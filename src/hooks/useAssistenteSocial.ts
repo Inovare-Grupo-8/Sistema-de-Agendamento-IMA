@@ -358,9 +358,9 @@ export const useAssistenteSocial = () => {
           ? "assistente-social"
           : "assistente-social";
       const response = await fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/perfil/${tipoPathAddr}/endereco?usuarioId=${usuarioId}`,
+        buildBackendUrl(
+          `/perfil/${tipoPathAddr}/endereco?usuarioId=${usuarioId}`
+        ),
         {
           method: "PUT",
           headers: {
@@ -424,9 +424,9 @@ export const useAssistenteSocial = () => {
           ? "assistente-social"
           : "assistente-social";
       const response = await fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`,
+        buildBackendUrl(
+          `/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`
+        ),
         {
           method: "PATCH",
           headers: {
@@ -559,9 +559,9 @@ export const useAssistenteSocial = () => {
       formData.append("usuarioId", usuarioId.toString());
 
       const response = await fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/perfil/assistente-social/foto?usuarioId=${usuarioId}`,
+        buildBackendUrl(
+          `/perfil/assistente-social/foto?usuarioId=${usuarioId}`
+        ),
         {
           method: "POST",
           headers: {
@@ -578,7 +578,10 @@ export const useAssistenteSocial = () => {
 
       const result = await response.json();
       // Concatena a URL base com o caminho relativo retornado pelo servidor
-      const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
+      const photoUrl =
+        result.url && result.url.startsWith("http")
+          ? result.url
+          : buildBackendUrl(result.url);
       return photoUrl;
     } catch (error) {
       console.error("Erro ao fazer upload da foto:", error);

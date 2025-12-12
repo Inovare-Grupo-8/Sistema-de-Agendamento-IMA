@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +98,7 @@ export function ClassificacaoUsuarios({
         }
       })();
       const response = await fetch(
-        `${import.meta.env.VITE_URL_BACKEND}/usuarios/nao-classificados`,
+        buildBackendUrl(`/usuarios/nao-classificados`),
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -172,9 +174,7 @@ export function ClassificacaoUsuarios({
         }
       })();
       const response = await fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/usuarios/classificar/${endpoint}/${id}`,
+        buildBackendUrl(`/usuarios/classificar/${endpoint}/${id}`),
         {
           method: "POST",
           headers: {

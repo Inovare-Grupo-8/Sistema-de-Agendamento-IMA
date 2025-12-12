@@ -391,16 +391,10 @@ export function CompletarCadastroVoluntario() {
     setFetchingUser(true);
     setFetchUserError(null);
 
-    (() => {
-      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-        .toString()
-        .trim();
-      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-      const url = computedBase
-        ? `${computedBase}/usuarios/primeira-fase/${idUsuario}`
-        : `/api/usuarios/primeira-fase/${idUsuario}`;
-      return fetch(url, { credentials: "include" });
-    })()
+    (() =>
+      fetch(buildBackendUrl(`/usuarios/primeira-fase/${idUsuario}`), {
+        credentials: "include",
+      }))()
       .then(async (res) => {
         if (!res.ok) {
           throw new Error("Erro ao buscar dados do usuário");
@@ -472,20 +466,15 @@ export function CompletarCadastroVoluntario() {
     ) {
       setFetchingUser(true);
 
-      (() => {
-        const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-          .toString()
-          .trim();
-        const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-        const url = computedBase
-          ? `${computedBase}/usuarios/primeira-fase/email/${encodeURIComponent(
+      (() =>
+        fetch(
+          buildBackendUrl(
+            `/usuarios/primeira-fase/email/${encodeURIComponent(
               formData.email
             )}`
-          : `/api/usuarios/primeira-fase/email/${encodeURIComponent(
-              formData.email
-            )}`;
-        return fetch(url, { credentials: "include" });
-      })()
+          ),
+          { credentials: "include" }
+        ))()
         .then(async (res) => {
           if (!res.ok) {
             throw new Error("Usuário não encontrado");

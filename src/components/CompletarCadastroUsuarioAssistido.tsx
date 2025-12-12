@@ -756,16 +756,10 @@ export function CompletarCadastroUsuarioAssistido() {
     console.log("Buscando usuário com idUsuario:", idUsuario);
     setFetchingUser(true);
     setFetchUserError(null);
-    (() => {
-      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-        .toString()
-        .trim();
-      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-      const url = computedBase
-        ? `${computedBase}/usuarios/primeira-fase/${idUsuario}`
-        : `/api/usuarios/primeira-fase/${idUsuario}`;
-      return fetch(url, { credentials: "include" });
-    })()
+    (() =>
+      fetch(buildBackendUrl(`/usuarios/primeira-fase/${idUsuario}`), {
+        credentials: "include",
+      }))()
       .then(async (res) => {
         console.log("Resposta da API:", res);
         if (!res.ok) {
@@ -836,20 +830,14 @@ export function CompletarCadastroUsuarioAssistido() {
     ) {
       setFetchingUser(true);
       // Não mostra erro, apenas tenta preencher se encontrar
-      (() => {
-        const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-          .toString()
-          .trim();
-        const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-        const url = computedBase
-          ? `${computedBase}/usuarios/verificar-cadastro?email=${encodeURIComponent(
+      (() =>
+        fetch(
+          buildBackendUrl(
+            `/usuarios/verificar-cadastro?email=${encodeURIComponent(
               formData.email
             )}`
-          : `/api/usuarios/verificar-cadastro?email=${encodeURIComponent(
-              formData.email
-            )}`;
-        return fetch(url);
-      })()
+          )
+        ))()
         .then(async (res) => {
           if (!res.ok) {
             // Se não encontrou o usuário, é um usuário novo

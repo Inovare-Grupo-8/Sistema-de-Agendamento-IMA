@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useProfileImage } from "@/components/useProfileImage";
+import { buildBackendUrl } from "@/lib/utils";
 import { userNavigationItems } from "@/utils/userNavigation";
 import { useThemeToggleWithNotification } from "@/hooks/useThemeToggleWithNotification";
 import { getUserNavigationPath } from "@/utils/userNavigation";
@@ -108,7 +109,9 @@ const ProfileFormUser = () => {
 
   // Get user data and setter from the hook
   const { userData, setUserData } = useUserData();
-  const fullName = [userData?.nome, userData?.sobrenome].filter(Boolean).join(" ");
+  const fullName = [userData?.nome, userData?.sobrenome]
+    .filter(Boolean)
+    .join(" ");
   const displayName = fullName || "Usuário";
   // Use the new useUserProfile hook
   const {
@@ -411,13 +414,13 @@ const ProfileFormUser = () => {
       };
       reader.readAsDataURL(file);
     }
-  }; 
-  
+  };
+
   // Handle logout function
   const handleLogout = () => {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('profileData');
-    navigate('/');
+    localStorage.removeItem("userData");
+    localStorage.removeItem("profileData");
+    navigate("/");
     toast({
       title: "Sessão encerrada",
       description: "Você foi desconectado com sucesso.",
@@ -666,13 +669,10 @@ const ProfileFormUser = () => {
 
       // Verificar conexão com o backend primeiro
       try {
-        const healthCheck = await fetch(
-          `${import.meta.env.VITE_URL_BACKEND}/health`,
-          {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        const healthCheck = await fetch(buildBackendUrl("/health"), {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
         console.log(
           "🏥 [ProfileForm] DEBUG: Health check:",
           healthCheck.status
@@ -1506,12 +1506,25 @@ const ProfileFormUser = () => {
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Deseja realmente sair?</DialogTitle>
-            <DialogDescription>Você será desconectado da sua conta.</DialogDescription>
+            <DialogTitle className="text-xl font-bold">
+              Deseja realmente sair?
+            </DialogTitle>
+            <DialogDescription>
+              Você será desconectado da sua conta.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleLogout} className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium">
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleLogout}
+              className="bg-[#ED4231] hover:bg-[#D63A2A] text-white font-medium"
+            >
               Sair
             </Button>
           </DialogFooter>

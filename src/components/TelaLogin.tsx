@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { buildBackendUrl } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../TelaLogin.css";
 import ModalErro from "./ui/ModalErro";
@@ -223,9 +224,8 @@ const TelaLogin: React.FC = () => {
   // Função auxiliar para atualizar último acesso
   const atualizarUltimoAcesso = async (usuarioId: string, token: string) => {
     try {
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
       const response = await fetch(
-        `${base}/usuarios/${usuarioId}/ultimo-acesso`,
+        buildBackendUrl(`/usuarios/${usuarioId}/ultimo-acesso`),
         {
           method: "PATCH",
           headers: {
@@ -259,15 +259,15 @@ const TelaLogin: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
       const controller = new AbortController();
       const { signal } = controller;
+      const loginUrl = buildBackendUrl(`/usuarios/login`);
       console.log("🔐 [Login] Tentando login com:", {
         email: loginEmail,
-        url: `${base}/usuarios/login`,
+        url: loginUrl,
       });
 
-      const response = await fetch(`${base}/usuarios/login`, {
+      const response = await fetch(loginUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -372,8 +372,7 @@ const TelaLogin: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
-      const response = await fetch(`${base}/usuarios/primeira-fase`, {
+      const response = await fetch(buildBackendUrl(`/usuarios/primeira-fase`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -560,9 +559,9 @@ const TelaLogin: React.FC = () => {
             <button
               className="btn-google"
               onClick={() =>
-                (window.location.href = `${
-                  import.meta.env.VITE_URL_BACKEND
-                }/login/authorization/google`)
+                (window.location.href = `${buildBackendUrl(
+                  "/login/authorization/google"
+                )}`)
               }
             >
               <img src="./image/google-icon-logo.svg" alt="" />

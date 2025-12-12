@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { buildBackendUrl } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 
@@ -33,9 +34,8 @@ export function useAuth() {
 
   const atualizarUltimoAcesso = async (usuarioId: string, token: string) => {
     try {
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
       const response = await fetch(
-        `${base}/usuarios/${usuarioId}/ultimo-acesso`,
+        buildBackendUrl(`/usuarios/${usuarioId}/ultimo-acesso`),
         {
           method: "PATCH",
           headers: {
@@ -116,13 +116,13 @@ export function useAuth() {
       setError(null);
 
       try {
-        const base = import.meta.env.VITE_URL_BACKEND || "/api";
+        const loginUrl = buildBackendUrl(`/usuarios/login`);
         console.log("🔐 [useAuth] Tentando login com:", {
           email: credentials.email,
-          url: `${base}/usuarios/login`,
+          url: loginUrl,
         });
 
-        const response = await fetch(`${base}/usuarios/login`, {
+        const response = await fetch(loginUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

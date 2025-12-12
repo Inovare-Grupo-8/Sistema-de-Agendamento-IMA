@@ -1,4 +1,4 @@
-import { buildBackendUrl } from "@/lib/utils";
+import { buildBackendUrl, getBackendBaseUrl } from "@/lib/utils";
 
 export interface DadosPessoaisVoluntario {
   nome: string;
@@ -103,9 +103,10 @@ export const useVoluntario = () => {
           throw new Error("ID do usuário não encontrado");
         }
 
-        const base = import.meta.env.VITE_URL_BACKEND || "/api";
         const response = await fetch(
-          `${base}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`,
+          buildBackendUrl(
+            `/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`
+          ),
           {
             method: "GET",
             headers: {
@@ -155,13 +156,15 @@ export const useVoluntario = () => {
         throw new Error("ID do usuário não encontrado");
       }
 
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const base = buildBackendUrl("");
       const payload = {
         email: dados.email,
         telefone: dados.telefone,
       };
       const response = await fetch(
-        `${base}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`,
+        buildBackendUrl(
+          `/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`
+        ),
         {
           method: "PATCH",
           headers: {
@@ -227,9 +230,11 @@ export const useVoluntario = () => {
         }
 
         // Os dados profissionais vêm junto com os dados pessoais
-        const base = import.meta.env.VITE_URL_BACKEND || "/api";
+        const base = getBackendBaseUrl();
         const response = await fetch(
-          `${base}/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`,
+          buildBackendUrl(
+            `/perfil/voluntario/dados-pessoais?usuarioId=${usuarioId}`
+          ),
           {
             method: "GET",
             headers: {
@@ -293,9 +298,11 @@ export const useVoluntario = () => {
         biografiaProfissional: dados.biografiaProfissional,
       };
 
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const base = getBackendBaseUrl();
       const response = await fetch(
-        `${base}/perfil/voluntario/dados-profissionais?usuarioId=${usuarioId}`,
+        buildBackendUrl(
+          `/perfil/voluntario/dados-profissionais?usuarioId=${usuarioId}`
+        ),
         {
           method: "PATCH",
           headers: {
@@ -348,9 +355,9 @@ export const useVoluntario = () => {
         throw new Error("ID do usuário não encontrado");
       }
 
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const base = getBackendBaseUrl();
       const response = await fetch(
-        `${base}/perfil/voluntario/endereco?usuarioId=${usuarioId}`,
+        buildBackendUrl(`/perfil/voluntario/endereco?usuarioId=${usuarioId}`),
         {
           method: "GET",
           headers: {
@@ -439,9 +446,9 @@ export const useVoluntario = () => {
         complemento: endereco.complemento,
       };
 
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const base = getBackendBaseUrl();
       const response = await fetch(
-        `${base}/perfil/voluntario/endereco?usuarioId=${usuarioId}`,
+        buildBackendUrl(`/perfil/voluntario/endereco?usuarioId=${usuarioId}`),
         {
           method: "PUT",
           headers: {

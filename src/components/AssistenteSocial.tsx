@@ -19,6 +19,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getBackendBaseUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -38,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { buildBackendUrl } from "@/lib/utils";
 import {
   Calendar as CalendarIcon,
   User,
@@ -242,7 +244,7 @@ export function AssistenteSocial() {
     mountedRef.current = true;
     const controller = new AbortController();
     const { signal } = controller;
-    const base = import.meta.env.VITE_URL_BACKEND || "/api";
+    const base = buildBackendUrl("");
     const userDataRaw = localStorage.getItem("userData");
     const token = (() => {
       if (!userDataRaw) return null;
@@ -277,8 +279,11 @@ export function AssistenteSocial() {
         });
 
         const [usuariosResp, naoClassResp] = await Promise.all([
-          fetch(`${base}/usuarios`, { headers, signal }),
-          fetch(`${base}/usuarios/nao-classificados`, { headers, signal }),
+          fetch(buildBackendUrl(`/usuarios`), { headers, signal }),
+          fetch(buildBackendUrl(`/usuarios/nao-classificados`), {
+            headers,
+            signal,
+          }),
         ]);
         if (usuariosResp.ok) {
           const usuarios = await usuariosResp.json();
@@ -317,7 +322,7 @@ export function AssistenteSocial() {
   // Função para atualizar contador após classificação
   const atualizarContadorUsuarios = async () => {
     try {
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
+      const base = getBackendBaseUrl();
       const userDataRaw = localStorage.getItem("userData");
       const token = (() => {
         if (!userDataRaw) return null;
