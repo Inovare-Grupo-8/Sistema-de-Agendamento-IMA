@@ -450,18 +450,22 @@ export default function CadastroAssistenteSocial() {
       console.log("📤 Enviando segunda fase:", segundaFaseData);
 
       // Chamada da segunda fase
-      const response2 = await fetch(
-        `${
-          import.meta.env.VITE_URL_BACKEND
-        }/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(segundaFaseData),
-        }
-      );
+      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+        .toString()
+        .trim();
+      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+      const segundaFaseUrl = computedBase
+        ? `${computedBase}/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
+        : `/api/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;
+      const response2 = await fetch(segundaFaseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(segundaFaseData),
+        credentials: "include",
+      });
 
       if (!response2.ok) {
         const errorText = await response2.text();

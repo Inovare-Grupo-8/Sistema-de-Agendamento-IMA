@@ -707,9 +707,11 @@ export function CompletarCadastroVoluntario() {
 
       const payload = getPayload();
       console.log("Enviando payload:", JSON.stringify(payload, null, 2));
-      const url = `${
-        import.meta.env.VITE_URL_BACKEND
-      }/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;
+      const baseUrl = (import.meta.env.VITE_URL_BACKEND || '').toString().trim();
+      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, '') : '';
+      const url = computedBase
+        ? `${computedBase}/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
+        : `/api/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;
 
       const response = await fetch(url, {
         method: "POST",

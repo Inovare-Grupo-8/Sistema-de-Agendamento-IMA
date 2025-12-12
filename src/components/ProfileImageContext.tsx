@@ -1,5 +1,16 @@
-import { createContext, useCallback, useEffect, useRef, useState, ReactNode } from "react";
-import { buildBackendUrl, getBackendBaseUrl, resolvePerfilPath } from "@/lib/utils";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
+import {
+  buildBackendUrl,
+  getBackendBaseUrl,
+  resolvePerfilPath,
+} from "@/lib/utils";
 
 interface ProfileImageContextType {
   profileImage: string;
@@ -35,7 +46,10 @@ const extractSavedPhoto = (): string => {
         return profile.fotoUrl as string;
       }
     } catch (error) {
-      console.warn("⚠️ [ProfileImageContext] Erro ao parsear savedProfile:", error);
+      console.warn(
+        "⚠️ [ProfileImageContext] Erro ao parsear savedProfile:",
+        error
+      );
     }
   }
 
@@ -50,7 +64,10 @@ const extractSavedPhoto = (): string => {
         return parsed.profileImage as string;
       }
     } catch (error) {
-      console.warn("⚠️ [ProfileImageContext] Erro ao parsear profileData:", error);
+      console.warn(
+        "⚠️ [ProfileImageContext] Erro ao parsear profileData:",
+        error
+      );
     }
   }
 
@@ -82,7 +99,10 @@ const syncLocalPhoto = (rawUrl: string) => {
     }
     localStorage.setItem("profileData", JSON.stringify(data));
 
-    console.log("📸 [ProfileImageContext] Foto sincronizada no localStorage:", rawUrl);
+    console.log(
+      "📸 [ProfileImageContext] Foto sincronizada no localStorage:",
+      rawUrl
+    );
   } catch (error) {
     console.warn("⚠️ [ProfileImageContext] Erro ao sincronizar foto:", error);
   }
@@ -93,7 +113,8 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
 
   const lastRawUrlRef = useRef<string>("");
   const currentObjectUrlRef = useRef<string | null>(null);
-  const mountedRef = useRef<boolean>(true);
+  const mountedRef = useRef<boolean>(false);
+  const initializedRef = useRef<boolean>(false);
 
   const revokeObjectUrl = useCallback(() => {
     if (currentObjectUrlRef.current) {
@@ -103,6 +124,8 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
+    initializedRef.current = true;
     return () => {
       mountedRef.current = false;
       revokeObjectUrl();
@@ -168,9 +191,13 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
       }
 
       revokeObjectUrl();
-      const lastError = errors.length > 0 ? errors[errors.length - 1] : undefined;
+      const lastError =
+        errors.length > 0 ? errors[errors.length - 1] : undefined;
       if (lastError) {
-        console.warn("⚠️ [ProfileImageContext] Falha ao buscar imagem protegida:", lastError);
+        console.warn(
+          "⚠️ [ProfileImageContext] Falha ao buscar imagem protegida:",
+          lastError
+        );
       }
       throw lastError instanceof Error
         ? lastError
@@ -205,7 +232,10 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         const resolvedSource = await fetchProtectedImage(rawUrl);
 
         if (lastRawUrlRef.current !== rawUrl) {
-          if (resolvedSource.startsWith("blob:") && resolvedSource !== currentObjectUrlRef.current) {
+          if (
+            resolvedSource.startsWith("blob:") &&
+            resolvedSource !== currentObjectUrlRef.current
+          ) {
             URL.revokeObjectURL(resolvedSource);
           }
           return;
@@ -216,7 +246,10 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
           syncLocalPhoto(rawUrl);
         }
       } catch (error) {
-        console.warn("⚠️ [ProfileImageContext] Erro ao atualizar imagem protegida:", error);
+        console.warn(
+          "⚠️ [ProfileImageContext] Erro ao atualizar imagem protegida:",
+          error
+        );
         applyImageSource("");
         if (persist) {
           syncLocalPhoto("");
@@ -228,7 +261,10 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshImageFromStorage = useCallback(() => {
     const rawUrl = extractSavedPhoto();
-    console.log("🔄 [ProfileImageContext] Recarregando imagem do storage:", rawUrl);
+    console.log(
+      "🔄 [ProfileImageContext] Recarregando imagem do storage:",
+      rawUrl
+    );
     void updateProfileImage(rawUrl, false);
   }, [updateProfileImage]);
 
@@ -316,7 +352,10 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
           "⚠️ [ProfileImageContext] Backend offline, mantendo cache local"
         );
       } else {
-        console.warn("⚠️ [ProfileImageContext] Erro ao buscar foto da API:", error);
+        console.warn(
+          "⚠️ [ProfileImageContext] Erro ao buscar foto da API:",
+          error
+        );
       }
     }
   }, [updateProfileImage]);
@@ -347,6 +386,9 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
   }, [loadProfileImageFromAPI, refreshImageFromStorage, updateProfileImage]);
 
   useEffect(() => {
+    // Garantir que só executa após montagem completa
+    if (!mountedRef.current || !initializedRef.current) return;
+
     refreshImageFromStorage();
 
     const userData = localStorage.getItem("userData");
@@ -369,7 +411,7 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mountedRef.current, initializedRef.current]);
 
   return (
     <ProfileImageContext.Provider

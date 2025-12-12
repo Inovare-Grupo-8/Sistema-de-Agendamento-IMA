@@ -60,6 +60,7 @@ export function useAuth() {
   const isPublicRoute = useCallback((path: string) => {
     return PUBLIC_ROUTES.some((route) => path.startsWith(route));
   }, []);
+
   // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
     const checkAuth = async () => {
@@ -71,7 +72,8 @@ export function useAuth() {
       // Priorizar o novo sistema de autenticação (userData)
       if (userData) {
         try {
-          const parsedUserData = JSON.parse(userData); // Converter dados do novo formato para o formato esperado pelo hook
+          const parsedUserData = JSON.parse(userData);
+          // Converter dados do novo formato para o formato esperado pelo hook
           if (parsedUserData.idUsuario && parsedUserData.token) {
             const userForHook = {
               id: parsedUserData.idUsuario.toString(),
@@ -100,23 +102,14 @@ export function useAuth() {
           localStorage.removeItem(USER_KEY);
           localStorage.removeItem(TOKEN_KEY);
         }
-      } else if (!isPublicRoute(location.pathname)) {
-        // If not on a public route and no auth, redirect to login
-        toast({
-          title: "Acesso negado",
-          description: "Você precisa estar logado para acessar esta página.",
-          variant: "destructive",
-        });
-        navigate("/login", {
-          state: { from: location.pathname },
-          replace: true,
-        });
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [navigate, location.pathname, isPublicRoute]);
+    // Executar apenas uma vez ao montar o componente
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const login = useCallback(
     async (credentials: LoginCredentials) => {
       setLoading(true);
