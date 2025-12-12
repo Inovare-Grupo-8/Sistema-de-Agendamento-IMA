@@ -103,10 +103,15 @@ export function ClassificacaoUsuarios({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
         }
       );
 
       if (response.ok) {
+        const ct = response.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          throw new Error("Resposta inesperada do backend (não JSON)");
+        }
         const data = await response.json();
         setUsuarios(data);
       } else {
@@ -180,6 +185,7 @@ export function ClassificacaoUsuarios({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
         }
       );
 
