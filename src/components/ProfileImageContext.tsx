@@ -330,7 +330,19 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const text = await response.text();
+        console.warn("⚠️ [ProfileImageContext] Resposta não JSON", {
+          status: response.status,
+          contentType,
+          snippet: text.slice(0, 200),
+        });
+        return;
+      }
+      const raw = await response.text();
+      console.log("🧾 [ProfileImageContext] Raw JSON:", raw);
+      const data = JSON.parse(raw);
       console.log("📋 [ProfileImageContext] Dados recebidos da API:", data);
 
       const rawPhotoUrl = data.fotoUrl ?? data.urlFoto;

@@ -116,9 +116,17 @@ export function ClassificacaoUsuarios({
         });
         const ct = response.headers.get("content-type") || "";
         if (!ct.includes("application/json")) {
+          const text = await response.text();
+          console.error("[Classificacao] Resposta não JSON", {
+            status: response.status,
+            contentType: ct,
+            snippet: text.slice(0, 200),
+          });
           throw new Error("Resposta inesperada do backend (não JSON)");
         }
-        const data = await response.json();
+        const raw = await response.text();
+        console.log("[Classificacao] Raw JSON nao-classificados:", raw);
+        const data = JSON.parse(raw);
         setUsuarios(data);
       } else {
         console.error(
