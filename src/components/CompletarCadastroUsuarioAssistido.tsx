@@ -1021,17 +1021,25 @@ export function CompletarCadastroUsuarioAssistido() {
           payload.senha = passwordToShow;
         }
 
-        let url = `${import.meta.env.VITE_URL_BACKEND}/usuarios/segunda-fase`;
-        if (idUsuario) {
-          url += `?idUsuario=${idUsuario}`;
-        }
+        const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
+          .toString()
+          .trim();
+        const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+        let url = computedBase
+          ? `${computedBase}/usuarios/segunda-fase`
+          : `/api/usuarios/segunda-fase`;
+        if (idUsuario) url += `?idUsuario=${idUsuario}`;
 
         console.log("Sending payload:", payload); // Debug log
 
         const response = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body: JSON.stringify(payload),
+          credentials: "include",
         });
 
         if (!response.ok) {
