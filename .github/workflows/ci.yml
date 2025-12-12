@@ -1,0 +1,28 @@
+name: CI Front 1
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ryanzin1380
+          password: arr161820
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile-front
+          push: true
+          # AQUI: O nome da imagem será 'seu-usuario/front-1'. 
+          # O Docker Hub cria o repositório automaticamente se não existir.
+          tags: ryanzin1380/ima-docker-repo:frontend

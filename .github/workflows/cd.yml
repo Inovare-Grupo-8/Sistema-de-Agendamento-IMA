@@ -1,0 +1,31 @@
+name: CD Frontends (Redundância)
+
+on:
+  workflow_run:
+    workflows: ["CI Front 1"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    # AQUI ESTÁ A MÁGICA: Cria uma matriz com os nomes das máquinas
+    strategy:
+      matrix:
+        maquina: [front-1, front-2]
+
+    # Roda esse job na máquina da vez (front-1 e depois front-2)
+    runs-on: [self-hosted, "${{ matrix.maquina }}"]
+    
+    steps:
+      - name: Pull Docker image
+        run: docker pull ryanzin1380/ima-docker-repo:frontend
+
+      - name: Stop and Remove Old Container
+        # Para container antigo (se existir)
+        run: |
+          docker stop container-front || true
+          docker rm container-front || true
+
+      - name: Run New Container
+        # Sobe na porta 8080 em ambas as máquinas
+        run: docker run -d -p 8080:80 --restart always --name container-front ryanzin1380/ima-docker-repo:frontend
