@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, buildBackendUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1043,13 +1043,7 @@ export function CompletarCadastroUsuarioAssistido() {
           payload.senha = passwordToShow;
         }
 
-        const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-          .toString()
-          .trim();
-        const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-        let url = computedBase
-          ? `${computedBase}/usuarios/segunda-fase`
-          : `/api/usuarios/segunda-fase`;
+        let url = buildBackendUrl(`/usuarios/segunda-fase`);
         if (idUsuario) url += `?idUsuario=${idUsuario}`;
 
         console.log("Sending payload:", payload); // Debug log

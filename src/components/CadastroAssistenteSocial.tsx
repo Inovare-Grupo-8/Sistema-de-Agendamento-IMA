@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { buildBackendUrl } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -394,23 +395,22 @@ export default function CadastroAssistenteSocial() {
       };
 
       // Chamada da primeira fase
-      const baseUrlPF = (import.meta.env.VITE_URL_BACKEND || '').toString().trim();
-      const computedBasePF = baseUrlPF ? baseUrlPF.replace(/\/+$/, '') : '';
+      const baseUrlPF = (import.meta.env.VITE_URL_BACKEND || "")
+        .toString()
+        .trim();
+      const computedBasePF = baseUrlPF ? baseUrlPF.replace(/\/+$/, "") : "";
       const primeiraFaseUrl = computedBasePF
         ? `${computedBasePF}/usuarios/voluntario/primeira-fase`
         : `/api/usuarios/voluntario/primeira-fase`;
-      const response = await fetch(
-        primeiraFaseUrl,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(primeiraFaseData),
-          credentials: "include",
-        }
-      );
+      const response = await fetch(primeiraFaseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(primeiraFaseData),
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -457,13 +457,9 @@ export default function CadastroAssistenteSocial() {
       console.log("📤 Enviando segunda fase:", segundaFaseData);
 
       // Chamada da segunda fase
-      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-        .toString()
-        .trim();
-      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-      const segundaFaseUrl = computedBase
-        ? `${computedBase}/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
-        : `/api/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;
+      const segundaFaseUrl = buildBackendUrl(
+        `/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
+      );
       const response2 = await fetch(segundaFaseUrl, {
         method: "POST",
         headers: {

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useProfileImage } from '@/components/useProfileImage';
+import { useState, useEffect, useCallback } from "react";
+import { useProfileImage } from "@/components/useProfileImage";
+import { buildBackendUrl } from "@/lib/utils";
 
 interface UserProfileData {
   nome?: string;
@@ -17,64 +18,71 @@ export const useProfileSync = () => {
   const { profileImage, setProfileImage } = useProfileImage();
 
   // Função para buscar dados do perfil baseado no tipo de usuário
-  const fetchProfileData = useCallback(async (): Promise<UserProfileData | null> => {
-    try {
-      const userData = localStorage.getItem('userData');
-      if (!userData) {
-        throw new Error('Dados do usuário não encontrados no localStorage');
-      }
-
-      const user = JSON.parse(userData);
-      const token = user.token;
-      const usuarioId = user.idUsuario;
-      const tipoUsuario = user.tipo;
-
-      if (!token || !usuarioId) {
-        throw new Error('Token ou ID do usuário não encontrados');
-      }
-
-      let endpoint = '';
-      
-      // Determinar o endpoint baseado no tipo de usuário
-      switch (tipoUsuario) {
-        case 'ADMINISTRADOR':
-          endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`;
-          break;
-        case 'VOLUNTARIO':
-          endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/voluntario?usuarioId=${usuarioId}`;
-          break;
-        case 'USUARIO_ASSISTIDO':
-          endpoint = `${import.meta.env.VITE_URL_BACKEND}/perfil/usuario-assistido?usuarioId=${usuarioId}`;
-          break;
-        default:
-          throw new Error(`Tipo de usuário não suportado: ${tipoUsuario}`);
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+  const fetchProfileData =
+    useCallback(async (): Promise<UserProfileData | null> => {
+      try {
+        const userData = localStorage.getItem("userData");
+        if (!userData) {
+          throw new Error("Dados do usuário não encontrados no localStorage");
         }
-      });
 
-      if (!response.ok) {
-        throw new Error('Erro ao buscar dados do perfil');
+        const user = JSON.parse(userData);
+        const token = user.token;
+        const usuarioId = user.idUsuario;
+        const tipoUsuario = user.tipo;
+
+        if (!token || !usuarioId) {
+          throw new Error("Token ou ID do usuário não encontrados");
+        }
+
+        let endpoint = "";
+
+        // Determinar o endpoint baseado no tipo de usuário
+        switch (tipoUsuario) {
+          case "ADMINISTRADOR":
+            endpoint = buildBackendUrl(
+              `/perfil/assistente-social?usuarioId=${usuarioId}`
+            );
+            break;
+          case "VOLUNTARIO":
+            endpoint = buildBackendUrl(
+              `/perfil/voluntario?usuarioId=${usuarioId}`
+            );
+            break;
+          case "USUARIO_ASSISTIDO":
+            endpoint = buildBackendUrl(
+              `/perfil/usuario-assistido?usuarioId=${usuarioId}`
+            );
+            break;
+          default:
+            throw new Error(`Tipo de usuário não suportado: ${tipoUsuario}`);
+        }
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao buscar dados do perfil");
+        }
+
+        const data = await response.json();
+
+        // Se houver uma foto, ajustar a URL
+        if (data.fotoUrl && !data.fotoUrl.startsWith("http")) {
+          data.fotoUrl = buildBackendUrl(data.fotoUrl);
+        }
+
+        return data;
+      } catch (error) {
+        console.error("Erro ao buscar dados do perfil:", error);
+        return null;
       }
-
-      const data = await response.json();
-      
-      // Se houver uma foto, ajustar a URL
-      if (data.fotoUrl && !data.fotoUrl.startsWith('http')) {
-        data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Erro ao buscar dados do perfil:', error);
-      return null;
-    }
-  }, []);
+    }, []);
 
   // Função para sincronizar dados do perfil
   const syncProfileData = useCallback(async () => {
@@ -83,14 +91,14 @@ export const useProfileSync = () => {
       const data = await fetchProfileData();
       if (data) {
         setProfileData(data);
-        
+
         // Atualizar imagem de perfil se existir
         if (data.fotoUrl) {
           setProfileImage(data.fotoUrl);
         }
       }
     } catch (error) {
-      console.error('Erro ao sincronizar dados do perfil:', error);
+      console.error("Erro ao sincronizar dados do perfil:", error);
     } finally {
       setIsLoading(false);
     }
@@ -98,14 +106,14 @@ export const useProfileSync = () => {
 
   // Função para obter o nome completo
   const getFullName = (): string => {
-    const nome = profileData.nome || '';
-    const sobrenome = profileData.sobrenome || '';
+    const nome = profileData.nome || "";
+    const sobrenome = profileData.sobrenome || "";
     return `${nome} ${sobrenome}`.trim();
   };
 
   // Função para obter o nome para exibição (apenas primeiro nome)
   const getDisplayName = (): string => {
-    return profileData.nome || 'Usuário';
+    return profileData.nome || "Usuário";
   };
 
   // Função para obter a função/especialidade do usuário
@@ -118,17 +126,17 @@ export const useProfileSync = () => {
     }
     if (profileData.tipo) {
       switch (profileData.tipo) {
-        case 'ADMINISTRADOR':
-          return 'Assistente Social';
-        case 'VOLUNTARIO':
-          return 'Voluntário';
-        case 'USUARIO_ASSISTIDO':
-          return 'Usuário Assistido';
+        case "ADMINISTRADOR":
+          return "Assistente Social";
+        case "VOLUNTARIO":
+          return "Voluntário";
+        case "USUARIO_ASSISTIDO":
+          return "Usuário Assistido";
         default:
-          return 'Usuário';
+          return "Usuário";
       }
     }
-    return 'Usuário';
+    return "Usuário";
   };
 
   // Sincronizar dados na inicialização
@@ -144,6 +152,6 @@ export const useProfileSync = () => {
     getDisplayName,
     getUserRole,
     syncProfileData,
-    setProfileImage
+    setProfileImage,
   };
 };

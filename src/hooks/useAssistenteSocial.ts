@@ -1,533 +1,600 @@
-import { useEffect } from 'react';
-import { updateEmailInLocalStorage } from '../utils/localStorage';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from "react";
+import { buildBackendUrl } from "@/lib/utils";
+import { updateEmailInLocalStorage } from "../utils/localStorage";
+import { useNavigate } from "react-router-dom";
 
 interface Endereco {
-    rua: string;
-    numero: string;
-    complemento?: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    cep: string;
+  rua: string;
+  numero: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
 }
 
 export interface AssistenteSocialInput {
-    nome: string;
-    sobrenome: string;
-    cpf?: string;
-    crp: string;
-    especialidade: string;
-    telefone: string;
-    email: string;
-    senha?: string;
-    bio?: string;
-    endereco?: Endereco;
+  nome: string;
+  sobrenome: string;
+  cpf?: string;
+  crp: string;
+  especialidade: string;
+  telefone: string;
+  email: string;
+  senha?: string;
+  bio?: string;
+  endereco?: Endereco;
 }
 
 export interface AssistenteSocialOutput {
-    idUsuario: number;
-    nome: string;
-    sobrenome: string;
-    cpf?: string;
-    crp: string;
-    especialidade: string;
-    telefone: string;
-    email: string;
-    bio?: string;
-    dataNascimento?: string;
-    genero?: string;
-    fotoUrl?: string;
-    endereco?: Endereco;
-    // Dados profissionais vindos do backend
-    registroProfissional?: string;
-    biografiaProfissional?: string;
+  idUsuario: number;
+  nome: string;
+  sobrenome: string;
+  cpf?: string;
+  crp: string;
+  especialidade: string;
+  telefone: string;
+  email: string;
+  bio?: string;
+  dataNascimento?: string;
+  genero?: string;
+  fotoUrl?: string;
+  endereco?: Endereco;
+  // Dados profissionais vindos do backend
+  registroProfissional?: string;
+  biografiaProfissional?: string;
 }
 
 export const useAssistenteSocial = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const atualizarUltimoAcesso = async (_usuarioId: number, _token: string) => {
-        return;
-    };
+  const atualizarUltimoAcesso = async (_usuarioId: number, _token: string) => {
+    return;
+  };
 
-    const fetchPerfil = async (): Promise<AssistenteSocialOutput> => {
-        try {
-            // Pegar dados do usuário logado do localStorage
-            const userData = localStorage.getItem('userData');
-            
-            console.log('🔍 Debug - userData:', userData);
-            
-            if (!userData) {
-                console.log('Usuário não está logado, redirecionando...');
-                navigate('/');
-                throw new Error('Usuário não está logado');
-            }
-            
-            const user = JSON.parse(userData);
-            const token = user.token;
-            const usuarioId = user.idUsuario || user.id;
-            const tipo = String(user.tipo || '').toUpperCase();
-            const funcao = String(user.funcao || '').toUpperCase();
-            
-            console.log('🔍 Debug - token:', token ? 'Token exists' : 'No token');
-            console.log('🔍 Debug - usuarioId:', usuarioId);
-            
-            if (!usuarioId) {
-                console.log('ID do usuário não encontrado, redirecionando...');
-                navigate('/');
-                throw new Error('ID do usuário não encontrado');
-            }
+  const fetchPerfil = async (): Promise<AssistenteSocialOutput> => {
+    try {
+      // Pegar dados do usuário logado do localStorage
+      const userData = localStorage.getItem("userData");
 
-            // ADMINISTRADOR e perfis não ASSISTENCIA_SOCIAL: usar dados locais
-            if (tipo === 'ADMINISTRADOR' || (tipo === 'VOLUNTARIO' && funcao !== 'ASSISTENCIA_SOCIAL')) {
-                const offline: AssistenteSocialOutput = {
-                    idUsuario: Number(usuarioId),
-                    nome: user.nome || '',
-                    sobrenome: user.sobrenome || '',
-                    crp: '',
-                    especialidade: 'Assistência Social',
-                    telefone: user.telefone || '',
-                    email: user.email || '',
-                    bio: '',
-                };
-                return offline;
-            }
+      console.log("🔍 Debug - userData:", userData);
 
-            const url = `${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social?usuarioId=${usuarioId}`;
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                }
-            });
+      if (!userData) {
+        console.log("Usuário não está logado, redirecionando...");
+        navigate("/");
+        throw new Error("Usuário não está logado");
+      }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.log('🔍 Debug - Error response:', errorText);
-                const offline: AssistenteSocialOutput = {
-                    idUsuario: Number(usuarioId),
-                    nome: user.nome || '',
-                    sobrenome: user.sobrenome || '',
-                    crp: '',
-                    especialidade: 'Assistência Social',
-                    telefone: user.telefone || '',
-                    email: user.email || '',
-                    bio: '',
-                };
-                return offline;
-            }
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario || user.id;
+      const tipo = String(user.tipo || "").toUpperCase();
+      const funcao = String(user.funcao || "").toUpperCase();
 
-            const data = await response.json();
-            
-            // Se houver uma foto, adiciona a URL base
-            if (data.fotoUrl) {
-                data.fotoUrl = `${import.meta.env.VITE_URL_BACKEND}${data.fotoUrl}`;
-            }
+      console.log("🔍 Debug - token:", token ? "Token exists" : "No token");
+      console.log("🔍 Debug - usuarioId:", usuarioId);
 
-            return data;
-        } catch (error) {
-            console.error('Erro ao buscar perfil:', error);
-            throw error;
+      if (!usuarioId) {
+        console.log("ID do usuário não encontrado, redirecionando...");
+        navigate("/");
+        throw new Error("ID do usuário não encontrado");
+      }
+
+      // ADMINISTRADOR e perfis não ASSISTENCIA_SOCIAL: usar dados locais
+      if (
+        tipo === "ADMINISTRADOR" ||
+        (tipo === "VOLUNTARIO" && funcao !== "ASSISTENCIA_SOCIAL")
+      ) {
+        const offline: AssistenteSocialOutput = {
+          idUsuario: Number(usuarioId),
+          nome: user.nome || "",
+          sobrenome: user.sobrenome || "",
+          crp: "",
+          especialidade: "Assistência Social",
+          telefone: user.telefone || "",
+          email: user.email || "",
+          bio: "",
+        };
+        return offline;
+      }
+
+      const url = buildBackendUrl(
+        `/perfil/assistente-social?usuarioId=${usuarioId}`
+      );
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token || ""}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("🔍 Debug - Error response:", errorText);
+        const offline: AssistenteSocialOutput = {
+          idUsuario: Number(usuarioId),
+          nome: user.nome || "",
+          sobrenome: user.sobrenome || "",
+          crp: "",
+          especialidade: "Assistência Social",
+          telefone: user.telefone || "",
+          email: user.email || "",
+          bio: "",
+        };
+        return offline;
+      }
+
+      const data = await response.json();
+
+      // Se houver uma foto, adiciona a URL base
+      if (data.fotoUrl) {
+        data.fotoUrl = buildBackendUrl(data.fotoUrl);
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Erro ao buscar perfil:", error);
+      throw error;
+    }
+  };
+
+  const atualizarPerfil = async (
+    dados: AssistenteSocialInput
+  ): Promise<AssistenteSocialOutput> => {
+    try {
+      // Pegar dados do usuário logado do localStorage
+      const userData = localStorage.getItem("userData");
+      if (!userData) {
+        throw new Error("Usuário não está logado");
+      }
+
+      const user = JSON.parse(userData);
+      const token = user.token; // Token está dentro do objeto user
+      const usuarioId = user.idUsuario;
+
+      if (!usuarioId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+
+      const response = await fetch(
+        buildBackendUrl(
+          `/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`
+        ),
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify(dados),
         }
-    };
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao atualizar perfil");
+      }
+      const result = await response.json();
 
-    const atualizarPerfil = async (dados: AssistenteSocialInput): Promise<AssistenteSocialOutput> => {
-        try {
-            // Pegar dados do usuário logado do localStorage
-            const userData = localStorage.getItem('userData');
-            if (!userData) {
-                throw new Error('Usuário não está logado');
-            }
-            
-            const user = JSON.parse(userData);
-            const token = user.token; // Token está dentro do objeto user
-            const usuarioId = user.idUsuario;
-            
-            if (!usuarioId) {
-                throw new Error('ID do usuário não encontrado');
-            }
+      // Atualizar localStorage se o email foi alterado
+      if (result.email) {
+        updateEmailInLocalStorage(result.email);
+      }
 
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-pessoais?usuarioId=${usuarioId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: JSON.stringify(dados)
-            });            if (!response.ok) {
-                throw new Error('Erro ao atualizar perfil');
-            }            const result = await response.json();
-            
-            // Atualizar localStorage se o email foi alterado
-            if (result.email) {
-                updateEmailInLocalStorage(result.email);
-            }
+      return result;
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      throw error;
+    }
+  };
+  const atualizarDadosProfissionais = async (dados: {
+    crp: string;
+    especialidade: string;
+    bio?: string;
+  }): Promise<{
+    crp: string;
+    especialidade: string;
+    bio?: string;
+  }> => {
+    try {
+      const userData = localStorage.getItem("userData");
+      if (!userData) {
+        throw new Error("Usuário não está logado");
+      }
 
-            return result;
-        } catch (error) {
-            console.error('Erro ao atualizar perfil:', error);
-            throw error;
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario;
+
+      if (!usuarioId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+
+      // Converter para o formato esperado pelo backend
+      const dadosParaEnviar = {
+        funcao: "ASSISTENCIA_SOCIAL",
+        registroProfissional: dados.crp,
+        especialidade: dados.especialidade,
+        biografiaProfissional: dados.bio,
+        especialidades: [],
+      };
+
+      console.log(
+        "Enviando dados profissionais para o backend:",
+        dadosParaEnviar
+      );
+
+      const response = await fetch(
+        buildBackendUrl(
+          `/perfil/assistente-social/dados-profissionais?usuarioId=${usuarioId}`
+        ),
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify(dadosParaEnviar),
         }
-    };    const atualizarDadosProfissionais = async (dados: {
-        crp: string;
-        especialidade: string;
-        bio?: string;
-    }): Promise<{
-        crp: string;
-        especialidade: string;
-        bio?: string;
-    }> => {
-        try {
-            const userData = localStorage.getItem('userData');
-            if (!userData) {
-                throw new Error('Usuário não está logado');
-            }
-            
-            const user = JSON.parse(userData);
-            const token = user.token;
-            const usuarioId = user.idUsuario;
-            
-            if (!usuarioId) {
-                throw new Error('ID do usuário não encontrado');
-            }
+      );
 
-            // Converter para o formato esperado pelo backend
-            const dadosParaEnviar = {
-                funcao: "ASSISTENCIA_SOCIAL",
-                registroProfissional: dados.crp,
-                especialidade: dados.especialidade,
-                biografiaProfissional: dados.bio,
-                especialidades: []
-            };
+      console.log("Status da resposta:", response.status);
 
-            console.log('Enviando dados profissionais para o backend:', dadosParaEnviar);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro na resposta:", errorText);
+        throw new Error(
+          `Erro ao atualizar dados profissionais: ${response.status}. ${errorText}`
+        );
+      }
 
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/dados-profissionais?usuarioId=${usuarioId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: JSON.stringify(dadosParaEnviar)
-            });
+      // Handle 204 No Content response
+      if (response.status === 204) {
+        console.log(
+          "Dados profissionais atualizados com sucesso (204 No Content)"
+        );
+        return dados; // Return the original data since update was successful
+      }
 
-            console.log('Status da resposta:', response.status);
+      const result = await response.json();
+      console.log("Resposta do backend:", result);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro na resposta:', errorText);
-                throw new Error(`Erro ao atualizar dados profissionais: ${response.status}. ${errorText}`);
-            }
+      // Return the server response data if available, otherwise fallback to original data
+      return {
+        crp: result.registroProfissional || dados.crp,
+        especialidade: result.especialidade || dados.especialidade,
+        bio: result.biografiaProfissional || dados.bio,
+      };
+    } catch (error) {
+      console.error("Erro ao atualizar dados profissionais:", error);
+      throw error;
+    }
+  };
 
-            // Handle 204 No Content response
-            if (response.status === 204) {
-                console.log('Dados profissionais atualizados com sucesso (204 No Content)');
-                return dados; // Return the original data since update was successful
-            }
+  const buscarEndereco = async (): Promise<Endereco | null> => {
+    try {
+      // Pegar dados do usuário logado do localStorage
+      const userData = localStorage.getItem("userData");
+      if (!userData) {
+        throw new Error("Usuário não está logado");
+      }
 
-            const result = await response.json();
-            console.log('Resposta do backend:', result);
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario;
 
-            // Return the server response data if available, otherwise fallback to original data
-            return {
-                crp: result.registroProfissional || dados.crp,
-                especialidade: result.especialidade || dados.especialidade,
-                bio: result.biografiaProfissional || dados.bio
-            };
-        } catch (error) {
-            console.error('Erro ao atualizar dados profissionais:', error);
-            throw error;
+      if (!usuarioId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+
+      const response = await fetch(
+        buildBackendUrl(
+          `/perfil/assistente-social/endereco?usuarioId=${usuarioId}`
+        ),
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
         }
-    };
+      );
 
-    const buscarEndereco = async (): Promise<Endereco | null> => {
-        try {
-            // Pegar dados do usuário logado do localStorage
-            const userData = localStorage.getItem('userData');
-            if (!userData) {
-                throw new Error('Usuário não está logado');
-            }
-            
-            const user = JSON.parse(userData);
-            const token = user.token;
-            const usuarioId = user.idUsuario;
-            
-            if (!usuarioId) {
-                throw new Error('ID do usuário não encontrado');
-            }
-
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/endereco?usuarioId=${usuarioId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null; // Endereço não encontrado
-                }
-                throw new Error('Erro ao buscar endereço');
-            }
-
-            const enderecoOutput = await response.json();
-            
-            // Converter EnderecoOutput para Endereco
-            return {
-                rua: enderecoOutput.logradouro || '',
-                numero: enderecoOutput.numero || '',
-                complemento: enderecoOutput.complemento || '',
-                bairro: enderecoOutput.bairro || '',
-                cidade: enderecoOutput.cidade || '',
-                estado: enderecoOutput.uf || '',
-                cep: enderecoOutput.cep || ''
-            };
-        } catch (error) {
-            console.error('Erro ao buscar endereço:', error);
-            throw error;
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null; // Endereço não encontrado
         }
-    };
+        throw new Error("Erro ao buscar endereço");
+      }
 
-    const atualizarEndereco = async (endereco: {
-        cep: string;
-        numero: string;
-        complemento?: string;
-    }): Promise<void> => {
-        try {
-            // Pegar dados do usuário logado do localStorage
-            const userData = localStorage.getItem('userData');
-            if (!userData) {
-                throw new Error('Usuário não está logado');
-            }
-            
-            const user = JSON.parse(userData);
-            const token = user.token;
-            const usuarioId = user.idUsuario;
-            
-            if (!usuarioId) {
-                throw new Error('ID do usuário não encontrado');
-            }
+      const enderecoOutput = await response.json();
 
-            // Preparar dados para envio no formato esperado pelo backend
-            const enderecoInput = {
-                cep: endereco.cep,
-                numero: endereco.numero,
-                complemento: endereco.complemento || ''
-            };
-            const tipoPathAddr = String(user.tipo || '').toUpperCase() === 'ADMINISTRADOR' ? 'administrador' : (String(user.tipo || '').toUpperCase() === 'VOLUNTARIO' && String(user.funcao || '').toUpperCase() === 'ASSISTENCIA_SOCIAL') ? 'assistente-social' : 'assistente-social';
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoPathAddr}/endereco?usuarioId=${usuarioId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: JSON.stringify(enderecoInput)
-            });
+      // Converter EnderecoOutput para Endereco
+      return {
+        rua: enderecoOutput.logradouro || "",
+        numero: enderecoOutput.numero || "",
+        complemento: enderecoOutput.complemento || "",
+        bairro: enderecoOutput.bairro || "",
+        cidade: enderecoOutput.cidade || "",
+        estado: enderecoOutput.uf || "",
+        cep: enderecoOutput.cep || "",
+      };
+    } catch (error) {
+      console.error("Erro ao buscar endereço:", error);
+      throw error;
+    }
+  };
 
-            if (!response.ok) {
-                throw new Error('Erro ao atualizar endereço');
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar endereço:', error);
-            throw error;
-        }    };    // Função específica para atualizar dados pessoais e profissionais
-    const atualizarDadosPessoais = async (dados: { 
-        nome: string; 
-        email: string; 
-        sobrenome: string;
-        telefone: string;
-        dataNascimento?: string;
-        genero?: string;
-        crp?: string;
-        bio?: string;
-        especialidade?: string;
-    }): Promise<{ 
-        nome: string; 
-        email: string; 
-        sobrenome: string;
-        telefone: string;
-        dataNascimento?: string;
-        genero?: string;
-        crp?: string;
-        bio?: string;
-        especialidade?: string;
-    }> => {
-        try {
-            // Pegar dados do usuário logado do localStorage
-            const userData = localStorage.getItem('userData');
-            if (!userData) {
-                throw new Error('Usuário não está logado');
-            }
+  const atualizarEndereco = async (endereco: {
+    cep: string;
+    numero: string;
+    complemento?: string;
+  }): Promise<void> => {
+    try {
+      // Pegar dados do usuário logado do localStorage
+      const userData = localStorage.getItem("userData");
+      if (!userData) {
+        throw new Error("Usuário não está logado");
+      }
 
-            const user = JSON.parse(userData);
-            const token = user.token;
-            const usuarioId = user.idUsuario || user.id;
-            const tipo = String(user.tipo || '').toUpperCase();
-            const funcao = String(user.funcao || '').toUpperCase();
-            
-            if (!usuarioId) {
-                throw new Error('ID do usuário não encontrado');
-            }
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario;
 
-            const tipoPath = tipo === 'ADMINISTRADOR' ? 'administrador' : (tipo === 'VOLUNTARIO' && funcao === 'ASSISTENCIA_SOCIAL') ? 'assistente-social' : 'assistente-social';
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: JSON.stringify({ email: dados.email, telefone: dados.telefone, genero: dados.genero })
-            });
+      if (!usuarioId) {
+        throw new Error("ID do usuário não encontrado");
+      }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro na resposta:', errorText);
-                throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
-            }            const result = await response.json();
-            
-            // Atualizar localStorage se o email foi alterado
-            if (result.email) {
-                updateEmailInLocalStorage(result.email);
-            }
-            
-            return {
-                nome: result.nome || dados.nome,
-                email: result.email || dados.email,
-                sobrenome: result.sobrenome || dados.sobrenome,
-                telefone: result.telefone || dados.telefone
-            };
-        } catch (error) {
-            console.error('Erro ao atualizar dados pessoais:', error);
-            throw error;
+      // Preparar dados para envio no formato esperado pelo backend
+      const enderecoInput = {
+        cep: endereco.cep,
+        numero: endereco.numero,
+        complemento: endereco.complemento || "",
+      };
+      const tipoPathAddr =
+        String(user.tipo || "").toUpperCase() === "ADMINISTRADOR"
+          ? "administrador"
+          : String(user.tipo || "").toUpperCase() === "VOLUNTARIO" &&
+            String(user.funcao || "").toUpperCase() === "ASSISTENCIA_SOCIAL"
+          ? "assistente-social"
+          : "assistente-social";
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_URL_BACKEND
+        }/perfil/${tipoPathAddr}/endereco?usuarioId=${usuarioId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify(enderecoInput),
         }
-    };
+      );
 
-    const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
+      if (!response.ok) {
+        throw new Error("Erro ao atualizar endereço");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar endereço:", error);
+      throw error;
+    }
+  }; // Função específica para atualizar dados pessoais e profissionais
+  const atualizarDadosPessoais = async (dados: {
+    nome: string;
+    email: string;
+    sobrenome: string;
+    telefone: string;
+    dataNascimento?: string;
+    genero?: string;
+    crp?: string;
+    bio?: string;
+    especialidade?: string;
+  }): Promise<{
+    nome: string;
+    email: string;
+    sobrenome: string;
+    telefone: string;
+    dataNascimento?: string;
+    genero?: string;
+    crp?: string;
+    bio?: string;
+    especialidade?: string;
+  }> => {
+    try {
+      // Pegar dados do usuário logado do localStorage
+      const userData = localStorage.getItem("userData");
+      if (!userData) {
+        throw new Error("Usuário não está logado");
+      }
 
-    // Função para validar o tamanho da imagem
-    const validateImageSize = (file: File): boolean => {
-        return file.size <= MAX_FILE_SIZE;
-    };
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario || user.id;
+      const tipo = String(user.tipo || "").toUpperCase();
+      const funcao = String(user.funcao || "").toUpperCase();
 
-    // Função para comprimir a imagem se necessário
-    const compressImage = async (file: File): Promise<File> => {
-        if (file.size <= MAX_FILE_SIZE) {
-            return file;
+      if (!usuarioId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+
+      const tipoPath =
+        tipo === "ADMINISTRADOR"
+          ? "administrador"
+          : tipo === "VOLUNTARIO" && funcao === "ASSISTENCIA_SOCIAL"
+          ? "assistente-social"
+          : "assistente-social";
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_URL_BACKEND
+        }/perfil/${tipoPath}/dados-pessoais?usuarioId=${usuarioId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify({
+            email: dados.email,
+            telefone: dados.telefone,
+            genero: dados.genero,
+          }),
         }
+      );
 
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target?.result as string;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro na resposta:", errorText);
+        throw new Error(`Erro ao atualizar dados pessoais: ${response.status}`);
+      }
+      const result = await response.json();
 
-                    // Calcular nova dimensão mantendo aspecto
-                    if (width > height) {
-                        if (width > 800) {
-                            height = Math.round((height * 800) / width);
-                            width = 800;
-                        }
-                    } else {
-                        if (height > 800) {
-                            width = Math.round((width * 800) / height);
-                            height = 800;
-                        }
-                    }
+      // Atualizar localStorage se o email foi alterado
+      if (result.email) {
+        updateEmailInLocalStorage(result.email);
+      }
 
-                    canvas.width = width;
-                    canvas.height = height;
+      return {
+        nome: result.nome || dados.nome,
+        email: result.email || dados.email,
+        sobrenome: result.sobrenome || dados.sobrenome,
+        telefone: result.telefone || dados.telefone,
+      };
+    } catch (error) {
+      console.error("Erro ao atualizar dados pessoais:", error);
+      throw error;
+    }
+  };
 
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0, width, height);
+  const MAX_FILE_SIZE = 1024 * 1024; // 1MB in bytes
 
-                    canvas.toBlob(
-                        (blob) => {
-                            if (blob) {
-                                const compressedFile = new File([blob], file.name, {
-                                    type: 'image/jpeg',
-                                    lastModified: Date.now(),
-                                });
-                                resolve(compressedFile);
-                            } else {
-                                reject(new Error('Falha ao comprimir imagem'));
-                            }
-                        },
-                        'image/jpeg',
-                        0.7
-                    );
-                };
-            };
-            reader.onerror = (error) => reject(error);
-        });
-    };
+  // Função para validar o tamanho da imagem
+  const validateImageSize = (file: File): boolean => {
+    return file.size <= MAX_FILE_SIZE;
+  };
 
-    const uploadFoto = async (file: File): Promise<string> => {
-        try {
-            if (!validateImageSize(file)) {
-                const compressedFile = await compressImage(file);
-                if (!validateImageSize(compressedFile)) {
-                    throw new Error('Imagem muito grande. O tamanho máximo permitido é 1MB.');
-                }
-                file = compressedFile;
+  // Função para comprimir a imagem se necessário
+  const compressImage = async (file: File): Promise<File> => {
+    if (file.size <= MAX_FILE_SIZE) {
+      return file;
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          // Calcular nova dimensão mantendo aspecto
+          if (width > height) {
+            if (width > 800) {
+              height = Math.round((height * 800) / width);
+              width = 800;
             }
-
-            const userData = localStorage.getItem('userData');
-            if (!userData) {
-                throw new Error('Usuário não está logado');
+          } else {
+            if (height > 800) {
+              width = Math.round((width * 800) / height);
+              height = 800;
             }
-            
-            const user = JSON.parse(userData);
-            const token = user.token;
-            const usuarioId = user.idUsuario;
-            
-            if (!usuarioId) {
-                throw new Error('ID do usuário não encontrado');
-            }
+          }
 
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('usuarioId', usuarioId.toString());
+          canvas.width = width;
+          canvas.height = height;
 
-            const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/perfil/assistente-social/foto?usuarioId=${usuarioId}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token || ''}`
-                },
-                body: formData
-            });
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Erro ao fazer upload da foto: ${errorText}`);
-            }
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error("Falha ao comprimir imagem"));
+              }
+            },
+            "image/jpeg",
+            0.7
+          );
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
-            const result = await response.json();
-            // Concatena a URL base com o caminho relativo retornado pelo servidor
-            const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
-            return photoUrl;
-        } catch (error) {
-            console.error('Erro ao fazer upload da foto:', error);
-            throw error;
+  const uploadFoto = async (file: File): Promise<string> => {
+    try {
+      if (!validateImageSize(file)) {
+        const compressedFile = await compressImage(file);
+        if (!validateImageSize(compressedFile)) {
+          throw new Error(
+            "Imagem muito grande. O tamanho máximo permitido é 1MB."
+          );
         }
-    };
+        file = compressedFile;
+      }
 
-    return {
-        fetchPerfil,
-        atualizarPerfil,
-        atualizarDadosPessoais,
-        atualizarDadosProfissionais,
-        buscarEndereco,
-        atualizarEndereco,
-        uploadFoto
-    };
+      const userData = localStorage.getItem("userData");
+      if (!userData) {
+        throw new Error("Usuário não está logado");
+      }
+
+      const user = JSON.parse(userData);
+      const token = user.token;
+      const usuarioId = user.idUsuario;
+
+      if (!usuarioId) {
+        throw new Error("ID do usuário não encontrado");
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("usuarioId", usuarioId.toString());
+
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_URL_BACKEND
+        }/perfil/assistente-social/foto?usuarioId=${usuarioId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ao fazer upload da foto: ${errorText}`);
+      }
+
+      const result = await response.json();
+      // Concatena a URL base com o caminho relativo retornado pelo servidor
+      const photoUrl = `${import.meta.env.VITE_URL_BACKEND}${result.url}`;
+      return photoUrl;
+    } catch (error) {
+      console.error("Erro ao fazer upload da foto:", error);
+      throw error;
+    }
+  };
+
+  return {
+    fetchPerfil,
+    atualizarPerfil,
+    atualizarDadosPessoais,
+    atualizarDadosProfissionais,
+    buscarEndereco,
+    atualizarEndereco,
+    uploadFoto,
+  };
 };
 
 export default useAssistenteSocial;

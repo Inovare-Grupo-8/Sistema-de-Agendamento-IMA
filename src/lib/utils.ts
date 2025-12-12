@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function isValidTime(time: string): boolean {
@@ -16,29 +16,35 @@ export function isFutureDate(date: Date): boolean {
 }
 
 export function getErrorMessage(error: unknown): string {
-  if (typeof error === 'string') return error;
+  if (typeof error === "string") return error;
   if (error instanceof Error) return error.message;
-  return 'Ocorreu um erro inesperado.';
+  return "Ocorreu um erro inesperado.";
 }
 
 const BACKEND_URL_REGEX = /^https?:\/\//i;
 
 const normalizeBase = (base: string): string => {
   if (!base) {
-    return '';
+    return "";
   }
-  return base.endsWith('/') ? base.slice(0, -1) : base;
+  return base.endsWith("/") ? base.slice(0, -1) : base;
 };
 
 const normalizePath = (path: string): string => {
   if (!path) {
-    return '';
+    return "";
   }
-  return path.startsWith('/') ? path : `/${path}`;
+  return path.startsWith("/") ? path : `/${path}`;
 };
 
 export function getBackendBaseUrl(): string {
-  const rawBase = import.meta.env.VITE_URL_BACKEND || '/api';
+  const rawEnv =
+    typeof import.meta.env.VITE_URL_BACKEND !== "undefined"
+      ? String(import.meta.env.VITE_URL_BACKEND)
+      : "";
+  const envTrim = rawEnv.trim();
+  const isInvalid = !envTrim || envTrim === "undefined" || envTrim === "null";
+  const rawBase = isInvalid ? "/api" : envTrim;
   return normalizeBase(rawBase);
 }
 

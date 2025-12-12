@@ -1,3 +1,5 @@
+import { buildBackendUrl } from "@/lib/utils";
+
 export interface DadosPessoaisVoluntario {
   nome: string;
   sobrenome: string;
@@ -496,9 +498,8 @@ export const useVoluntario = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const base = import.meta.env.VITE_URL_BACKEND || "/api";
       const response = await fetch(
-        `${base}/perfil/voluntario/foto?usuarioId=${usuarioId}`,
+        buildBackendUrl(`/perfil/voluntario/foto?usuarioId=${usuarioId}`),
         {
           method: "POST",
           headers: {
@@ -520,7 +521,7 @@ export const useVoluntario = () => {
       const photoUrl = result.url
         ? result.url.startsWith("http")
           ? result.url
-          : `${import.meta.env.VITE_URL_BACKEND}${result.url}`
+          : buildBackendUrl(result.url)
         : (() => {
             throw new Error("Resposta do upload não retornou URL da foto");
           })();

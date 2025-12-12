@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, buildBackendUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -731,13 +731,9 @@ export function CompletarCadastroVoluntario() {
 
       const payload = getPayload();
       console.log("Enviando payload:", JSON.stringify(payload, null, 2));
-      const baseUrl = (import.meta.env.VITE_URL_BACKEND || "")
-        .toString()
-        .trim();
-      const computedBase = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-      const url = computedBase
-        ? `${computedBase}/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
-        : `/api/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;
+      const url = buildBackendUrl(
+        `/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`
+      );
 
       const response = await fetch(url, {
         method: "POST",
