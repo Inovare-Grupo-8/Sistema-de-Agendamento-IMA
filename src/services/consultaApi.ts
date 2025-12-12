@@ -483,12 +483,19 @@ export class ConsultaApiService {
     voluntarioId: number
   ): Promise<HorarioDisponivel[]> {
     try {
-      const response = await apiClient.get(`/consulta/horarios-disponiveis`, {
+      const relativePath = `/consulta/horarios-disponiveis`;
+      const fullUrl = `${apiClient.defaults.baseURL || ""}${relativePath}`;
+      console.log("🔎 [ConsultaApi] GET:", fullUrl, {
+        data: date,
+        idVoluntario: voluntarioId,
+      });
+      const response = await apiClient.get(relativePath, {
         params: {
           data: date,
           idVoluntario: voluntarioId,
         },
       });
+      console.log("✅ [ConsultaApi] resposta status:", response.status);
 
       const payload = response.data as unknown;
       const rawValues = Array.isArray(payload)
@@ -520,7 +527,22 @@ export class ConsultaApiService {
         })
         .filter((item): item is HorarioDisponivel => item !== null);
     } catch (error) {
-      console.error("Error fetching horarios disponiveis:", error);
+      // Log detalhado para diagnóstico de 404/erros
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyErr = error as any;
+        if (anyErr?.response) {
+          console.error(
+            "Error fetching horarios disponiveis: status",
+            anyErr.response.status,
+            anyErr.response.data
+          );
+        } else {
+          console.error("Error fetching horarios disponiveis:", anyErr);
+        }
+      } catch (logErr) {
+        console.error("Erro ao logar erro de horarios disponiveis:", logErr);
+      }
       throw this.handleApiError(error);
     }
   }
