@@ -110,28 +110,32 @@ export function ClassificacaoUsuarios({
       });
 
       if (response.ok) {
-        console.log("[Classificacao] Resposta", {
-          status: response.status,
-          contentType: response.headers.get("content-type") || "",
-        });
-        const ct = response.headers.get("content-type") || "";
-        if (!ct.includes("application/json")) {
-          const text = await response.text();
-          console.error("[Classificacao] Resposta não JSON", {
-            status: response.status,
-            contentType: ct,
-            snippet: text.slice(0, 200),
-          });
-          throw new Error("Resposta inesperada do backend (não JSON)");
-        }
+        const contentType = response.headers.get("content-type") || "";
         const raw = await response.text();
-        console.log("[Classificacao] Raw JSON nao-classificados:", raw);
-        const data = JSON.parse(raw);
-        setUsuarios(data);
+        // Tenta parsear JSON e log detalhado em caso de falha
+        try {
+          const data = JSON.parse(raw);
+          console.log("[Classificacao] GET sucesso", {
+            status: response.status,
+            contentType,
+            count: Array.isArray(data) ? data.length : undefined,
+          });
+          setUsuarios(data);
+        } catch (parseErr) {
+          console.error("[Classificacao] Falha ao parsear resposta JSON", {
+            status: response.status,
+            contentType,
+            snippet: raw.slice(0, 1000),
+            error: parseErr?.message,
+          });
+          throw parseErr;
+        }
       } else {
+        const text = await response.text().catch(() => "");
         console.error(
           "Erro ao carregar usuários não classificados:",
-          response.status
+          response.status,
+          text.slice ? text.slice(0, 400) : text
         );
       }
     } catch (error) {
