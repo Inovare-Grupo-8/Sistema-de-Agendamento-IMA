@@ -48,6 +48,7 @@ import {
   ConsultaAvaliacao,
   ConsultaFeedback,
 } from "@/services/consultaApi";
+import { buildBackendUrl } from "@/lib/utils";
 import { useUserData } from "@/hooks/useUserData";
 import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import { Input } from "@/components/ui/input";
@@ -526,7 +527,7 @@ const HistoricoUser = () => {
 
     try {
       // Obter dados do histórico via API
-      const response = await fetch("/api/historico/exportar", {
+      const response = await fetch(buildBackendUrl("/historico/exportar"), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

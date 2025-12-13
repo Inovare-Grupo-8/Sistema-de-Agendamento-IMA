@@ -6,11 +6,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import {
-  buildBackendUrl,
-  getBackendBaseUrl,
-  resolvePerfilPath,
-} from "@/lib/utils";
+import { buildBackendUrl, resolvePerfilPath } from "@/lib/utils";
 
 interface ProfileImageContextType {
   profileImage: string;
@@ -151,13 +147,9 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         return rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
       })();
 
-      const baseUrl = getBackendBaseUrl();
-      const baseWithoutApi = baseUrl.replace(/\/api\/?$/, "");
-
       const candidateUrls = new Set<string>([primaryUrl]);
-
-      if (normalizedPath && baseWithoutApi !== baseUrl) {
-        candidateUrls.add(`${baseWithoutApi}${normalizedPath}`);
+      if (normalizedPath) {
+        candidateUrls.add(buildBackendUrl(normalizedPath));
       }
 
       const errors: unknown[] = [];

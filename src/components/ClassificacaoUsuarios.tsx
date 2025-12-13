@@ -231,8 +231,79 @@ export function ClassificacaoUsuarios({
   };
 
   const abrirDetalhes = (usuario: UsuarioCompleto) => {
-    setUsuarioSelecionado(usuario);
     setDialogAberto(true);
+    // Buscar dados completos do usuário em /usuarios/{id}
+    (async () => {
+      try {
+        const id = usuario.id;
+        const url = buildBackendUrl(`/usuarios/${id}`);
+        console.log("[Classificacao] Detalhes - endpoint", { url });
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        const userDataRaw = localStorage.getItem("userData");
+        if (userDataRaw) {
+          try {
+            const u = JSON.parse(userDataRaw);
+            if (u?.token) headers.Authorization = `Bearer ${u.token}`;
+          } catch {}
+        }
+        const resp = await fetch(url, { headers, credentials: "include" });
+        const ct = resp.headers.get("content-type") || "";
+        if (!resp.ok || !ct.includes("application/json")) {
+          const snippet = await resp.text();
+          console.warn("[Classificacao] Detalhes resposta inválida", {
+            status: resp.status,
+            ct,
+            snippet: snippet.slice(0, 200),
+          });
+          setUsuarioSelecionado(usuario);
+          return;
+        }
+        const raw = await resp.text();
+        console.log("[Classificacao] Raw /usuarios/{id}:", raw);
+        const data = JSON.parse(raw);
+        const endereco = data.endereco || {};
+        const telefone = data.telefone || null;
+        const telStr = telefone
+          ? `(${telefone.ddd}) ${telefone.prefixo}-${telefone.sufixo}`
+          : undefined;
+        const merged: UsuarioCompleto = {
+          id: data.id ?? usuario.id,
+          email: data.email ?? usuario.email,
+          tipo: data.tipo ?? usuario.tipo ?? "USUARIO",
+          dataCadastro: data.dataCadastro ?? usuario.dataCadastro ?? "",
+          nome: data.nome ?? usuario.nome ?? "",
+          sobrenome: data.sobrenome ?? usuario.sobrenome ?? "",
+          cpf: data.cpf ?? usuario.cpf ?? null,
+          dataNascimento: data.dataNascimento ?? usuario.dataNascimento ?? null,
+          rendaMinima: data.rendaMinima ?? usuario.rendaMinima ?? null,
+          rendaMaxima: data.rendaMaxima ?? usuario.rendaMaxima ?? null,
+          genero: data.genero ?? usuario.genero ?? null,
+          areaInteresse: data.areaOrientacao ?? usuario.areaInteresse ?? null,
+          profissao: data.profissao ?? usuario.profissao ?? null,
+          logradouro: endereco.logradouro ?? usuario.logradouro,
+          numero: endereco.numero ?? usuario.numero,
+          complemento: endereco.complemento ?? usuario.complemento,
+          bairro: endereco.bairro ?? usuario.bairro,
+          cidade: endereco.localidade ?? usuario.cidade,
+          uf: endereco.uf ?? usuario.uf,
+          cep: endereco.cep ?? usuario.cep,
+          telefones: telStr
+            ? [
+                {
+                  numero: telStr,
+                  tipo: telefone?.whatsapp ? "WhatsApp" : "principal",
+                },
+              ]
+            : usuario.telefones || [],
+        };
+        setUsuarioSelecionado(merged);
+      } catch (e) {
+        console.warn("[Classificacao] detalhes usuário falhou", e);
+        setUsuarioSelecionado(usuario);
+      }
+    })();
   };
   const formatarData = (dataISO: string | null | undefined) => {
     if (!dataISO) return "Não informado";
