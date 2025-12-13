@@ -19,7 +19,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getBackendBaseUrl, parseJsonSafe } from "@/lib/utils";
+import { parseJsonSafe } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -322,7 +322,6 @@ export function AssistenteSocial() {
   // Função para atualizar contador após classificação
   const atualizarContadorUsuarios = async () => {
     try {
-      const base = getBackendBaseUrl();
       const userDataRaw = localStorage.getItem("userData");
       const token = (() => {
         if (!userDataRaw) return null;
@@ -337,7 +336,7 @@ export function AssistenteSocial() {
         "Content-Type": "application/json",
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      const response = await fetch(`${base}/usuarios`, { headers });
+      const response = await fetch(buildBackendUrl(`/usuarios`), { headers });
       if (response.ok) {
         const usuarios = (await parseJsonSafe(response)) as UsuarioResumo[];
         setTotalUsuarios(usuarios.length);

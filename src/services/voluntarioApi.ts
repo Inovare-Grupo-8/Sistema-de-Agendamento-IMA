@@ -1,9 +1,8 @@
 import axios from "axios";
-import { getBackendBaseUrl } from "@/lib/utils";
+import { buildBackendUrl } from "@/lib/utils";
 import { ConsultaApiService } from "@/services/consultaApi";
 
-// API base configuration
-const API_BASE_URL = getBackendBaseUrl();
+const API_BASE_URL = buildBackendUrl("");
 console.log("🔧 [voluntarioApi] API_BASE_URL=", API_BASE_URL);
 
 // Create axios instance with base configuration
