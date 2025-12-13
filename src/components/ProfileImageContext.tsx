@@ -299,11 +299,21 @@ export const ProfileImageProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const endpoint = buildBackendUrl(
-        `${resolvePerfilPath(tipoUsuario, funcao)}?usuarioId=${usuarioId}`
+      // Garantia: em alguns builds antigos o segmento 'administrador' era usado.
+      // Forçar o segmento 'assistente-social' quando o tipo for ADMINISTRADOR.
+      const rawPath = resolvePerfilPath(tipoUsuario, funcao);
+      const forcedPath = rawPath.replace(
+        "/perfil/administrador",
+        "/perfil/assistente-social"
       );
+      const endpoint = buildBackendUrl(`${forcedPath}?usuarioId=${usuarioId}`);
 
-      console.log("🌐 [ProfileImageContext] Endpoint da API:", endpoint);
+      console.log("🌐 [ProfileImageContext] Endpoint da API:", endpoint, {
+        rawPath,
+        forcedPath,
+        tipoUsuario,
+        funcao,
+      });
 
       const response = await fetch(endpoint, {
         method: "GET",

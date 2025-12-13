@@ -101,42 +101,65 @@ export function ClassificacaoUsuarios({
         url: urlNC,
         tokenPresent: !!token,
       });
+
       const response = await fetch(urlNC, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         credentials: "include",
+      }).catch((fetchErr) => {
+        console.error("[Classificacao] Erro na requisição fetch:", fetchErr);
+        throw fetchErr;
       });
 
-      if (response.ok) {
-        const contentType = response.headers.get("content-type") || "";
-        const raw = await response.text();
-        // Tenta parsear JSON e log detalhado em caso de falha
+      const status = response.status;
+      const statusText = response.statusText;
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((v, k) => (headersObj[k] = v));
+      const rawBody = await response.text().catch(() => "");
+
+      console.log("[Classificacao] Resposta bruta do backend", {
+        url: urlNC,
+        status,
+        statusText,
+        headers: headersObj,
+        bodySnippet: rawBody.slice(0, 2000),
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok) {
+        console.error("[Classificacao] Backend retornou erro:", {
+          status,
+          statusText,
+          snippet: rawBody.slice(0, 2000),
+        });
+      } else {
+        if (!contentType.includes("application/json")) {
+          console.warn("[Classificacao] Resposta não é JSON", {
+            status,
+            contentType,
+            snippet: rawBody.slice(0, 2000),
+          });
+          // Tentar ainda assim parsear caso backend esteja retornando JSON com header errado
+        }
+
         try {
-          const data = JSON.parse(raw);
-          console.log("[Classificacao] GET sucesso", {
-            status: response.status,
+          const data = JSON.parse(rawBody || "null");
+          console.log("[Classificacao] GET sucesso - parsed JSON", {
+            status,
             contentType,
             count: Array.isArray(data) ? data.length : undefined,
           });
-          setUsuarios(data);
+          setUsuarios(data ?? []);
         } catch (parseErr) {
           console.error("[Classificacao] Falha ao parsear resposta JSON", {
-            status: response.status,
+            status,
             contentType,
-            snippet: raw.slice(0, 1000),
+            snippet: rawBody.slice(0, 2000),
             error: parseErr?.message,
           });
-          throw parseErr;
         }
-      } else {
-        const text = await response.text().catch(() => "");
-        console.error(
-          "Erro ao carregar usuários não classificados:",
-          response.status,
-          text.slice ? text.slice(0, 400) : text
-        );
       }
     } catch (error) {
       console.error("Erro ao conectar com a API:", error);
