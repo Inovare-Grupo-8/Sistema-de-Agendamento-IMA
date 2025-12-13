@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getBackendBaseUrl } from "@/lib/utils";
+import { ConsultaApiService } from "@/services/consultaApi";
 
 // API base configuration
 const API_BASE_URL = getBackendBaseUrl();
@@ -467,26 +468,47 @@ export class VoluntarioApiService {
         : [];
       return arr.map((d) => ({ id: d.id, dataHorario: d.dataHorario }));
     } catch (error) {
-      // Log detalhado para debugar 404/ERROS do backend
+      // Fallback: backend pode não oferecer a lista direta; varrer próximos dias via consulta
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const anyErr = error as any;
-        if (anyErr?.response) {
-          console.error(
-            "Erro ao listar disponibilidades por voluntário: status",
-            anyErr.response.status,
-            anyErr.response.data
-          );
-        } else {
-          console.error(
-            "Erro ao listar disponibilidades por voluntário:",
-            anyErr
-          );
+        console.warn(
+          "[VoluntarioApi] Falha lista disponibilidades, usando fallback via /consulta/horarios-disponiveis"
+        );
+        const map = await ConsultaApiService.listarDisponibilidadesPorVoluntario(
+          idVoluntario,
+          30
+        );
+        const out: Array<{ id: number; dataHorario: string }> = [];
+        Object.entries(map).forEach(([dateIso, slots]) => {
+          slots.forEach((slot) => {
+            const time = slot.time?.length === 5 ? slot.time : slot.time?.slice(0, 5);
+            if (dateIso && time) {
+              out.push({ id: 0, dataHorario: `${dateIso}T${time}:00` });
+            }
+          });
+        });
+        return out;
+      } catch (fallbackErr) {
+        // Log detalhado para debugar 404/ERROS do backend
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const anyErr = error as any;
+          if (anyErr?.response) {
+            console.error(
+              "Erro ao listar disponibilidades por voluntário: status",
+              anyErr.response.status,
+              anyErr.response.data
+            );
+          } else {
+            console.error(
+              "Erro ao listar disponibilidades por voluntário:",
+              anyErr
+            );
+          }
+        } catch (logErr) {
+          console.error("Erro ao logar erro de disponibilidades:", logErr);
         }
-      } catch (logErr) {
-        console.error("Erro ao logar erro de disponibilidades:", logErr);
+        return [];
       }
-      return [];
     }
   }
 

@@ -193,7 +193,9 @@ const MeusHorarios = () => {
               a.localeCompare(b)
             );
             nextMap[dateStr] = entry;
-            nextIds[`${dateStr}|${timeStr}`] = id;
+            if (id && id > 0) {
+              nextIds[`${dateStr}|${timeStr}`] = id;
+            }
           }
         });
         saveMap(nextMap);
