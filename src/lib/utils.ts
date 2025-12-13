@@ -62,12 +62,18 @@ export function buildBackendUrl(path: string | null | undefined): string {
   const base = getBackendBaseUrl();
   const normalizedPath = normalizePath(path);
   // Remover qualquer prefixo '/api' que tenha sido incluído no path,
-  // pois o load balancer já aplica esse prefixo.
+  // pois o load balancer ou proxy pode já aplicar esse prefixo.
   let cleanedPath = normalizedPath;
   if (cleanedPath === "/api") {
     cleanedPath = "";
   } else if (cleanedPath.startsWith("/api/")) {
     cleanedPath = cleanedPath.slice(4);
+  }
+
+  // Se não houver um base explícito configurado, prefixar por '/api'
+  // para garantir que a chamada atinja o proxy reverso que expõe a API.
+  if (!base || base === "") {
+    return `/api${cleanedPath}`;
   }
 
   return `${base}${cleanedPath}`;
@@ -83,8 +89,9 @@ export function resolvePerfilSegment(
   const tipo = normalizeString(tipoUsuario).toLowerCase();
   const func = normalizeString(funcao).toUpperCase();
 
+  // Administrador deve usar o segmento de assistente-social
   if (tipo === "administrador") {
-    return "administrador";
+    return "assistente-social";
   }
 
   if (tipo === "voluntario" || tipo === "voluntário") {

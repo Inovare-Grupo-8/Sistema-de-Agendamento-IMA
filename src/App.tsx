@@ -11,7 +11,6 @@ import Agenda from "@/components/Agenda";
 import AgendaUser from "@/components/AgendaUser";
 import Home from "@/components/Home";
 import HomeUser from "@/components/HomeUser";
-import HomeAdmin from "@/components/HomeAdmin";
 import Historico from "@/components/Historico";
 import HistoricoUser from "@/components/HistoricoUser";
 import ProfileForm from "@/components/ProfileForm";
