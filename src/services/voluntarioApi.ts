@@ -4,6 +4,7 @@ import { ConsultaApiService } from "@/services/consultaApi";
 
 // API base configuration
 const API_BASE_URL = getBackendBaseUrl();
+console.log("🔧 [voluntarioApi] API_BASE_URL=", API_BASE_URL);
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -473,14 +474,16 @@ export class VoluntarioApiService {
         console.warn(
           "[VoluntarioApi] Falha lista disponibilidades, usando fallback via /consulta/horarios-disponiveis"
         );
-        const map = await ConsultaApiService.listarDisponibilidadesPorVoluntario(
-          idVoluntario,
-          30
-        );
+        const map =
+          await ConsultaApiService.listarDisponibilidadesPorVoluntario(
+            idVoluntario,
+            30
+          );
         const out: Array<{ id: number; dataHorario: string }> = [];
         Object.entries(map).forEach(([dateIso, slots]) => {
           slots.forEach((slot) => {
-            const time = slot.time?.length === 5 ? slot.time : slot.time?.slice(0, 5);
+            const time =
+              slot.time?.length === 5 ? slot.time : slot.time?.slice(0, 5);
             if (dateIso && time) {
               out.push({ id: 0, dataHorario: `${dateIso}T${time}:00` });
             }
@@ -542,13 +545,25 @@ export class VoluntarioApiService {
     senha: string;
   }): Promise<{ idUsuario: number }> {
     try {
-      const response = await apiClient.post(
-        "/usuarios/voluntario/primeira-fase",
-        data
+      const path = "/usuarios/voluntario/primeira-fase";
+      const fullUrl = `${apiClient.defaults.baseURL || API_BASE_URL}${path}`;
+      const masked = { ...data, senha: data.senha ? "***" : undefined };
+      console.log("📤 [voluntarioApi] POST", fullUrl, "payload:", masked);
+
+      const response = await apiClient.post(path, data);
+
+      console.log(
+        "✅ [voluntarioApi] Response POST",
+        fullUrl,
+        "status",
+        response.status
       );
       return response.data;
     } catch (error) {
-      console.error("Erro ao cadastrar voluntário (primeira fase):", error);
+      console.error(
+        "❌ [voluntarioApi] Erro ao cadastrar voluntário (primeira fase):",
+        error
+      );
       throw error;
     }
   }
@@ -584,14 +599,22 @@ export class VoluntarioApiService {
     }
   ): Promise<any> {
     try {
-      const response = await apiClient.post(
-        `/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`,
-        data
+      const path = `/usuarios/voluntario/segunda-fase?idUsuario=${idUsuario}`;
+      const fullUrl = `${apiClient.defaults.baseURL || API_BASE_URL}${path}`;
+      console.log("📤 [voluntarioApi] POST", fullUrl, "payload:", data);
+
+      const response = await apiClient.post(path, data);
+
+      console.log(
+        "✅ [voluntarioApi] Response POST",
+        fullUrl,
+        "status",
+        response.status
       );
       return response.data;
     } catch (error) {
       console.error(
-        "Erro ao completar cadastro do voluntário (segunda fase):",
+        "❌ [voluntarioApi] Erro ao completar cadastro do voluntário (segunda fase):",
         error
       );
       throw error;

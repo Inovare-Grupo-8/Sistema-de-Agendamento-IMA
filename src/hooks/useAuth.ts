@@ -144,6 +144,11 @@ export function useAuth() {
         }
 
         const data = await parseJsonSafe(response);
+        console.log("🔐 [useAuth] Login successful:", {
+          idUsuario: data?.idUsuario,
+          hasToken: !!data?.token,
+          url: loginUrl,
+        });
         const tipoNormalized = String(data.tipo || "").toUpperCase();
         const funcaoNormalized = String(data.funcao || "").toUpperCase();
         const dataNormalized = {
